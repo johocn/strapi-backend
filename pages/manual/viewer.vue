@@ -1,0 +1,241 @@
+<template>
+  <view class="manual-viewer">
+    <view class="header">
+      <view class="back-btn" @click="goBack">←</view>
+      <text class="title">{{ currentTitle || '文档查看' }}</text>
+      <view class="header-actions">
+        <text class="search-btn" @click="goSearch">🔍</text>
+      </view>
+    </view>
+
+    <view v-if="loading" class="loading">加载中...</view>
+    <view v-else-if="error" class="error">{{ error }}</view>
+    <scroll-view v-else scroll-y class="markdown-body" :scroll-top="scrollTop">
+      <view ref="contentRef" v-html="renderedHtml"></view>
+
+      <view class="doc-nav">
+        <view v-if="prevDoc" class="nav-btn prev" @click="goDoc(prevDoc)">← 上一篇</view>
+        <view v-if="nextDoc" class="nav-btn next" @click="goDoc(nextDoc)">下一篇 →</view>
+      </view>
+    </scroll-view>
+
+    <view class="footer-bar" @click="goDashboard">
+      <text class="footer-text">返回面板</text>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import MarkdownIt from 'markdown-it'
+
+const md = new MarkdownIt({ html: true, linkify: true })
+
+// token 级拦截：把 .md 链接的 <a> 改成 <span data-doc>
+const linkStack = []
+const defaultLinkOpen = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options)
+}
+md.renderer.rules.link_open = function(tokens, idx, options, env, self) {
+  const token = tokens[idx]
+  const hrefIndex = token.attrIndex('href')
+  if (hrefIndex >= 0) {
+    const href = token.attrs[hrefIndex][1]
+    if (/\.md(\?|#|$)/.test(href)) {
+      const resolved = resolveDocPath(href)
+      if (resolved) {
+        linkStack.push(true)
+        return `<span class="doc-link" data-doc="${resolved}">`
+      }
+    }
+  }
+  linkStack.push(false)
+  token.attrPush(['target', '_blank'])
+  token.attrPush(['rel', 'noopener'])
+  return self.renderToken(tokens, idx, options)
+}
+md.renderer.rules.link_close = function(tokens, idx, options, env, self) {
+  const isDocLink = linkStack.pop()
+  if (isDocLink) return '</span>'
+  return self.renderToken(tokens, idx, options)
+}
+
+const docs = import.meta.glob('../../../docs/manual/**/*.md', { as: 'raw', eager: true })
+
+const currentDoc = ref('')
+const content = ref('')
+const loading = ref(true)
+const error = ref('')
+const scrollTop = ref(0)
+const contentRef = ref(null)
+
+const renderedHtml = computed(() => md.render(content.value))
+const currentTitle = computed(() => {
+  const line = content.value.split('\n').find(l => l.startsWith('#'))
+  return line ? line.replace(/^#+\s*/, '') : ''
+})
+
+const prevDoc = computed(() => {
+  const order = getIndexOrder()
+  const idx = order.indexOf(currentDoc.value)
+  return idx > 0 ? order[idx - 1] : null
+})
+
+const nextDoc = computed(() => {
+  const order = getIndexOrder()
+  const idx = order.indexOf(currentDoc.value)
+  return idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null
+})
+
+function getIndexOrder() {
+  const keys = Object.keys(docs)
+  const findDoc = (target) => {
+    const key = keys.find(k => k.endsWith(target))
+    return key ? docs[key] : null
+  }
+  const adminIndex = findDoc('docs/manual/admin/index.md')
+  const shaoIndex = findDoc('docs/manual/shao-catalog/index.md')
+  const userIndex = findDoc('docs/manual/user-guide/index.md')
+  const order = []
+  const extractLinks = (raw) => {
+    if (!raw) return
+    const re = /\[([^\]]+)\]\(([^)]+\.md)\)/g
+    let m
+    while ((m = re.exec(raw)) !== null) {
+      order.push(m[2])
+    }
+  }
+  extractLinks(adminIndex)
+  extractLinks(shaoIndex)
+  extractLinks(userIndex)
+  return order
+}
+
+function loadDoc(docPath) {
+  loading.value = true
+  error.value = ''
+  const keys = Object.keys(docs)
+  const key = keys.find(k => k.endsWith(`docs/manual/${docPath}`))
+  const raw = key ? docs[key] : null
+  if (!raw) {
+    error.value = `文档不存在: ${docPath}`
+    loading.value = false
+    return
+  }
+  content.value = raw
+  currentDoc.value = docPath
+  loading.value = false
+  scrollTop.value = 0
+}
+
+onLoad((opts) => {
+  const doc = opts.doc ? decodeURIComponent(opts.doc) : 'admin/index.md'
+  loadDoc(doc)
+})
+
+function goSearch() {
+  uni.navigateTo({ url: '/pages/manual/search' })
+}
+
+// 直接更新内容，不跳转页面，最稳
+function goDoc(doc) {
+  loadDoc(doc)
+}
+
+function onDocClick(e) {
+  const target = e.target.closest && e.target.closest('[data-doc]')
+  if (target) {
+    const doc = target.getAttribute('data-doc')
+    if (doc) {
+      e.preventDefault()
+      goDoc(doc)
+    }
+  }
+}
+
+function bindClick() {
+  nextTick(() => {
+    const el = contentRef.value?.$el || contentRef.value
+    if (el && el.addEventListener) {
+      el.addEventListener('click', onDocClick)
+    }
+  })
+}
+
+onMounted(() => {
+  bindClick()
+})
+
+onBeforeUnmount(() => {
+  const el = contentRef.value?.$el || contentRef.value
+  if (el && el.removeEventListener) {
+    el.removeEventListener('click', onDocClick)
+  }
+})
+
+function resolveDocPath(href) {
+  let path = href.split(/[?#]/)[0]
+  if (!path.endsWith('.md')) return null
+  if (path.startsWith('/')) path = path.slice(1)
+  if (/^(admin|shao-catalog|user-guide)\//.test(path)) return path
+  const dir = currentDoc.value.split('/').slice(0, -1).join('/')
+  return dir ? `${dir}/${path}` : path
+}
+
+function goBack() {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    uni.reLaunch({ url: '/pages/dashboard/index' })
+  }
+}
+
+function goDashboard() {
+  uni.reLaunch({ url: '/pages/dashboard/index' })
+}
+</script>
+
+<style scoped>
+.manual-viewer { height: 100vh; display: flex; flex-direction: column; padding-bottom: 96rpx; }
+.header { display: flex; align-items: center; padding: 24rpx 32rpx; background: #fff; border-bottom: 1rpx solid #e4e7ed; gap: 16rpx; }
+.back-btn { font-size: 40rpx; color: #303133; padding: 0 8rpx; }
+.header .title { flex: 1; font-size: 32rpx; font-weight: 600; color: #303133; }
+.header-actions { display: flex; align-items: center; }
+.search-btn { font-size: 32rpx; padding: 0 16rpx; }
+
+.loading, .error { padding: 80rpx; text-align: center; color: #909399; }
+
+.markdown-body {
+  flex: 1;
+  padding: 32rpx;
+  background: #fff;
+}
+.markdown-body :deep(h1) { font-size: 40rpx; font-weight: 700; margin: 24rpx 0 16rpx; color: #303133; }
+.markdown-body :deep(h2) { font-size: 34rpx; font-weight: 600; margin: 24rpx 0 12rpx; color: #303133; }
+.markdown-body :deep(h3) { font-size: 30rpx; font-weight: 600; margin: 16rpx 0 8rpx; color: #303133; }
+.markdown-body :deep(p) { font-size: 28rpx; line-height: 1.7; color: #606266; margin: 12rpx 0; }
+.markdown-body :deep(ul), .markdown-body :deep(ol) { padding-left: 40rpx; margin: 12rpx 0; }
+.markdown-body :deep(li) { font-size: 28rpx; line-height: 1.7; color: #606266; }
+.markdown-body :deep(code) { background: #f5f7fa; padding: 2rpx 8rpx; border-radius: 4rpx; font-family: monospace; font-size: 26rpx; }
+.markdown-body :deep(pre) { background: #f5f7fa; padding: 16rpx; border-radius: 8rpx; overflow-x: auto; margin: 16rpx 0; }
+.markdown-body :deep(table) { width: 100%; border-collapse: collapse; margin: 16rpx 0; }
+.markdown-body :deep(th), .markdown-body :deep(td) { border: 1rpx solid #dcdfe6; padding: 8rpx 12rpx; font-size: 26rpx; }
+.markdown-body :deep(th) { background: #f5f7fa; font-weight: 600; }
+.markdown-body :deep(a) { color: #409eff; text-decoration: underline; }
+.markdown-body :deep(.doc-link) { color: #409eff; text-decoration: underline; }
+.markdown-body :deep(blockquote) { border-left: 4rpx solid #dcdfe6; padding-left: 16rpx; color: #909399; margin: 16rpx 0; }
+
+.doc-nav { display: flex; justify-content: space-between; padding: 32rpx 0; border-top: 1rpx solid #e4e7ed; margin-top: 32rpx; }
+.nav-btn { padding: 16rpx 24rpx; background: #f5f7fa; border-radius: 8rpx; font-size: 26rpx; color: #606266; }
+.nav-btn.next { margin-left: auto; }
+
+.footer-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: 96rpx; line-height: 96rpx;
+  background: #07c160; color: #fff;
+  text-align: center; font-size: 30rpx; font-weight: 600;
+}
+.footer-text { color: #fff; }
+</style>
