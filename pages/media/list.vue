@@ -3,104 +3,110 @@
     <PageHeader title="媒体资源">
       <view class="header-right">
         <text class="action-text" @click="showNewFolderModal" v-if="hasPermission('menu.media')">新建文件夹</text>
-        <button class="upload-btn" @click="chooseFile" v-if="hasPermission('menu.media')">上传</button>
+        <button class="upload-btn" @click="chooseFile">上传</button>
       </view>
     </PageHeader>
 
-    <!-- 文件夹导航 -->
-    <view class="folder-nav">
-      <text
-        v-for="(seg, idx) in pathSegments"
-        :key="idx"
-        class="folder-seg"
-        @click="navigateTo(idx)"
-      >{{ seg === '/' ? '根目录' : seg }}<text v-if="idx < pathSegments.length - 1" class="folder-sep"> / </text></text>
+    <!-- 权限 banner -->
+    <view class="scope-banner" :class="isAdminLike ? 'admin' : 'user'">
+      <text>{{ isAdminLike ? '当前查看全部文件（管理员视图）' : '仅显示你上传的文件' }}</text>
     </view>
 
+    <!-- 文件夹导航 -->
+    <view class="folder-nav">
+      <text v-for="(seg, idx) in pathSegments" :key="idx" class="folder-seg"
+        @click="navigateTo(idx)">
+        {{ seg === '/' ? '根目录' : seg }}
+        <text v-if="idx < pathSegments.length - 1" class="folder-sep"> / </text>
+      </text>
+    </view>
+
+    <!-- 搜索栏 -->
     <view class="search-bar">
-      <input
-        v-model="searchKeyword"
-        class="search-input"
-        placeholder="搜索文件名"
-        @confirm="handleSearch"
-      />
+      <input v-model="searchKeyword" class="search-input" placeholder="搜索文件名"
+        @confirm="handleSearch" />
       <button class="search-btn" @click="handleSearch">搜索</button>
     </view>
 
-    <view class="type-filter">
-      <text
-        v-for="type in types"
-        :key="type.value"
-        class="type-item"
-        :class="{ active: currentType === type.value }"
-        @click="filterByType(type.value)"
-      >{{ type.label }}</text>
-    </view>
+    <!-- MIME tab -->
+    <scroll-view scroll-x class="type-filter">
+      <text v-for="t in types" :key="t.value" class="type-item"
+        :class="{ active: currentType === t.value }"
+        @click="filterByType(t.value)">{{ t.label }}</text>
+    </scroll-view>
 
+    <!-- 列表 -->
     <view class="list">
-      <!-- 文件夹 -->
-      <view
-        v-for="folder in folders"
-        :key="'f-' + folder"
-        class="list-item folder-item"
-        @click="enterFolder(folder)"
-      >
-        <view class="item-icon folder-icon">📁</view>
-        <view class="item-info">
-          <view class="item-name">{{ folder }}</view>
+      <!-- 网格区：图片 + 视频 -->
+      <view class="grid" v-if="gridItems.length > 0">
+        <view v-for="item in gridItems" :key="item.id" class="grid-card"
+          @click="previewFile(item)">
+          <image v-if="isImage(item.mime)" :src="getFileUrl(item)" mode="aspectFill"
+            class="thumb" lazy-load @error="onThumbError(item)" />
+          <view v-else-if="isVideo(item.mime)" class="video-thumb">
+            <video :src="getFileUrl(item)" class="thumb" :controls="false"
+              :show-center-play-btn="false" />
+            <view class="play-overlay">▶</view>
+          </view>
+          <view class="grid-info">
+            <text class="grid-name">{{ item.name }}</text>
+            <text class="grid-meta">{{ formatFileSize(item.size) }}</text>
+          </view>
+          <text class="delete-btn" @click.stop="handleDelete(item)">删除</text>
         </view>
       </view>
-      <!-- 文件 -->
-      <view
-        v-for="item in list"
-        :key="item.id"
-        class="list-item"
-      >
-        <view class="item-main" @click="previewFile(item)">
-          <view class="item-icon">{{ getFileIcon(item) }}</view>
-          <view class="item-info">
-            <view class="item-name">{{ item.originalName || item.filename }}</view>
-            <view class="item-meta">
-              <text class="meta-tag">{{ formatFileSize(item.size) }}</text>
-              <text class="meta-tag">{{ item.mime || item.mimeType }}</text>
-              <text class="meta-tag" v-if="item.createdAt">{{ formatDate(item.createdAt) }}</text>
+
+      <!-- 列表区：文档 + 音频 + 其他 -->
+      <view class="list-section" v-if="listItems.length > 0">
+        <view v-for="item in listItems" :key="item.id" class="list-item">
+          <view class="item-main" @click="previewFile(item)">
+            <view class="item-icon">{{ getFileIcon(item) }}</view>
+            <view class="item-info">
+              <view class="item-name">{{ item.name }}</view>
+              <view class="item-meta">
+                <text class="meta-tag">{{ formatFileSize(item.size) }}</text>
+                <text class="meta-tag">{{ item.mime }}</text>
+                <text class="meta-tag" v-if="item.createdAt">{{ formatDate(item.createdAt) }}</text>
+              </view>
             </view>
           </view>
+          <view class="item-actions">
+            <text class="action-link" @click="previewFile(item)">预览</text>
+            <text class="action-link delete-link" @click="handleDelete(item)">删除</text>
+          </view>
         </view>
-        <view class="item-actions">
-          <text class="action-link" @click="previewFile(item)">预览</text>
-          <text class="action-link delete-link" @click="deleteItem(item.id)" v-if="hasPermission('menu.media')">删除</text>
-        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty" v-if="gridItems.length === 0 && listItems.length === 0">
+        <text>暂无文件</text>
       </view>
     </view>
 
+    <!-- 分页 -->
     <view class="pagination">
-      <button
-        class="page-btn"
-        :disabled="pagination.page <= 1"
-        @click="changePage(pagination.page - 1)"
-      >上一页</button>
-      <text class="page-info">{{ pagination.page }} / {{ pagination.pageCount || 1 }}</text>
-      <button
-        class="page-btn"
-        :disabled="pagination.page >= pagination.pageCount"
-        @click="changePage(pagination.page + 1)"
-      >下一页</button>
+      <button :disabled="pagination.page <= 1" @click="changePage(pagination.page - 1)">上一页</button>
+      <text>{{ pagination.page }} / {{ pagination.pageCount || 1 }}</text>
+      <button :disabled="pagination.page >= pagination.pageCount"
+        @click="changePage(pagination.page + 1)">下一页</button>
     </view>
+
+    <!-- 删除确认弹窗 -->
+    <MediaDeleteConfirmModal
+      :visible="deleteModalVisible"
+      :file="deleteTarget"
+      @close="deleteModalVisible = false"
+      @confirmed="onDeleted"
+    />
 
     <!-- 新建文件夹弹窗 -->
     <view class="modal-mask" v-if="newFolderVisible" @click="newFolderVisible = false">
       <view class="modal-content" @click.stop>
         <view class="modal-title">新建文件夹</view>
-        <input
-          v-model="newFolderName"
-          class="modal-input"
-          placeholder="请输入文件夹名称"
-          :focus="newFolderVisible"
-        />
+        <input v-model="newFolderName" class="folder-input" placeholder="文件夹名称" />
         <view class="modal-actions">
           <button class="modal-btn cancel-btn" @click="newFolderVisible = false">取消</button>
-          <button class="modal-btn confirm-btn" @click="createFolder">确定</button>
+          <button class="modal-btn confirm-btn" @click="createFolder">创建</button>
         </view>
       </view>
     </view>
@@ -109,15 +115,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getOssMediaList, uploadToOss, getOssFolders, createOssFolder, deleteOssMedia, getOssSyncStatus } from '../../src/api/media.js'
+import { getOssMediaList, uploadToOss, getOssFolders, createOssFolder } from '../../src/api/media.js'
 import { DEFAULT_PAGE_SIZE } from '../../src/config/constant.js'
-import { formatFileSize } from '../../src/utils/format.js'
+import { formatFileSize, getMediaUrl, formatDate } from '../../src/utils/format.js'
 import { useUserStore } from '../../src/store/user.js'
+import MediaDeleteConfirmModal from '../../src/components/MediaDeleteConfirmModal.vue'
 
+// ===== 状态 =====
 const list = ref([])
-const userStore = useUserStore()
-const hasPermission = userStore.hasPermission
-const folders = ref([])
 const searchKeyword = ref('')
 const pagination = ref({ page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, total: 0 })
 const currentType = ref('all')
@@ -125,61 +130,95 @@ const currentPath = ref('/')
 const newFolderVisible = ref(false)
 const newFolderName = ref('')
 
+// 删除弹窗状态
+const deleteModalVisible = ref(false)
+const deleteTarget = ref(null)
+
+// ===== 权限 =====
+const userStore = useUserStore()
+const hasPermission = userStore.hasPermission
+const isAdminLike = computed(() => {
+  const roles = userStore.roles || []
+  return roles.some(r => ['admin', 'channel-admin'].includes(r))
+})
+
+// ===== MIME 类型 =====
 const types = [
   { label: '全部', value: 'all' },
   { label: '图片', value: 'image' },
   { label: '视频', value: 'video' },
   { label: '音频', value: 'audio' },
+  { label: '文档', value: 'document' },
+  { label: '其他', value: 'other' },
 ]
 
+// ===== 路径分段 =====
 const pathSegments = computed(() => {
-  if (currentPath.value === '/') return ['/']
-  const parts = currentPath.value.split('/').filter(Boolean)
-  return ['/', ...parts]
+  return currentPath.value.split('/').filter(Boolean)
 })
 
-function buildPath(upToIndex) {
-  if (upToIndex === 0) return '/'
-  return '/' + pathSegments.value.slice(1, upToIndex + 1).join('/') 
+// ===== 计算属性：网格/列表分组 =====
+const gridItems = computed(() =>
+  list.value.filter(f => isImage(f.mime) || isVideo(f.mime))
+)
+const listItems = computed(() =>
+  list.value.filter(f => !isImage(f.mime) && !isVideo(f.mime))
+)
+
+// ===== MIME 判断工具 =====
+function isImage(mime) { return (mime || '').toLowerCase().startsWith('image/') }
+function isVideo(mime) { return (mime || '').toLowerCase().startsWith('video/') }
+
+// ===== 文件 URL 解析 =====
+function getFileUrl(item) {
+  return getMediaUrl(item, false)
 }
 
-function navigateTo(idx) {
-  currentPath.value = buildPath(idx)
-  pagination.value.page = 1
-  loadData()
+// ===== 文件图标 =====
+function getFileIcon(item) {
+  const mime = (item.mime || '').toLowerCase()
+  if (mime.startsWith('audio/')) return '🎵'
+  if (mime.includes('pdf')) return '📄'
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('compressed')) return '📦'
+  return '📎'
 }
 
-async function loadFolders() {
-  try {
-    const res = await getOssFolders({ path: currentPath.value })
-    folders.value = Array.isArray(res) ? res : (res.folders || res.list || [])
-  } catch (e) {
-    folders.value = []
-  }
-}
-
+// ===== 加载数据 =====
 async function loadData() {
   try {
     const params = {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
-      path: currentPath.value
+      folderPath: currentPath.value,
     }
     if (currentType.value !== 'all') {
-      params.mimeType = currentType.value
+      const mimeMap = { image: 'image', video: 'video', audio: 'audio', document: 'application' }
+      if (mimeMap[currentType.value]) params.mime = mimeMap[currentType.value]
     }
-    if (searchKeyword.value) {
-      params.keyword = searchKeyword.value
-    }
+    if (searchKeyword.value) params.search = searchKeyword.value
     const res = await getOssMediaList(params)
-    list.value = res.list
-    pagination.value = res.pagination
-  } catch (error) {
+    list.value = res.list || []
+    pagination.value = { ...pagination.value, ...res.pagination }
+  } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   }
 }
 
+// ===== 筛选与导航 =====
+function filterByType(type) {
+  currentType.value = type
+  pagination.value.page = 1
+  loadData()
+}
+
 function handleSearch() {
+  pagination.value.page = 1
+  loadData()
+}
+
+function navigateTo(idx) {
+  const segs = pathSegments.value.slice(0, idx + 1)
+  currentPath.value = '/' + segs.join('/')
   pagination.value.page = 1
   loadData()
 }
@@ -189,385 +228,360 @@ function changePage(page) {
   loadData()
 }
 
-function filterByType(type) {
-  currentType.value = type
-  pagination.value.page = 1
-  loadData()
-}
-
-function enterFolder(name) {
-  currentPath.value = currentPath.value === '/'
-    ? '/' + name
-    : currentPath.value + '/' + name
-  pagination.value.page = 1
-  loadData()
-  loadFolders()
-}
-
+// ===== 上传 =====
 function chooseFile() {
   uni.chooseImage({
     count: 9,
-    sizeType: ['original', 'compressed'],
-    sourceType: ['album', 'camera'],
     success: async (res) => {
-      for (const tempFilePath of res.tempFilePaths) {
-        await uploadFile(tempFilePath)
-      }
-    }
-  })
-}
-
-async function uploadFile(filePath) {
-  try {
-    uni.showLoading({ title: '上传中...' })
-    await uploadToOss(filePath, currentPath.value)
-    uni.showToast({ title: '上传成功', icon: 'success' })
-    loadData()
-    loadFolders()
-  } catch (error) {
-    uni.showToast({ title: '上传失败', icon: 'none' })
-  } finally {
-    uni.hideLoading()
-  }
-}
-
-function previewFile(item) {
-  const url = item.url || item.src || item.path
-  if (!url) {
-    uni.showToast({ title: '无预览地址', icon: 'none' })
-    return
-  }
-  const mime = (item.mime || item.mimeType || '').toLowerCase()
-  if (mime.startsWith('image')) {
-    uni.previewImage({ urls: [url], current: url })
-  } else {
-    uni.navigateTo({ url: `/pages/webview/index?url=${encodeURIComponent(url)}` })
-  }
-}
-
-async function deleteItem(id) {
-  uni.showModal({
-    title: '确认删除',
-    content: '确定要删除这个文件吗？',
-    success: async (res) => {
-      if (res.confirm) {
+      for (const path of res.tempFilePaths) {
         try {
-          await deleteOssMedia(id)
-          uni.showToast({ title: '删除成功', icon: 'success' })
-          loadData()
-        } catch (error) {
-          uni.showToast({ title: '删除失败', icon: 'none' })
+          await uploadToOss(path, currentPath.value)
+        } catch (e) {
+          uni.showToast({ title: '上传失败', icon: 'none' })
         }
       }
+      loadData()
+      uni.showToast({ title: '上传成功', icon: 'success' })
     }
   })
 }
 
+// ===== 预览 =====
+function previewFile(item) {
+  if (isImage(item.mime)) {
+    uni.previewImage({
+      urls: [getFileUrl(item)],
+      current: getFileUrl(item)
+    })
+  } else if (isVideo(item.mime)) {
+    uni.navigateTo({
+      url: `/pages/media/preview?url=${encodeURIComponent(getFileUrl(item))}`
+    })
+  } else {
+    uni.showToast({ title: '无法预览此文件', icon: 'none' })
+  }
+}
+
+// ===== 缩略图加载失败 =====
+function onThumbError(item) {
+  item._thumbError = true
+}
+
+// ===== 删除流程 =====
+function handleDelete(item) {
+  deleteTarget.value = item
+  deleteModalVisible.value = true
+}
+
+function onDeleted() {
+  deleteModalVisible.value = false
+  deleteTarget.value = null
+  uni.showToast({ title: '删除成功', icon: 'success' })
+  loadData()
+}
+
+// ===== 新建文件夹 =====
 function showNewFolderModal() {
   newFolderName.value = ''
   newFolderVisible.value = true
 }
 
 async function createFolder() {
-  const name = newFolderName.value.trim()
-  if (!name) {
+  if (!newFolderName.value) {
     uni.showToast({ title: '请输入文件夹名称', icon: 'none' })
     return
   }
   try {
-    await createOssFolder(name, currentPath.value)
-    uni.showToast({ title: '创建成功', icon: 'success' })
+    await createOssFolder(newFolderName.value, currentPath.value)
     newFolderVisible.value = false
-    loadFolders()
-  } catch (error) {
+    uni.showToast({ title: '创建成功', icon: 'success' })
+  } catch (e) {
     uni.showToast({ title: '创建失败', icon: 'none' })
   }
 }
 
-function getFileIcon(item) {
-  const mime = (item.mime || item.mimeType || '').toLowerCase()
-  if (mime.startsWith('image')) return '🖼️'
-  if (mime.startsWith('video')) return '🎬'
-  if (mime.startsWith('audio')) return '🎵'
-  if (mime.includes('pdf')) return '📄'
-  if (mime.includes('zip') || mime.includes('rar')) return '📦'
-  return '📎'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
+// ===== 初始化 =====
 onMounted(() => {
   loadData()
-  loadFolders()
 })
 </script>
 
 <style scoped>
 .page-container {
-  min-height: 100vh;
   padding: 20rpx;
-  box-sizing: border-box;
-  background: #f5f5f5;
 }
-
-.action-text {
-  font-size: 28rpx;
-  color: #1989fa;
-}
-
-.upload-btn {
-  height: 60rpx;
-  line-height: 60rpx;
-  padding: 0 24rpx;
-  background: #10b981;
-  color: #fff;
-  border: none;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-}
-
-/* 文件夹导航 */
-.folder-nav {
+.header-right {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  padding: 16rpx 20rpx;
-  margin-bottom: 16rpx;
-  background: #fff;
-  border-radius: 12rpx;
+  gap: 16rpx;
 }
-
-.folder-seg {
+.action-text {
   font-size: 26rpx;
-  color: #1989fa;
+  color: #1890ff;
 }
-
+.upload-btn {
+  font-size: 26rpx;
+  background: #1890ff;
+  color: #fff;
+  padding: 8rpx 24rpx;
+  border-radius: 8rpx;
+  border: none;
+}
+.scope-banner {
+  padding: 12rpx 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  text-align: center;
+}
+.scope-banner.admin {
+  background: #e6f7ff;
+  color: #1890ff;
+  border: 2rpx solid #91d5ff;
+}
+.scope-banner.user {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 2rpx solid #b7eb8f;
+}
+.folder-nav {
+  padding: 12rpx 0;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  color: #1890ff;
+}
+.folder-seg {
+  cursor: pointer;
+}
 .folder-sep {
   color: #999;
   margin: 0 4rpx;
 }
-
-/* 搜索栏 */
 .search-bar {
   display: flex;
   gap: 16rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
-
 .search-input {
   flex: 1;
-  height: 72rpx;
+  height: 60rpx;
   padding: 0 24rpx;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 12rpx;
-  background: #fff;
-  font-size: 28rpx;
+  border: 2rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  font-size: 26rpx;
 }
-
 .search-btn {
-  width: 140rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  background: #667eea;
+  background: #1890ff;
   color: #fff;
   border: none;
-  border-radius: 12rpx;
-  font-size: 28rpx;
+  border-radius: 8rpx;
+  padding: 0 32rpx;
+  font-size: 26rpx;
 }
-
-/* 类型筛选 */
 .type-filter {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 20rpx;
-  overflow-x: auto;
-}
-
-.type-item {
-  padding: 12rpx 28rpx;
-  background: #fff;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #666;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
   white-space: nowrap;
 }
-
+.type-item {
+  padding: 8rpx 24rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  display: inline-block;
+}
 .type-item.active {
-  background: #667eea;
+  background: #1890ff;
   color: #fff;
 }
-
-/* 列表 */
-.list {
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 16rpx;
   background: #fff;
   border-radius: 16rpx;
+  margin-bottom: 20rpx;
+}
+.grid-card {
+  width: calc(25% - 12rpx);
+  position: relative;
+  background: #f5f5f5;
+  border-radius: 12rpx;
   overflow: hidden;
 }
-
+.thumb {
+  width: 100%;
+  height: 150rpx;
+  display: block;
+}
+.video-thumb {
+  position: relative;
+}
+.play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60rpx;
+  height: 60rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 32rpx;
+}
+.grid-info {
+  padding: 8rpx 12rpx;
+}
+.grid-name {
+  font-size: 22rpx;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grid-meta {
+  font-size: 20rpx;
+  color: #999;
+  display: block;
+}
+.delete-btn {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  background: rgba(255, 77, 79, 0.9);
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+.list-section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx;
+}
 .list-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 24rpx;
+  padding: 16rpx 0;
   border-bottom: 2rpx solid #f5f5f5;
 }
-
-.folder-item {
-  cursor: pointer;
+.list-item:last-child {
+  border-bottom: none;
 }
-
 .item-main {
   display: flex;
   align-items: center;
   flex: 1;
-  overflow: hidden;
+  gap: 16rpx;
 }
-
 .item-icon {
-  font-size: 44rpx;
-  margin-right: 20rpx;
-  flex-shrink: 0;
-}
-
-.folder-icon {
   font-size: 48rpx;
 }
-
 .item-info {
   flex: 1;
-  overflow: hidden;
 }
-
 .item-name {
   font-size: 28rpx;
-  font-weight: 500;
   color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   margin-bottom: 8rpx;
 }
-
 .item-meta {
   display: flex;
-  gap: 12rpx;
-  flex-wrap: wrap;
+  gap: 16rpx;
 }
-
 .meta-tag {
   font-size: 22rpx;
   color: #999;
-  padding: 4rpx 12rpx;
-  background: #f5f5f5;
-  border-radius: 6rpx;
 }
-
 .item-actions {
   display: flex;
-  gap: 20rpx;
-  flex-shrink: 0;
-  margin-left: 16rpx;
+  gap: 16rpx;
 }
-
 .action-link {
   font-size: 26rpx;
-  color: #1989fa;
+  color: #1890ff;
+  padding: 8rpx 16rpx;
 }
-
 .delete-link {
   color: #ff4d4f;
 }
-
-/* 分页 */
+.empty {
+  padding: 80rpx 0;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 24rpx;
-  margin-top: 24rpx;
-  padding: 20rpx;
+  padding: 24rpx 0;
+  font-size: 26rpx;
 }
-
-.page-btn {
-  padding: 12rpx 28rpx;
-  background: #fff;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
+.pagination button {
+  padding: 8rpx 32rpx;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 26rpx;
 }
-
-.page-btn[disabled] {
-  opacity: 0.5;
+.pagination button[disabled] {
+  opacity: 0.4;
 }
-
-.page-info {
-  font-size: 28rpx;
-  color: #666;
-}
-
-/* 弹窗 */
 .modal-mask {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1000;
 }
-
 .modal-content {
-  width: 600rpx;
+  width: 500rpx;
   background: #fff;
   border-radius: 20rpx;
   padding: 40rpx;
 }
-
 .modal-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
   text-align: center;
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
 }
-
-.modal-input {
-  height: 80rpx;
+.folder-input {
+  height: 60rpx;
+  border: 2rpx solid #d9d9d9;
+  border-radius: 8rpx;
   padding: 0 24rpx;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  margin-bottom: 32rpx;
+  font-size: 26rpx;
+  margin-bottom: 24rpx;
 }
-
 .modal-actions {
   display: flex;
-  gap: 20rpx;
+  gap: 16rpx;
+  justify-content: flex-end;
 }
-
 .modal-btn {
-  flex: 1;
-  height: 80rpx;
-  line-height: 80rpx;
-  border-radius: 12rpx;
-  font-size: 28rpx;
+  font-size: 26rpx;
+  padding: 12rpx 32rpx;
+  border-radius: 8rpx;
   border: none;
+  min-width: 140rpx;
 }
-
 .cancel-btn {
   background: #f5f5f5;
   color: #666;
 }
-
 .confirm-btn {
-  background: #667eea;
+  background: #1890ff;
   color: #fff;
 }
 </style>

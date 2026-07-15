@@ -60,3 +60,7 @@ export function deleteOssMedia(fileId) {
 export function getOssSyncStatus(fileId) {
   return get(`${OSS}/sync/status/${fileId}`).then(extractItem)
 }
+
+export function getReferences(fileId) {
+  return get(`${OSS}/media/${fileId}/references`).then(extractItem)
+}
