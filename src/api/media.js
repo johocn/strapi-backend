@@ -49,8 +49,8 @@ export function getOssFolders() {
   return get(`${OSS}/media/folders`).then(extractItem)
 }
 
-export function createOssFolder(name, parentPath = '/') {
-  return post(`${OSS}/media/folders`, { name, parentPath }).then(extractItem)
+export function createOssFolder(name, parentId = null) {
+  return post(`${OSS}/media/folders`, { name, parentId }).then(extractItem)
 }
 
 export function deleteOssMedia(fileId) {
