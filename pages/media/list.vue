@@ -43,18 +43,24 @@
       <button class="search-btn" @click="handleSearch">搜索</button>
     </view>
 
-    <!-- MIME tab -->
-    <scroll-view scroll-x class="type-filter">
-      <text v-for="t in types" :key="t.value" class="type-item"
-        :class="{ active: currentType === t.value }"
-        @click="filterByType(t.value)">{{ t.label }}</text>
-    </scroll-view>
+    <!-- MIME tab + 视图切换 -->
+    <view class="filter-bar">
+      <scroll-view scroll-x class="type-filter">
+        <text v-for="t in types" :key="t.value" class="type-item"
+          :class="{ active: currentType === t.value }"
+          @click="filterByType(t.value)">{{ t.label }}</text>
+      </scroll-view>
+      <view class="view-switcher">
+        <text class="view-btn" :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')">▦</text>
+        <text class="view-btn" :class="{ active: viewMode === 'list' }" @click="setViewMode('list')">≣</text>
+      </view>
+    </view>
 
     <!-- 列表 -->
     <view class="list">
-      <!-- 网格区：图片 + 视频 -->
-      <view class="grid" v-if="gridItems.length > 0">
-        <view v-for="item in gridItems" :key="item.id" class="grid-card"
+      <!-- 网格视图：所有文件统一卡片 -->
+      <view class="grid" v-if="viewMode === 'grid' && list.length > 0">
+        <view v-for="item in list" :key="item.id" class="grid-card"
           @click="previewFile(item)">
           <image v-if="isImage(item.mime)" :src="getFileUrl(item)" mode="aspectFill"
             class="thumb" lazy-load @error="onThumbError(item)" />
@@ -62,6 +68,9 @@
             <video :src="getFileUrl(item)" class="thumb" :controls="false"
               :show-center-play-btn="false" />
             <view class="play-overlay">▶</view>
+          </view>
+          <view v-else class="thumb grid-icon-thumb">
+            <text class="grid-icon">{{ getFileIcon(item) }}</text>
           </view>
           <view class="grid-info">
             <text class="grid-name">{{ item.name }}</text>
@@ -71,9 +80,9 @@
         </view>
       </view>
 
-      <!-- 列表区：文档 + 音频 + 其他 -->
-      <view class="list-section" v-if="listItems.length > 0">
-        <view v-for="item in listItems" :key="item.id" class="list-item">
+      <!-- 列表视图：所有文件统一行 -->
+      <view class="list-section" v-else-if="viewMode === 'list' && list.length > 0">
+        <view v-for="item in list" :key="item.id" class="list-item">
           <view class="item-main" @click="previewFile(item)">
             <view class="item-icon">{{ getFileIcon(item) }}</view>
             <view class="item-info">
@@ -93,7 +102,7 @@
       </view>
 
       <!-- 空状态 -->
-      <view class="empty" v-if="gridItems.length === 0 && listItems.length === 0">
+      <view class="empty" v-if="list.length === 0">
         <text>暂无文件</text>
       </view>
     </view>
@@ -142,6 +151,7 @@ const searchKeyword = ref('')
 const pagination = ref({ page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, total: 0 })
 const currentType = ref('all')
 const currentPath = ref('')
+const viewMode = ref('grid')  // 'grid' | 'list'
 const folderTree = ref([])
 const currentFolderId = ref(null)
 const newFolderVisible = ref(false)
@@ -295,6 +305,10 @@ function filterByType(type) {
   currentType.value = type
   pagination.value.page = 1
   loadData()
+}
+
+function setViewMode(mode) {
+  viewMode.value = mode
 }
 
 function handleSearch() {
@@ -530,8 +544,8 @@ onMounted(() => {
 .type-filter {
   display: flex;
   gap: 8rpx;
-  margin-bottom: 16rpx;
   white-space: nowrap;
+  flex: 1;
 }
 .type-item {
   padding: 8rpx 24rpx;
@@ -544,6 +558,42 @@ onMounted(() => {
 .type-item.active {
   background: #1890ff;
   color: #fff;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+.view-switcher {
+  display: flex;
+  gap: 4rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  padding: 4rpx;
+}
+.view-btn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #999;
+  border-radius: 6rpx;
+}
+.view-btn.active {
+  background: #1890ff;
+  color: #fff;
+}
+.grid-icon-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+}
+.grid-icon {
+  font-size: 72rpx;
 }
 .grid {
   display: flex;
