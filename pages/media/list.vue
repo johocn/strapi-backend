@@ -21,6 +21,21 @@
       </text>
     </view>
 
+    <!-- 文件夹卡片区 -->
+    <view class="folder-section">
+      <scroll-view scroll-x class="folder-scroll" v-if="subFolders.length > 0">
+        <view v-for="folder in subFolders" :key="folder.id" class="folder-card"
+          @click="enterFolder(folder)">
+          <view class="folder-icon">📁</view>
+          <view class="folder-name">{{ folder.name }}</view>
+        </view>
+      </scroll-view>
+      <view class="folder-empty" v-else>
+        <view>📭 暂无文件夹</view>
+        <view class="folder-empty-hint">点击上方"新建文件夹"创建</view>
+      </view>
+    </view>
+
     <!-- 搜索栏 -->
     <view class="search-bar">
       <input v-model="searchKeyword" class="search-input" placeholder="搜索文件名"
@@ -127,8 +142,26 @@ const searchKeyword = ref('')
 const pagination = ref({ page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, total: 0 })
 const currentType = ref('all')
 const currentPath = ref('/')
+const folderTree = ref([])
+const currentFolderId = ref(null)
 const newFolderVisible = ref(false)
 const newFolderName = ref('')
+
+// 计算当前层级的子文件夹
+const subFolders = computed(() => {
+  if (!folderTree.value.length) return []
+  const findNode = (nodes, id) => {
+    if (id === null) return { children: nodes }
+    for (const n of nodes) {
+      if (n.id === id) return n
+      const found = findNode(n.children || [], id)
+      if (found) return found
+    }
+    return null
+  }
+  const node = findNode(folderTree.value, currentFolderId.value)
+  return node?.children || []
+})
 
 // 删除弹窗状态
 const deleteModalVisible = ref(false)
@@ -164,6 +197,39 @@ const gridItems = computed(() =>
 const listItems = computed(() =>
   list.value.filter(f => !isImage(f.mime) && !isVideo(f.mime))
 )
+
+// ===== path 与 id 一致性辅助函数 =====
+function buildPathFromTree(folderId) {
+  if (folderId === null) return '/'
+  const path = []
+  const find = (nodes, id, ancestors = []) => {
+    for (const n of nodes) {
+      const newAncestors = [...ancestors, n.name]
+      if (n.id === id) {
+        path.push(...newAncestors)
+        return true
+      }
+      if (n.children?.length && find(n.children, id, newAncestors)) return true
+    }
+    return false
+  }
+  find(folderTree.value, folderId)
+  return '/' + path.join('/')
+}
+
+function findFolderIdByPath(targetPath) {
+  if (targetPath === '/' || !targetPath) return null
+  const segs = targetPath.split('/').filter(Boolean)
+  let currentNodes = folderTree.value
+  let currentId = null
+  for (const seg of segs) {
+    const found = currentNodes.find(n => n.name === seg)
+    if (!found) return null
+    currentId = found.id
+    currentNodes = found.children || []
+  }
+  return currentId
+}
 
 // ===== MIME 判断工具 =====
 function isImage(mime) { return (mime || '').toLowerCase().startsWith('image/') }
@@ -204,6 +270,24 @@ async function loadData() {
   }
 }
 
+// ===== 文件夹加载与进入 =====
+async function loadFolders() {
+  try {
+    const res = await getOssFolders()
+    folderTree.value = res?.folders || []
+  } catch (e) {
+    uni.showToast({ title: '文件夹加载失败', icon: 'none' })
+  }
+}
+
+function enterFolder(folder) {
+  currentFolderId.value = folder.id
+  currentPath.value = buildPathFromTree(folder.id)
+  currentType.value = 'all'
+  pagination.value.page = 1
+  loadData()
+}
+
 // ===== 筛选与导航 =====
 function filterByType(type) {
   currentType.value = type
@@ -219,6 +303,8 @@ function handleSearch() {
 function navigateTo(idx) {
   const segs = pathSegments.value.slice(0, idx + 1)
   currentPath.value = '/' + segs.join('/')
+  currentFolderId.value = findFolderIdByPath(currentPath.value)
+  currentType.value = 'all'
   pagination.value.page = 1
   loadData()
 }
@@ -292,9 +378,10 @@ async function createFolder() {
     return
   }
   try {
-    await createOssFolder(newFolderName.value, currentPath.value)
+    await createOssFolder(newFolderName.value, currentFolderId.value)
     newFolderVisible.value = false
     uni.showToast({ title: '创建成功', icon: 'success' })
+    await loadFolders()
   } catch (e) {
     uni.showToast({ title: '创建失败', icon: 'none' })
   }
@@ -302,6 +389,7 @@ async function createFolder() {
 
 // ===== 初始化 =====
 onMounted(() => {
+  loadFolders()
   loadData()
 })
 </script>
@@ -356,6 +444,59 @@ onMounted(() => {
 .folder-sep {
   color: #999;
   margin: 0 4rpx;
+}
+.folder-section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+}
+.folder-scroll {
+  white-space: nowrap;
+}
+.folder-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 180rpx;
+  height: 200rpx;
+  background: #fff;
+  border: 2rpx solid #f0f0f0;
+  border-radius: 16rpx;
+  margin-right: 16rpx;
+  vertical-align: top;
+}
+.folder-card:active {
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+.folder-icon {
+  font-size: 80rpx;
+  margin-bottom: 12rpx;
+}
+.folder-name {
+  font-size: 24rpx;
+  color: #333;
+  max-width: 160rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.folder-empty {
+  padding: 40rpx;
+  text-align: center;
+  background: #fafafa;
+  border: 2rpx dashed #d9d9d9;
+  border-radius: 16rpx;
+  color: #999;
+  font-size: 26rpx;
+}
+.folder-empty-hint {
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 8rpx;
 }
 .search-bar {
   display: flex;
