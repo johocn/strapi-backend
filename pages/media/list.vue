@@ -14,11 +14,11 @@
 
     <!-- 文件夹导航 -->
     <view class="folder-nav">
-      <text v-for="(seg, idx) in pathSegments" :key="idx" class="folder-seg"
-        @click="navigateTo(idx)">
-        {{ seg === '/' ? '根目录' : seg }}
-        <text v-if="idx < pathSegments.length - 1" class="folder-sep"> / </text>
-      </text>
+      <text class="folder-seg" @click="navigateTo(-1)">根目录</text>
+      <template v-for="(seg, idx) in pathSegments" :key="idx">
+        <text class="folder-sep"> / </text>
+        <text class="folder-seg" @click="navigateTo(idx)">{{ seg }}</text>
+      </template>
     </view>
 
     <!-- 文件夹卡片区 -->
@@ -141,7 +141,7 @@ const list = ref([])
 const searchKeyword = ref('')
 const pagination = ref({ page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, total: 0 })
 const currentType = ref('all')
-const currentPath = ref('/')
+const currentPath = ref('')
 const folderTree = ref([])
 const currentFolderId = ref(null)
 const newFolderVisible = ref(false)
@@ -255,7 +255,9 @@ async function loadData() {
     const params = {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
-      folderPath: currentPath.value,
+    }
+    if (currentPath.value) {
+      params.folderPath = currentPath.value
     }
     if (currentType.value !== 'all') {
       const mimeMap = { image: 'image', video: 'video', audio: 'audio', document: 'application' }
@@ -301,9 +303,15 @@ function handleSearch() {
 }
 
 function navigateTo(idx) {
-  const segs = pathSegments.value.slice(0, idx + 1)
-  currentPath.value = '/' + segs.join('/')
-  currentFolderId.value = findFolderIdByPath(currentPath.value)
+  if (idx < 0) {
+    // 点击"根目录"标签
+    currentPath.value = ''
+    currentFolderId.value = null
+  } else {
+    const segs = pathSegments.value.slice(0, idx + 1)
+    currentPath.value = '/' + segs.join('/')
+    currentFolderId.value = findFolderIdByPath(currentPath.value)
+  }
   currentType.value = 'all'
   pagination.value.page = 1
   loadData()
