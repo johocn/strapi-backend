@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { useUserStore } from '../../src/store/user.js'
 import { validateInviteCode, registerWithInviteCode } from '../../src/api/register.js'
 
@@ -197,6 +197,17 @@ function buildTierTree(parentTier, depth = 0) {
 
 const step = ref(1)
 const inviteCode = ref('')
+
+// 扫码进入时从 URL hash 读取 code 参数预填
+onMounted(() => {
+  const hashQuery = window.location.hash.split('?')[1] || ''
+  const hashParams = new URLSearchParams(hashQuery)
+  const code = hashParams.get('channelcode') || hashParams.get('code')
+  if (code) {
+    inviteCode.value = code
+  }
+})
+
 const validatingCode = ref(false)
 const validError = ref('')
 const validatedChannel = ref(null)
@@ -214,10 +225,10 @@ async function handleValidate() {
 
   try {
     const res = await validateInviteCode(inviteCode.value.trim())
-    if (res.valid && res.channel) {
-      validatedChannel.value = res.channel
+    if (res?.data?.valid && res?.data?.channel) {
+      validatedChannel.value = res.data.channel
       // 根据父渠道层级构建可选子层级树
-      tierTree.value = buildTierTree(res.channel.channelTier)
+      tierTree.value = buildTierTree(res.data.channel.channelTier)
       step.value = 2
     } else {
       validError.value = '邀请码无效或已过期'
