@@ -88,7 +88,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getAdminChannelList, deleteChannel } from '../../src/api/channel.js'
+import { getAdminChannelList, getMyChannels, deleteChannel } from '../../src/api/channel.js'
 import { useUserStore } from '../../src/store/user.js'
 
 const userStore = useUserStore()
@@ -108,6 +108,15 @@ const loading = ref(false)
 async function loadData(page = 1) {
   loading.value = true
   try {
+    let res
+    if (userStore.hasRole('channel-admin') && !userStore.currentTenantId) {
+      // channel-admin 无租户时调 /zhao-channel/v1/my/channels/tree（避免 has-tenant-access policy 403）
+      res = await getMyChannels()
+      list.value = res?.list ?? res?.data ?? []
+      pagination.value = { page: 1, pageSize: pagination.value.pageSize, total: list.value.length }
+      currentPage.value = 1
+      return
+    }
     const params = {
       page,
       pageSize: pagination.value.pageSize,
@@ -123,7 +132,7 @@ async function loadData(page = 1) {
     } else if (statusIndex.value === 2) {
       params.status = false
     }
-    const res = await getAdminChannelList(params)
+    res = await getAdminChannelList(params)
     list.value = res.list || []
     pagination.value = res.pagination || { page: 1, pageSize: 20, total: 0 }
     currentPage.value = page
