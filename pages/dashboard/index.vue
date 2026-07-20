@@ -33,7 +33,7 @@
         </view>
       </view>
       
-      <view class="stat-card" v-if="pointsEnabled" @click="navigateTo('/pages/points/records')">
+      <view class="stat-card" v-if="pointsVisible" @click="navigateTo('/pages/points/records')">
         <view class="stat-icon" style="background: #fce4ec;">💎</view>
         <view class="stat-info">
           <view class="stat-value">{{ stats.points }}</view>
@@ -57,7 +57,7 @@
         </view>
       </view>
 
-      <view class="stat-card" v-if="websiteEnabled" @click="navigateTo('/pages/website/article/list')">
+      <view class="stat-card" v-if="websiteVisible" @click="navigateTo('/pages/website/article/list')">
         <view class="stat-icon" style="background: #ede7f6;">📄</view>
         <view class="stat-info">
           <view class="stat-value">{{ stats.articles }}</view>
@@ -65,7 +65,7 @@
         </view>
       </view>
 
-      <view class="stat-card" v-if="websiteEnabled" @click="navigateTo('/pages/website/product/list')">
+      <view class="stat-card" v-if="websiteVisible" @click="navigateTo('/pages/website/product/list')">
         <view class="stat-icon" style="background: #e8eaf6;">📦</view>
         <view class="stat-info">
           <view class="stat-value">{{ stats.products }}</view>
@@ -73,7 +73,7 @@
         </view>
       </view>
 
-      <view class="stat-card" v-if="websiteEnabled" @click="navigateTo('/pages/website/case/list')">
+      <view class="stat-card" v-if="websiteVisible" @click="navigateTo('/pages/website/case/list')">
         <view class="stat-icon" style="background: #e0f7fa;">🏆</view>
         <view class="stat-info">
           <view class="stat-value">{{ stats.cases }}</view>
@@ -81,12 +81,27 @@
         </view>
       </view>
 
-      <view class="stat-card" v-if="websiteEnabled" @click="navigateTo('/pages/website/lead/list')">
+      <view class="stat-card" v-if="websiteVisible" @click="navigateTo('/pages/website/lead/list')">
         <view class="stat-icon" style="background: #fce4ec;">📝</view>
         <view class="stat-info">
           <view class="stat-value">{{ stats.leads }}</view>
           <view class="stat-label">线索管理</view>
         </view>
+      </view>
+    </view>
+
+    <!-- channel-admin 专属快捷卡片 -->
+    <view v-if="userStore.hasRole('channel-admin')" class="channel-admin-cards">
+      <view class="card" @click="goMyChannels">
+        <text class="card-title">我的渠道</text>
+        <text class="card-count">{{ myChannelCount }}</text>
+        <text class="card-desc">管理您的渠道与成员</text>
+      </view>
+      <view class="card" @click="goMyTenants">
+        <text class="card-title">我的租户</text>
+        <text class="card-count">{{ myTenantCount }}</text>
+        <text class="card-desc" v-if="myTenantCount === 0">点击创建第一个租户</text>
+        <text class="card-desc" v-else>管理您的站点配置</text>
       </view>
     </view>
 
@@ -121,7 +136,7 @@
     </view>
 
     <!-- 官网中心 -->
-    <view class="module-section" v-if="websiteEnabled && hasPermission('menu.website-center')">
+    <view class="module-section" v-if="websiteVisible && hasPermission('menu.website-center')">
       <view class="section-title">🌐 官网中心</view>
       <view class="module-grid">
         <view class="module-item" v-if="hasPermission('menu.website-seo')" @click="navigateTo('/pages/website/seo-config/edit')">
@@ -200,7 +215,7 @@
     </view>
 
     <!-- 物流中心 -->
-    <view class="module-section" v-if="logisticsEnabled && hasPermission('menu.logistics-center')">
+    <view class="module-section" v-if="logisticsVisible && hasPermission('menu.logistics-center')">
       <view class="section-title">🚢 物流中心</view>
       <view class="module-grid">
         <view class="module-item" v-if="hasPermission('menu.logistics-quote')" @click="navigateTo('/pages/logistics/quote-request/list')">
@@ -247,7 +262,7 @@
     </view>
 
     <!-- 媒体发布中心 -->
-    <view class="module-section" v-if="studioEnabled && hasPermission('menu.studio-center')">
+    <view class="module-section" v-if="studioVisible && hasPermission('menu.studio-center')">
       <view class="section-title">🎬 媒体发布中心</view>
       <view class="module-grid">
         <view class="module-item" v-if="hasPermission('menu.studio')" @click="navigateTo('/pages/studio/article-draft/list')">
@@ -359,7 +374,7 @@
     </view>
 
     <!-- 积分体系 -->
-    <view class="module-section" v-if="pointsEnabled && hasPermission('menu.point-center')">
+    <view class="module-section" v-if="pointsVisible && hasPermission('menu.point-center')">
       <view class="section-title">💎 积分体系</view>
       <view class="module-grid">
         <view class="module-item" v-if="hasPermission('menu.point-type')" @click="navigateTo('/pages/points/types')">
@@ -490,7 +505,7 @@
     </view>
 
     <!-- SSO 单点登录 -->
-    <view class="module-section" v-if="ssoEnabled && hasPermission('menu.sso')">
+    <view class="module-section" v-if="ssoVisible && hasPermission('menu.sso')">
       <view class="section-title">🔐 SSO 单点登录</view>
       <view class="module-grid">
         <view class="module-item" v-if="hasPermission('menu.sso-token')" @click="navigateTo('/pages/sso/token/list')">
@@ -578,20 +593,49 @@
         </view>
       </view>
     </view>
+
+    <!-- 模块可见性管理（admin 全局配置 + channel-admin 租户级角色可见性） -->
+    <view
+      class="module-section"
+      v-if="userStore.hasRole('admin') || userStore.hasPermission('menu.module-visibility')"
+    >
+      <view class="section-title">🔒 模块可见性管理</view>
+      <view class="module-grid">
+        <!-- 全局配置（仅 admin 可见） -->
+        <view
+          v-if="userStore.hasRole('admin')"
+          class="module-item"
+          @click="navigateTo('/pages/global-config/index')"
+        >
+          <view class="module-icon">⚙️</view>
+          <view class="module-name">全局配置</view>
+        </view>
+
+        <!-- 模块可见性配置（admin + channel-admin 有权限可见） -->
+        <view
+          v-if="userStore.hasPermission('menu.module-visibility')"
+          class="module-item"
+          @click="navigateTo('/pages/module-visibility/index')"
+        >
+          <view class="module-icon">🔒</view>
+          <view class="module-name">模块可见性</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../src/store/user.js'
 import TenantSwitcher from '../../src/components/TenantSwitcher.vue'
 import { checkAuth } from '../../src/utils/auth.js'
-import { getAdminChannelList } from '../../src/api/channel.js'
+import { getAdminChannelList, getMyChannels } from '../../src/api/channel.js'
 import { getCourseList, getUserCourseList, getCourseProgressList } from '../../src/api/course.js'
 import { getQuestionList } from '../../src/api/quiz.js'
 import { getRecordList } from '../../src/api/points.js'
-import { loadSiteConfig } from '../../src/utils/config-helper.js'
+import { loadSiteConfig, isModuleVisible } from '../../src/utils/config-helper.js'
 import { articleApi, productApi, caseApi, leadApi } from '../../src/api/website.js'
 
 const userStore = useUserStore()
@@ -604,6 +648,34 @@ const websiteEnabled = ref(true)
 const logisticsEnabled = ref(true)
 const studioEnabled = ref(true)
 const ssoEnabled = ref(true)
+
+// channel-admin 专属快捷卡片数据
+const myChannelCount = ref(0)
+const myTenantCount = ref(userStore.tenantList?.length ?? 0)
+
+onMounted(async () => {
+  if (userStore.hasRole('channel-admin')) {
+    try {
+      const res = await getMyChannels()
+      myChannelCount.value = res?.data?.length ?? 0
+    } catch (e) { /* ignore */ }
+  }
+})
+
+function goMyChannels() {
+  uni.navigateTo({ url: '/pages/channel/list' })
+}
+
+function goMyTenants() {
+  uni.navigateTo({ url: '/pages/tenant/list' })
+}
+
+// 派生模块可见性（基于后端三层校验：admin 永远可见 → 全局授权 → 租户级角色可见性）
+const websiteVisible = computed(() => isModuleVisible('website', userStore.roles, userStore.currentTenantId))
+const logisticsVisible = computed(() => isModuleVisible('logistics', userStore.roles, userStore.currentTenantId))
+const studioVisible = computed(() => isModuleVisible('studio', userStore.roles, userStore.currentTenantId))
+const pointsVisible = computed(() => isModuleVisible('points', userStore.roles, userStore.currentTenantId))
+const ssoVisible = computed(() => isModuleVisible('sso', userStore.roles, userStore.currentTenantId))
 
 const courseStatusData = computed(() => {
   const statusConfig = [
@@ -940,5 +1012,41 @@ onShow(async () => {
   font-size: 28rpx;
   background: #fff;
   border-radius: 24rpx;
+}
+
+.channel-admin-cards {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 30rpx;
+  padding: 0 32rpx;
+}
+
+.channel-admin-cards .card {
+  flex: 1;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 32rpx 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  cursor: pointer;
+}
+
+.channel-admin-cards .card-title {
+  font-size: 28rpx;
+  color: #909399;
+}
+
+.channel-admin-cards .card-count {
+  font-size: 56rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 8rpx 0;
+}
+
+.channel-admin-cards .card-desc {
+  font-size: 24rpx;
+  color: #909399;
 }
 </style>
