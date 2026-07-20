@@ -130,6 +130,12 @@ export function getChannelDashboard() {
 
 // ==================== 用户端接口 ====================
 
+// 返回当前用户授权的渠道（含子树扩展，完整字段），专用接口
+// 与 getChannelList（调 /zhao-channel/v1/my/channels，通用查询）语义分离
+export function getMyChannels(params = {}) {
+  return get(`${MY}/channels/tree`, params).then(extractList)
+}
+
 export function getChannelList(params = {}) {
   return get(`${MY}/channels`, params).then(extractList)
 }
