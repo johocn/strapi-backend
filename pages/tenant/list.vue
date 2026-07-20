@@ -72,7 +72,14 @@
         <text class="loading-text">加载中...</text>
       </view>
 
-      <view v-if="!loading && tenantList.length === 0" class="empty-state">
+      <!-- channel-admin 空列表引导卡片 -->
+      <view v-if="!loading && userStore.hasRole('channel-admin') && tenantList.length === 0" class="empty-guide">
+        <text class="guide-title">您还没有租户</text>
+        <text class="guide-desc">创建您的第一个租户，开始渠道运营</text>
+        <button class="btn-primary" @click="goCreate">创建第一个租户</button>
+      </view>
+      <!-- 其他角色空列表 -->
+      <view v-else-if="!loading && tenantList.length === 0" class="empty-state">
         <text class="empty-icon">📋</text>
         <text class="empty-text">暂无租户数据</text>
         <text class="empty-hint">点击右上角新建租户</text>
@@ -84,8 +91,11 @@
 <script setup>
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getSiteConfigList, deleteSiteConfig } from '../../src/api/site-config.js'
+import { getMyTenants } from '../../src/api/auth.js'
+import { deleteSiteConfig } from '../../src/api/site-config.js'
+import { useUserStore } from '../../src/store/user.js'
 
+const userStore = useUserStore()
 const searchKeyword = ref('')
 const tenantList = ref([])
 const loading = ref(false)
@@ -107,9 +117,9 @@ onShow(() => {
 async function loadTenantList() {
   loading.value = true
   try {
-    const params = searchKeyword.value ? { q: searchKeyword.value } : {}
-    const res = await getSiteConfigList(params)
-    tenantList.value = res.list ?? []
+    // 所有角色统一调 /my/tenants（后端按角色区分返回范围）
+    const res = await getMyTenants()
+    tenantList.value = res?.data ?? []
   } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -367,6 +377,38 @@ function formatDate(dateStr) {
   .loading-text {
     font-size: 28rpx;
     color: #909399;
+  }
+}
+
+.empty-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 40rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  gap: 24rpx;
+  
+  .guide-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  
+  .guide-desc {
+    font-size: 26rpx;
+    color: #909399;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #409eff 0%, #667eea 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8rpx;
+    padding: 20rpx 48rpx;
+    font-size: 28rpx;
+    margin-top: 16rpx;
   }
 }
 </style>
