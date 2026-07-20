@@ -150,6 +150,12 @@ export const useUserStore = defineStore('user', () => {
           currentTenantId.value = matched?.documentId || matched?.id || tenantList.value[0].documentId || tenantList.value[0].id
         }
       }
+      // 租户列表为空时，清除 currentTenantId（避免残留 header 导致 403）
+      if (tenantList.value.length === 0 && currentTenantId.value) {
+        currentTenantId.value = null
+        uni.removeStorageSync('tadmin_current_tenant_id')
+        localStorage.removeItem('tadmin_current_tenant_id')
+      }
       uni.setStorageSync('tadmin_tenant_list', JSON.stringify(tenantList.value))
       if (currentTenantId.value) {
         uni.setStorageSync('tadmin_current_tenant_id', currentTenantId.value)
@@ -174,6 +180,10 @@ export const useUserStore = defineStore('user', () => {
   async function login(identifier, password) {
     const result = await adminLoginApi(identifier, password)
     setUserData(result)
+    // 清除上一个用户的 currentTenantId 残留（避免新用户带旧租户上下文请求 API）
+    currentTenantId.value = null
+    uni.removeStorageSync('tadmin_current_tenant_id')
+    localStorage.removeItem('tadmin_current_tenant_id')
     await Promise.all([fetchUserRoles(), fetchPermissions(), fetchChannelScope(), fetchTenants()])
     if (roles.value.length === 0 && permissions.value.length === 0) {
       console.warn('[user] roles/permissions failed to load after login')
