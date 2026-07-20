@@ -314,7 +314,14 @@ async function handleAssignRole() {
   }
   try {
     await assignRole(currentUser.value.id, selectedAssignRole.value, assignReason.value)
-    uni.showToast({ title: '角色分配成功', icon: 'success' })
+    // 卡点 F：角色需重新登录后生效（jwt 中的 zhaoRoles 需重新签发）
+    // icon 改为 'none'（因提示文字较长，success icon 显示不全）
+    // duration 设为 3000ms（确保 admin 能看清提示并通知用户）
+    uni.showToast({
+      title: '角色已分配，需通知用户重新登录生效',
+      icon: 'none',
+      duration: 3000,
+    })
     closeDialogs()
     loadData()
   } catch (error) {
