@@ -341,7 +341,11 @@
             <text class="form-label">商户号</text>
             <input class="form-input" placeholder="请输入商户号" v-model="thirdForm.merchantId" />
           </view>
-          <view v-if="currentPlatform?.hasToken" class="form-item">
+          <view v-if="thirdForm.platform === 'wechat'" class="form-item">
+            <text class="form-label">EncodingAESKey</text>
+            <input class="form-input" placeholder="消息加解密密钥（43位）" v-model="thirdForm.encodingAESKey" password />
+          </view>
+          <view v-if="thirdForm.platform === 'wechat'" class="form-item">
             <text class="form-label">Token</text>
             <input class="form-input" placeholder="请输入Token" v-model="thirdForm.token" />
           </view>
@@ -433,7 +437,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getSiteConfigDetail, createSiteConfig, updateSiteConfig } from '../../src/api/site-config.js'
-import { getAdminChannelList } from '../../src/api/channel.js'
+import { getAdminChannelList, getMyChannels } from '../../src/api/channel.js'
+import { useUserStore } from '../../src/store/user.js'
 import { getThirdPartyConfigList, createThirdPartyConfig, updateThirdPartyConfig, deleteThirdPartyConfig } from '../../src/api/third-party.js'
 import { getMediaUrl, extractList, extractItem } from '../../src/utils/format.js'
 import { BASE_API } from '../../src/config/env.js'
@@ -441,6 +446,7 @@ import MediaPicker from '../../src/components/MediaPicker.vue'
 import ColorPicker from '../../src/components/ColorPicker.vue'
 import { getTemplates } from '../../src/api/site-template.js'
 
+const userStore = useUserStore()
 const documentId = ref('')
 const isEdit = ref(false)
 const showChannelSelector = ref(false)
@@ -504,9 +510,9 @@ const platformIcons = {
 }
 
 const platforms = [
-  { value: 'wechat', label: '微信', appIdLabel: 'AppID', appSecretLabel: 'AppSecret', hasToken: true, hasMerchantId: false },
-  { value: 'alipay', label: '支付宝', appIdLabel: 'AppID', appSecretLabel: '应用私钥', hasToken: false, hasMerchantId: true },
-  { value: 'douyin', label: '抖音', appIdLabel: 'Client Key', appSecretLabel: 'Client Secret', hasToken: false, hasMerchantId: false }
+  { value: 'wechat', label: '微信', appIdLabel: 'AppID', appSecretLabel: 'AppSecret', hasToken: true, hasEncodingAESKey: true, hasMerchantId: false },
+  { value: 'alipay', label: '支付宝', appIdLabel: 'AppID', appSecretLabel: '应用私钥', hasToken: false, hasEncodingAESKey: false, hasMerchantId: true },
+  { value: 'douyin', label: '抖音', appIdLabel: 'Client Key', appSecretLabel: 'Client Secret', hasToken: false, hasEncodingAESKey: false, hasMerchantId: false }
 ]
 
 const appTypes = {
@@ -649,6 +655,7 @@ const thirdForm = reactive({
   appSecret: '',
   merchantId: '',
   token: '',
+  encodingAESKey: '',
   enabled: true,
   site: ''
 })
@@ -667,6 +674,8 @@ onMounted(async () => {
 
   await loadChannels()
   await loadThirdConfigs()
+  // 创建模式 + channel-admin 角色时加载用户渠道并默认勾选
+  await loadMyChannels()
 })
 
 async function loadTenantDetail() {
@@ -752,6 +761,22 @@ async function loadChannels() {
     availableChannels.value = allResult.list ?? []
   } catch (e) {
     console.error('加载渠道失败', e)
+  }
+}
+
+async function loadMyChannels() {
+  // 仅创建模式 + channel-admin 角色才加载并默认勾选
+  if (isEdit.value || !userStore.hasRole('channel-admin')) return
+  try {
+    const res = await getMyChannels()
+    const channels = res?.data ?? []
+    if (channels.length === 0) return
+    // 默认勾选 shao 自己的渠道（depth 最小的，即注册时创建的 agent tier 渠道）
+    const minDepth = Math.min(...channels.map(x => x.depth ?? 0))
+    const ownChannels = channels.filter(c => c.depth === minDepth)
+    selectedChannels.value = ownChannels
+  } catch (e) {
+    uni.showToast({ title: '加载渠道失败', icon: 'none' })
   }
 }
 
@@ -847,6 +872,7 @@ function openThirdForm() {
   thirdForm.appSecret = ''
   thirdForm.merchantId = ''
   thirdForm.token = ''
+  thirdForm.encodingAESKey = ''
   thirdForm.enabled = true
   thirdForm.site = documentId.value
   showThirdForm.value = true
@@ -861,6 +887,7 @@ function editThirdConfig(config) {
   thirdForm.appSecret = config.appSecret || ''
   thirdForm.merchantId = config.merchantId || ''
   thirdForm.token = config.token || ''
+  thirdForm.encodingAESKey = config.encodingAESKey || ''
   thirdForm.enabled = config.enabled
   thirdForm.site = documentId.value
   showThirdForm.value = true
@@ -902,6 +929,7 @@ function resetThirdForm() {
   thirdForm.appSecret = ''
   thirdForm.merchantId = ''
   thirdForm.token = ''
+  thirdForm.encodingAESKey = ''
   thirdForm.enabled = true
   thirdForm.site = documentId.value
 }
@@ -933,7 +961,9 @@ async function saveThirdConfig() {
     closeThirdForm()
     loadThirdConfigs()
   } catch (e) {
-    uni.showToast({ title: '保存失败', icon: 'none' })
+    // 显示后端返回的真实错误信息，便于定位问题
+    const msg = e?.message || e?.error?.message || '保存失败'
+    uni.showToast({ title: msg, icon: 'none' })
   } finally {
     saving.value = false
   }
@@ -1026,6 +1056,14 @@ async function saveTenant(goBack = false) {
       documentId.value = result.documentId
       isEdit.value = true
       loadThirdConfigs()
+      // 创建成功后切换到新租户并跳 dashboard（带新租户上下文）
+      try {
+        await userStore.setCurrentTenant(result.documentId)
+      } catch (e) { /* ignore */ }
+      setTimeout(() => {
+        uni.reLaunch({ url: '/pages/dashboard/index' })
+      }, 500)
+      return
     }
 
     if (goBack) {
@@ -1436,20 +1474,25 @@ function goBack() {
   
   &.third-form-modal {
     max-height: 85vh;
+
+    /* 三方配置表单项较多，需要更大的可视区域避免字段被遮挡 */
+    .tag-options {
+      max-height: 70vh;
+    }
   }
-  
+
   .picker-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 30rpx;
     border-bottom: 1rpx solid #eee;
-    
+
     .picker-title {
       font-size: 32rpx;
       font-weight: bold;
     }
-    
+
     .picker-confirm-btn {
       background: #667eea;
       color: #fff;
@@ -1461,7 +1504,7 @@ function goBack() {
       line-height: 56rpx;
     }
   }
-  
+
   .tag-options {
     flex: 1;
     padding: 20rpx;
