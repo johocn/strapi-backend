@@ -3,16 +3,16 @@
     <PageHeader title="用户角色管理" />
 
     <view class="search-bar">
-      <input 
-        v-model="searchKeyword" 
-        class="search-input" 
-        placeholder="搜索用户名或邮箱" 
+      <input
+        v-model="searchKeyword"
+        class="search-input"
+        placeholder="搜索用户名或邮箱"
         @confirm="handleSearch"
       />
-      <picker 
-        v-model="selectedRole" 
-        mode="selector" 
-        :range="roleOptions" 
+      <picker
+        v-model="selectedRole"
+        mode="selector"
+        :range="roleOptions"
         range-key="label"
         @change="handleRoleFilterChange"
         class="role-picker"
@@ -23,22 +23,28 @@
       </picker>
       <button class="search-btn" @click="handleSearch">搜索</button>
     </view>
-    
+
+    <view class="legend-bar" v-if="!isAdmin">
+      <text class="legend-item"><text class="legend-dot core"></text>核心</text>
+      <text class="legend-item"><text class="legend-dot auto"></text>自动授权</text>
+      <text class="legend-item"><text class="legend-dot explicit"></text>显式分配</text>
+    </view>
+
     <view class="batch-bar" v-if="selectedUserIds.length > 0 && hasPermission('menu.user-roles')">
       <text class="batch-info">已选 {{ selectedUserIds.length }} 个用户</text>
       <button class="batch-btn" @click="showBatchAssign = true">批量分配角色</button>
       <button class="batch-btn-clear" @click="clearSelection">清除选择</button>
     </view>
-    
+
     <view class="list">
-      <view 
-        v-for="item in list" 
+      <view
+        v-for="item in list"
         :key="item.id"
         class="list-item"
       >
-        <checkbox 
+        <checkbox
           v-if="hasPermission('menu.user-roles')"
-          :value="item.id" 
+          :value="item.id"
           :checked="selectedUserIds.includes(item.id)"
           @change="handleUserSelect(item.id)"
           class="user-checkbox"
@@ -47,12 +53,12 @@
           <view class="item-name">{{ item.username }}</view>
           <view class="item-email">{{ item.email }}</view>
           <view class="item-roles">
-            <text 
-              v-for="role in item.roles" 
-              :key="role"
-              class="role-tag"
+            <text
+              v-for="role in (item.roleSources || [])"
+              :key="role.role"
+              :class="['role-tag', role.source]"
             >
-              {{ getRoleLabel(role) }}
+              {{ role.label }}
             </text>
           </view>
         </view>
@@ -62,33 +68,78 @@
         </view>
       </view>
     </view>
-    
+
     <view class="pagination">
-      <button 
-        class="page-btn" 
+      <button
+        class="page-btn"
         :disabled="pagination.page <= 1"
         @click="changePage(pagination.page - 1)"
       >上一页</button>
       <text class="page-info">{{ pagination.page }} / {{ pagination.pageCount || 1 }}</text>
-      <button 
-        class="page-btn" 
+      <button
+        class="page-btn"
         :disabled="pagination.page >= pagination.pageCount"
         @click="changePage(pagination.page + 1)"
       >下一页</button>
     </view>
-    
-    <view class="modal-mask" v-if="showAssignDialog || showRevokeDialog || showBatchAssign" @click="closeDialogs"></view>
-    
+
+    <view class="modal-mask" v-if="showAssignDialog || showRevokeDialog || showBatchAssign || showDetailDialog" @click="closeDialogs"></view>
+
+    <!-- 用户详情弹窗 -->
+    <view class="modal modal-detail" v-if="showDetailDialog">
+      <view class="modal-header">
+        <text class="modal-title">用户详情</text>
+      </view>
+      <view class="modal-body" v-if="detailData">
+        <view class="detail-info">
+          <text class="detail-name">{{ detailData.user.username }}</text>
+          <text class="detail-email">{{ detailData.user.email }}</text>
+          <text class="detail-time">注册时间：{{ formatDate(detailData.user.createdAt) }}</text>
+        </view>
+
+        <view class="role-group" v-if="detailData.rolesBySource.core.length > 0">
+          <text class="group-title"><text class="legend-dot core"></text>核心角色</text>
+          <view class="group-tags">
+            <text v-for="r in detailData.rolesBySource.core" :key="r.role" class="role-tag core">
+              {{ r.label }}
+            </text>
+          </view>
+        </view>
+
+        <view class="role-group" v-if="detailData.rolesBySource.auto.length > 0">
+          <text class="group-title"><text class="legend-dot auto"></text>自动授权（moduleVisibility）</text>
+          <view class="group-tags">
+            <text v-for="r in detailData.rolesBySource.auto" :key="r.role" class="role-tag auto">
+              {{ r.label }}
+            </text>
+          </view>
+        </view>
+
+        <view class="role-group" v-if="detailData.rolesBySource.explicit.length > 0">
+          <text class="group-title"><text class="legend-dot explicit"></text>显式分配</text>
+          <view class="group-tags">
+            <text v-for="r in detailData.rolesBySource.explicit" :key="r.role" class="role-tag explicit">
+              {{ r.label }}
+            </text>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" @click="closeDialogs">关闭</button>
+        <button class="modal-btn" @click="openAssignDialog(detailData && {id: detailData.user.id, username: detailData.user.username, roles: detailData.roles.map(r=>r.role)})" v-if="hasPermission('menu.user-roles')">分配角色</button>
+      </view>
+    </view>
+
     <view class="modal" v-if="showAssignDialog">
       <view class="modal-header">
         <text class="modal-title">分配角色</text>
       </view>
       <view class="modal-body">
         <text class="modal-text">为用户 {{ currentUser?.username }} 分配角色</text>
-        <picker 
-          v-model="assignRole" 
-          mode="selector" 
-          :range="roleOptions.slice(1)" 
+        <picker
+          v-model="selectedAssignRole"
+          mode="selector"
+          :range="assignableRoleOptions"
           range-key="label"
           @change="handleAssignRoleChange"
           class="role-picker"
@@ -97,8 +148,8 @@
             {{ assignRoleLabel || '请选择角色' }}
           </view>
         </picker>
-        <textarea 
-          v-model="assignReason" 
+        <textarea
+          v-model="assignReason"
           class="reason-input"
           placeholder="请输入操作原因（可选）"
         ></textarea>
@@ -108,17 +159,17 @@
         <button class="modal-btn" @click="handleAssignRole">确认</button>
       </view>
     </view>
-    
+
     <view class="modal" v-if="showRevokeDialog">
       <view class="modal-header">
         <text class="modal-title">撤销角色</text>
       </view>
       <view class="modal-body">
         <text class="modal-text">为用户 {{ currentUser?.username }} 撤销角色</text>
-        <picker 
-          v-model="revokeRole" 
-          mode="selector" 
-          :range="currentUser?.roles.map(r => ({ value: r, label: getRoleLabel(r) }))" 
+        <picker
+          v-model="selectedRevokeRole"
+          mode="selector"
+          :range="(currentUser?.roles || []).map(r => ({ value: r, label: getRoleLabel(r) }))"
           range-key="label"
           @change="handleRevokeRoleChange"
           class="role-picker"
@@ -127,8 +178,8 @@
             {{ revokeRoleLabel || '请选择要撤销的角色' }}
           </view>
         </picker>
-        <textarea 
-          v-model="revokeReason" 
+        <textarea
+          v-model="revokeReason"
           class="reason-input"
           placeholder="请输入操作原因（可选）"
         ></textarea>
@@ -138,17 +189,17 @@
         <button class="modal-btn" @click="handleRevokeRole">确认</button>
       </view>
     </view>
-    
+
     <view class="modal" v-if="showBatchAssign">
       <view class="modal-header">
         <text class="modal-title">批量分配角色</text>
       </view>
       <view class="modal-body">
         <text class="modal-text">为选中的 {{ selectedUserIds.length }} 个用户批量分配角色</text>
-        <picker 
-          v-model="batchAssignRole" 
-          mode="selector" 
-          :range="roleOptions.slice(1)" 
+        <picker
+          v-model="batchAssignRole"
+          mode="selector"
+          :range="assignableRoleOptions"
           range-key="label"
           @change="handleBatchAssignRoleChange"
           class="role-picker"
@@ -157,8 +208,8 @@
             {{ batchAssignRoleLabel || '请选择角色' }}
           </view>
         </picker>
-        <textarea 
-          v-model="batchAssignReason" 
+        <textarea
+          v-model="batchAssignReason"
           class="reason-input"
           placeholder="请输入操作原因（可选）"
         ></textarea>
@@ -168,20 +219,27 @@
         <button class="modal-btn" @click="handleBatchAssignRole">确认</button>
       </view>
     </view>
-    
+
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { getUsers, assignRole, revokeRole, batchAssignRoles, ROLES, ROLE_LABELS } from '../../src/api/role-management.js'
+import {
+  getUsers, assignRole, revokeRole, batchAssignRoles,
+  getUserDetail, getAssignableRoles,
+  ROLES, ROLE_LABELS
+} from '../../src/api/role-management.js'
 import { getAllRoles } from '../../src/api/auth.js'
 import { DEFAULT_PAGE_SIZE } from '../../src/config/constant.js'
 import { useUserStore } from '../../src/store/user.js'
+import { formatDate } from '../../src/utils/format.js'
+import PageHeader from '../../src/components/PageHeader.vue'
 
 const list = ref([])
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
+const isAdmin = computed(() => userStore.hasRole('admin'))
 const searchKeyword = ref('')
 const selectedRole = ref('')
 const selectedUserIds = ref([])
@@ -190,7 +248,9 @@ const pagination = ref({ page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, tot
 const showAssignDialog = ref(false)
 const showRevokeDialog = ref(false)
 const showBatchAssign = ref(false)
+const showDetailDialog = ref(false)
 const currentUser = ref(null)
+const detailData = ref(null)
 
 const selectedAssignRole = ref('')
 const assignReason = ref('')
@@ -199,6 +259,7 @@ const revokeReason = ref('')
 const batchAssignRole = ref('')
 const batchAssignReason = ref('')
 
+// 角色筛选 picker 选项（全部角色，用 getAllRoles 加载）
 const roleOptions = ref([
   { value: '', label: '全部角色' },
   { value: ROLES.ADMIN, label: ROLE_LABELS[ROLES.ADMIN] },
@@ -207,6 +268,9 @@ const roleOptions = ref([
   { value: ROLES.INSTRUCTOR, label: ROLE_LABELS[ROLES.INSTRUCTOR] },
   { value: ROLES.USER, label: ROLE_LABELS[ROLES.USER] }
 ])
+
+// 可分配角色选项（按权限过滤，用 getAssignableRoles 加载）
+const assignableRoleOptions = ref([])
 
 async function loadRoleOptions() {
   try {
@@ -222,13 +286,28 @@ async function loadRoleOptions() {
   }
 }
 
+async function loadAssignableRoles() {
+  try {
+    const res = await getAssignableRoles()
+    // res 可能是 { roles: [...], isAdmin: boolean } 或直接是数组
+    const roles = res?.roles || res || []
+    assignableRoleOptions.value = roles.map(r => ({
+      value: r.role,
+      label: r.label || r.displayName || r.role
+    }))
+  } catch (e) {
+    // 回退到 roleOptions（去掉"全部角色"）
+    assignableRoleOptions.value = roleOptions.value.slice(1)
+  }
+}
+
 const selectedRoleLabel = computed(() => {
   const option = roleOptions.value.find(o => o.value === selectedRole.value)
   return option ? option.label : ''
 })
 
 const assignRoleLabel = computed(() => {
-  const option = roleOptions.value.find(o => o.value === selectedAssignRole.value)
+  const option = assignableRoleOptions.value.find(o => o.value === selectedAssignRole.value)
   return option ? option.label : ''
 })
 
@@ -238,7 +317,7 @@ const revokeRoleLabel = computed(() => {
 })
 
 const batchAssignRoleLabel = computed(() => {
-  const option = roleOptions.value.find(o => o.value === batchAssignRole.value)
+  const option = assignableRoleOptions.value.find(o => o.value === batchAssignRole.value)
   return option ? option.label : ''
 })
 
@@ -255,9 +334,12 @@ async function loadData() {
     if (searchKeyword.value) {
       params['filters[username][$contains]'] = searchKeyword.value
     }
-    
+    if (selectedRole.value) {
+      params['filters[role][$contains]'] = selectedRole.value
+    }
+
     const res = await getUsers(params)
-    list.value = res.list || []
+    list.value = res.list || res.data || []
     pagination.value = res.pagination || { page: 1, pageSize: DEFAULT_PAGE_SIZE, pageCount: 0, total: 0 }
   } catch (error) {
     uni.showToast({ title: '加载失败，请稍后重试', icon: 'none' })
@@ -279,8 +361,15 @@ function changePage(page) {
   loadData()
 }
 
-function showUserDetail(user) {
-  
+async function showUserDetail(user) {
+  try {
+    const detail = await getUserDetail(user.id)
+    // 后端返回 { user, roles, rolesBySource }
+    detailData.value = detail
+    showDetailDialog.value = true
+  } catch (error) {
+    uni.showToast({ title: error.message || '加载详情失败', icon: 'none' })
+  }
 }
 
 function handleUserSelect(userId) {
@@ -300,11 +389,12 @@ function openAssignDialog(item) {
   currentUser.value = item
   selectedAssignRole.value = ''
   assignReason.value = ''
+  showDetailDialog.value = false
   showAssignDialog.value = true
 }
 
 function handleAssignRoleChange(e) {
-  selectedAssignRole.value = roleOptions.value.slice(1)[e.detail.value].value
+  selectedAssignRole.value = assignableRoleOptions.value[e.detail.value].value
 }
 
 async function handleAssignRole() {
@@ -314,9 +404,6 @@ async function handleAssignRole() {
   }
   try {
     await assignRole(currentUser.value.id, selectedAssignRole.value, assignReason.value)
-    // 卡点 F：角色需重新登录后生效（jwt 中的 zhaoRoles 需重新签发）
-    // icon 改为 'none'（因提示文字较长，success icon 显示不全）
-    // duration 设为 3000ms（确保 admin 能看清提示并通知用户）
     uni.showToast({
       title: '角色已分配，需通知用户重新登录生效',
       icon: 'none',
@@ -337,6 +424,7 @@ function openRevokeDialog(item) {
     selectedRevokeRole.value = ''
   }
   revokeReason.value = ''
+  showDetailDialog.value = false
   showRevokeDialog.value = true
 }
 
@@ -364,7 +452,7 @@ async function handleRevokeRole() {
 }
 
 function handleBatchAssignRoleChange(e) {
-  batchAssignRole.value = roleOptions.value.slice(1)[e.detail.value].value
+  batchAssignRole.value = assignableRoleOptions.value[e.detail.value].value
 }
 
 async function handleBatchAssignRole() {
@@ -387,11 +475,14 @@ function closeDialogs() {
   showAssignDialog.value = false
   showRevokeDialog.value = false
   showBatchAssign.value = false
+  showDetailDialog.value = false
   currentUser.value = null
+  detailData.value = null
 }
 
 onMounted(() => {
   loadRoleOptions()
+  loadAssignableRoles()
   loadData()
 })
 </script>
@@ -527,6 +618,108 @@ onMounted(() => {
   color: #1890ff;
   border-radius: 8rpx;
   font-size: 22rpx;
+}
+
+.role-tag.core {
+  background: #e6f7ff;
+  color: #1890ff;
+  border: 1rpx solid #91d5ff;
+}
+
+.role-tag.auto {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+}
+
+.role-tag.explicit {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1rpx solid #ffd591;
+}
+
+.legend-bar {
+  display: flex;
+  gap: 24rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 16rpx;
+  background: white;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.legend-dot.core { background: #1890ff; }
+.legend-dot.auto { background: #52c41a; }
+.legend-dot.explicit { background: #fa8c16; }
+
+.modal-detail {
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-detail .modal-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.detail-name {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.detail-email {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.detail-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.role-group {
+  margin-bottom: 24rpx;
+}
+
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.group-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
 }
 
 .item-actions {

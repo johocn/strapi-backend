@@ -517,6 +517,14 @@
           <view class="module-icon">⚙️</view>
           <view class="module-name">租户权限</view>
         </view>
+        <view
+          v-if="hasPermission('menu.user-roles')"
+          class="module-item"
+          @click="navigateTo('/pages/system/user-roles')"
+        >
+          <view class="module-icon">👥</view>
+          <view class="module-name">用户角色</view>
+        </view>
       </view>
     </view>
 

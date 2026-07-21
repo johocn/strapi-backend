@@ -45,3 +45,11 @@ export function batchAssignRoles(userIds, role, reason) {
 export function getActionLogs(params = {}) {
   return get(`${ADMIN_PREFIX}/roles/logs`, params).then(extractList)
 }
+
+export function getUserDetail(userId) {
+  return get(`${ADMIN_PREFIX}/users/${userId}/detail`).then(extractItem)
+}
+
+export function getAssignableRoles() {
+  return get(`${ADMIN_PREFIX}/roles/assignable`).then(extractItem)
+}
