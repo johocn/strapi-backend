@@ -47,6 +47,7 @@
           :checked="selectedUserIds.includes(item.id)"
           @change="handleUserSelect(item.id)"
           class="user-checkbox"
+          color="#52c41a"
         />
         <view class="item-main" @click="showUserDetail(item)">
           <view class="item-name">{{ item.username }}</view>
@@ -145,6 +146,7 @@
             <checkbox
               :value="role.value"
               :checked="selectedAssignRoles.includes(role.value)"
+              color="#52c41a"
               disabled
             />
             <text class="role-label">{{ role.label }}</text>
@@ -180,6 +182,7 @@
             <checkbox
               :value="role.role"
               :checked="selectedRevokeRoles.includes(role.role)"
+              color="#52c41a"
               disabled
             />
             <text class="role-label">{{ role.label }}</text>
@@ -217,6 +220,7 @@
             <checkbox
               :value="role.value"
               :checked="selectedBatchRoles.includes(role.value)"
+              color="#52c41a"
               disabled
             />
             <text class="role-label">{{ role.label }}</text>
