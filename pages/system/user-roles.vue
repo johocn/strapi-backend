@@ -983,6 +983,20 @@ onMounted(() => {
   border-bottom: 1rpx solid #f0f0f0;
 }
 
+.role-checkbox-item.already-assigned {
+  background: #fafafa;
+  opacity: 0.7;
+}
+
+.assigned-badge {
+  margin-left: auto;
+  padding: 2rpx 12rpx;
+  background: #f0f0f0;
+  color: #999;
+  border-radius: 4rpx;
+  font-size: 20rpx;
+}
+
 .role-label {
   flex: 1;
   font-size: 28rpx;
