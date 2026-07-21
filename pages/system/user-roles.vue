@@ -486,13 +486,18 @@ function toggleAssignRole(role) {
 }
 
 async function handleAssignRoles() {
-  if (selectedAssignRoles.value.length === 0) {
-    uni.showToast({ title: '请至少选择一个角色', icon: 'none' })
+  // 卡点 1 修复：过滤掉已分配角色，仅提交新增角色
+  const existingRoles = (currentUser.value?.roleSources || []).map(r => r.role)
+  const newRoles = selectedAssignRoles.value.filter(
+    role => !existingRoles.includes(role)
+  )
+  if (newRoles.length === 0) {
+    uni.showToast({ title: '没有新角色需要分配', icon: 'none' })
     return
   }
   uni.showLoading({ title: '分配中...' })
   try {
-    const results = await assignRoles(currentUser.value.id, selectedAssignRoles.value, assignReason.value)
+    const results = await assignRoles(currentUser.value.id, newRoles, assignReason.value)
     uni.hideLoading()
     const successCount = results.filter(r => r.success).length
     const failCount = results.filter(r => !r.success).length
