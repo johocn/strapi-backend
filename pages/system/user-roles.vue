@@ -467,6 +467,16 @@ function openAssignDialog(item) {
 }
 
 function toggleAssignRole(role) {
+  // 已分配角色不允许在此取消（走撤销弹窗）
+  const isAlreadyAssigned = (currentUser.value?.roleSources || [])
+    .some(r => r.role === role)
+  if (isAlreadyAssigned) {
+    uni.showToast({
+      title: '已分配角色不可在此取消，请使用撤销角色功能',
+      icon: 'none'
+    })
+    return
+  }
   const idx = selectedAssignRoles.value.indexOf(role)
   if (idx > -1) {
     selectedAssignRoles.value.splice(idx, 1)
