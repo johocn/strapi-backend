@@ -169,7 +169,7 @@
         <picker
           v-model="selectedRevokeRole"
           mode="selector"
-          :range="(currentUser?.roles || []).map(r => ({ value: r, label: getRoleLabel(r) }))"
+          :range="revocableRoles"
           range-key="label"
           @change="handleRevokeRoleChange"
           class="role-picker"
@@ -311,9 +311,13 @@ const assignRoleLabel = computed(() => {
   return option ? option.label : ''
 })
 
+const revocableRoles = computed(() => {
+  return (currentUser.value?.roleSources || []).filter(r => r.source !== 'auto')
+})
+
 const revokeRoleLabel = computed(() => {
-  if (!currentUser.value || !selectedRevokeRole.value) return ''
-  return getRoleLabel(selectedRevokeRole.value)
+  const option = revocableRoles.value.find(r => r.role === selectedRevokeRole.value)
+  return option ? option.label : ''
 })
 
 const batchAssignRoleLabel = computed(() => {
@@ -418,18 +422,15 @@ async function handleAssignRole() {
 
 function openRevokeDialog(item) {
   currentUser.value = item
-  if (item.roles && item.roles.length > 0) {
-    selectedRevokeRole.value = item.roles[0]
-  } else {
-    selectedRevokeRole.value = ''
-  }
+  const revocable = (item.roleSources || []).filter(r => r.source !== 'auto')
+  selectedRevokeRole.value = revocable.length > 0 ? revocable[0].role : ''
   revokeReason.value = ''
   showDetailDialog.value = false
   showRevokeDialog.value = true
 }
 
 function handleRevokeRoleChange(e) {
-  selectedRevokeRole.value = currentUser.value.roles[e.detail.value]
+  selectedRevokeRole.value = revocableRoles.value[e.detail.value].role
 }
 
 async function handleRevokeRole() {
@@ -437,7 +438,7 @@ async function handleRevokeRole() {
     uni.showToast({ title: '请选择要撤销的角色', icon: 'none' })
     return
   }
-  if (currentUser.value.roles.length <= 1) {
+  if (revocableRoles.value.length <= 1) {
     uni.showToast({ title: '用户至少需要保留一个角色', icon: 'none' })
     return
   }

@@ -51,5 +51,5 @@ export function getUserDetail(userId) {
 }
 
 export function getAssignableRoles() {
-  return get(`${ADMIN_PREFIX}/roles/assignable`).then(extractItem)
+  return get(`${ADMIN_PREFIX}/assignable-roles`).then(extractItem)
 }
