@@ -110,20 +110,6 @@
           </view>
         </view>
 
-        <view class="role-group" v-if="detailData.rolesBySource.auto.length > 0">
-          <text class="group-title"><text class="legend-dot auto"></text>自动授权（moduleVisibility）</text>
-          <view class="group-tags">
-            <text
-              v-for="r in detailData.rolesBySource.auto"
-              :key="r.role"
-              class="role-tag auto clickable"
-              @click="handleRoleTagClick({ id: detailData.user.id, username: detailData.user.username }, r)"
-            >
-              {{ r.label }}
-            </text>
-          </view>
-        </view>
-
         <view class="role-group" v-if="detailData.rolesBySource.explicit.length > 0">
           <text class="group-title"><text class="legend-dot explicit"></text>显式分配</text>
           <view class="group-tags">
