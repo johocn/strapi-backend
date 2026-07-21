@@ -1,12 +1,8 @@
 <template>
   <view class="manual-viewer">
-    <view class="header">
-      <view class="back-btn" @click="goBack">←</view>
-      <text class="title">{{ currentTitle || '文档查看' }}</text>
-      <view class="header-actions">
-        <text class="search-btn" @click="goSearch">🔍</text>
-      </view>
-    </view>
+    <PageHeader :title="currentTitle || '文档查看'">
+      <text class="search-btn" @click="goSearch">🔍</text>
+    </PageHeader>
 
     <view v-if="loading" class="loading">加载中...</view>
     <view v-else-if="error" class="error">{{ error }}</view>
@@ -18,14 +14,11 @@
         <view v-if="nextDoc" class="nav-btn next" @click="goDoc(nextDoc)">下一篇 →</view>
       </view>
     </scroll-view>
-
-    <view class="footer-bar" @click="goDashboard">
-      <text class="footer-text">返回面板</text>
-    </view>
   </view>
 </template>
 
 <script setup>
+import PageHeader from '../../src/components/PageHeader.vue'
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import MarkdownIt from 'markdown-it'
@@ -182,27 +175,10 @@ function resolveDocPath(href) {
   const dir = currentDoc.value.split('/').slice(0, -1).join('/')
   return dir ? `${dir}/${path}` : path
 }
-
-function goBack() {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.reLaunch({ url: '/pages/dashboard/index' })
-  }
-}
-
-function goDashboard() {
-  uni.reLaunch({ url: '/pages/dashboard/index' })
-}
 </script>
 
 <style scoped>
-.manual-viewer { height: 100vh; display: flex; flex-direction: column; padding-bottom: 96rpx; }
-.header { display: flex; align-items: center; padding: 24rpx 32rpx; background: #fff; border-bottom: 1rpx solid #e4e7ed; gap: 16rpx; }
-.back-btn { font-size: 40rpx; color: #303133; padding: 0 8rpx; }
-.header .title { flex: 1; font-size: 32rpx; font-weight: 600; color: #303133; }
-.header-actions { display: flex; align-items: center; }
+.manual-viewer { height: 100vh; display: flex; flex-direction: column; padding-bottom: 0; }
 .search-btn { font-size: 32rpx; padding: 0 16rpx; }
 
 .loading, .error { padding: 80rpx; text-align: center; color: #909399; }
@@ -230,12 +206,4 @@ function goDashboard() {
 .doc-nav { display: flex; justify-content: space-between; padding: 32rpx 0; border-top: 1rpx solid #e4e7ed; margin-top: 32rpx; }
 .nav-btn { padding: 16rpx 24rpx; background: #f5f7fa; border-radius: 8rpx; font-size: 26rpx; color: #606266; }
 .nav-btn.next { margin-left: auto; }
-
-.footer-bar {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: 96rpx; line-height: 96rpx;
-  background: #07c160; color: #fff;
-  text-align: center; font-size: 30rpx; font-weight: 600;
-}
-.footer-text { color: #fff; }
 </style>

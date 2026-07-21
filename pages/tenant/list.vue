@@ -1,11 +1,8 @@
 <template>
   <view class="page-container">
-    <view class="page-header">
-      <text class="page-title">租户管理</text>
-      <view class="header-actions">
-        <button class="btn-primary" @click="goCreate">新建租户</button>
-      </view>
-    </view>
+    <PageHeader title="租户管理">
+      <button class="btn-primary" @click="goCreate">新建租户</button>
+    </PageHeader>
 
     <view class="search-bar">
       <input 
@@ -89,6 +86,7 @@
 </template>
 
 <script setup>
+import PageHeader from '../../src/components/PageHeader.vue'
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getMyTenants } from '../../src/api/auth.js'
@@ -171,26 +169,13 @@ function formatDate(dateStr) {
   padding: 20rpx;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30rpx;
-  
-  .page-title {
-    font-size: 48rpx;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-  
-  .btn-primary {
-    background: linear-gradient(135deg, #409eff 0%, #667eea 100%);
-    color: #fff;
-    border: none;
-    border-radius: 8rpx;
-    padding: 16rpx 32rpx;
-    font-size: 28rpx;
-  }
+.btn-primary {
+  background: linear-gradient(135deg, #409eff 0%, #667eea 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 16rpx 32rpx;
+  font-size: 28rpx;
 }
 
 .search-bar {

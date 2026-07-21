@@ -1,9 +1,6 @@
 <template>
   <view class="search-page">
-    <view class="header">
-      <view class="back-btn" @click="goBack">←</view>
-      <text class="header-title">搜索文档</text>
-    </view>
+    <PageHeader title="搜索文档" />
 
     <view class="search-bar">
       <input
@@ -37,14 +34,11 @@
         <text class="result-path">{{ r.doc }}</text>
       </view>
     </scroll-view>
-
-    <view class="footer-bar" @click="goDashboard">
-      <text class="footer-text">返回面板</text>
-    </view>
   </view>
 </template>
 
 <script setup>
+import PageHeader from '../../src/components/PageHeader.vue'
 import { ref } from 'vue'
 import { buildIndex, search, highlight } from './search-index'
 
@@ -70,33 +64,10 @@ function clearQuery() {
 function goDoc(doc) {
   uni.navigateTo({ url: `/pages/manual/viewer?doc=${encodeURIComponent(doc)}` })
 }
-
-function goBack() {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.reLaunch({ url: '/pages/dashboard/index' })
-  }
-}
-
-function goDashboard() {
-  uni.reLaunch({ url: '/pages/dashboard/index' })
-}
 </script>
 
 <style scoped>
-.search-page { height: 100vh; display: flex; flex-direction: column; padding-bottom: 96rpx; }
-
-.header {
-  display: flex; align-items: center;
-  padding: 24rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #e4e7ed;
-  gap: 16rpx;
-}
-.back-btn { font-size: 40rpx; color: #303133; padding: 0 8rpx; }
-.header-title { font-size: 32rpx; font-weight: 600; color: #303133; }
+.search-page { height: 100vh; display: flex; flex-direction: column; padding-bottom: 0; }
 
 .search-bar {
   display: flex; align-items: center;
@@ -129,12 +100,4 @@ function goDashboard() {
 .result-snippet { font-size: 26rpx; color: #606266; line-height: 1.6; margin-bottom: 8rpx; }
 .result-snippet :deep(mark) { background: #fef08a; color: #92400e; padding: 0 4rpx; border-radius: 2rpx; }
 .result-path { font-size: 22rpx; color: #c0c4cc; }
-
-.footer-bar {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  height: 96rpx; line-height: 96rpx;
-  background: #07c160; color: #fff;
-  text-align: center; font-size: 30rpx; font-weight: 600;
-}
-.footer-text { color: #fff; }
 </style>

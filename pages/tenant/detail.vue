@@ -1,16 +1,9 @@
 <template>
   <view class="page-container">
-    <view class="page-header">
-      <view class="header-left" @click="goBack">
-        <text class="back-icon">←</text>
-        <text class="back-text">返回</text>
-      </view>
-      <text class="page-title">{{ isEdit ? '编辑租户' : '新建租户' }}</text>
-      <view class="header-right">
-        <button class="btn-save" :disabled="saving || loading" @click="saveTenant(false)">{{ isEdit ? '保存' : '保存并继续' }}</button>
-        <button v-if="isEdit" class="btn-save-return" :disabled="saving || loading" @click="saveTenant(true)">保存并返回</button>
-      </view>
-    </view>
+    <PageHeader :title="isEdit ? '编辑租户' : '新建租户'">
+      <button class="btn-save" :disabled="saving || loading" @click="saveTenant(false)">{{ isEdit ? '保存' : '保存并继续' }}</button>
+      <button v-if="isEdit" class="btn-save-return" :disabled="saving || loading" @click="saveTenant(true)">保存并返回</button>
+    </PageHeader>
 
     <scroll-view class="page-content" scroll-y>
       <view class="form-section">
@@ -435,6 +428,7 @@
 </template>
 
 <script setup>
+import PageHeader from '../../src/components/PageHeader.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getSiteConfigDetail, createSiteConfig, updateSiteConfig } from '../../src/api/site-config.js'
 import { getAdminChannelList, getMyChannels } from '../../src/api/channel.js'
@@ -1068,10 +1062,6 @@ function getAppTypeLabel(platform, appType) {
   const type = types.find(t => t.value === appType)
   return type?.label || appType
 }
-
-function goBack() {
-  uni.navigateBack()
-}
 </script>
 
 <style lang="scss" scoped>
@@ -1080,55 +1070,22 @@ function goBack() {
   background-color: #f5f7fa;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 30rpx;
+.btn-save {
+  background: linear-gradient(135deg, #409eff 0%, #667eea 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 16rpx 32rpx;
+  font-size: 28rpx;
+}
+.btn-save-return {
   background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-    
-    .back-icon {
-      font-size: 36rpx;
-      color: #303133;
-    }
-    
-    .back-text {
-      font-size: 28rpx;
-      color: #303133;
-    }
-  }
-  
-  .page-title {
-    font-size: 34rpx;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-  
-  .btn-save {
-    background: linear-gradient(135deg, #409eff 0%, #667eea 100%);
-    color: #fff;
-    border: none;
-    border-radius: 8rpx;
-    padding: 16rpx 32rpx;
-    font-size: 28rpx;
-  }
-  .btn-save-return {
-    background: #fff;
-    color: #667eea;
-    border: 2rpx solid #667eea;
-    border-radius: 8rpx;
-    padding: 14rpx 28rpx;
-    font-size: 26rpx;
-    margin-left: 16rpx;
-  }
+  color: #667eea;
+  border: 2rpx solid #667eea;
+  border-radius: 8rpx;
+  padding: 14rpx 28rpx;
+  font-size: 26rpx;
+  margin-left: 16rpx;
 }
 
 .page-content {
