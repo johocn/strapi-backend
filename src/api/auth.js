@@ -118,3 +118,8 @@ export function revokeRoleChannelByRole(role) {
 export function getMyTenants() {
   return get(`${MY}/tenants`)
 }
+
+// ===== 切换当前租户（签发新 JWT 携带 currentTenantId） =====
+export function switchTenant(tenantId) {
+  return post(`${V1}/auth/switch-tenant`, { tenantId }).then(res => res?.data ?? res)
+}

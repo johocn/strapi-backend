@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ROLES } from '../api/role-management.js'
-import { adminLogin as adminLoginApi, getMyPermissionKeys, getMyChannelScope, getMyRoles, getMyTenants } from '../api/auth.js'
+import { adminLogin as adminLoginApi, getMyPermissionKeys, getMyChannelScope, getMyRoles, getMyTenants, switchTenant as switchTenantApi } from '../api/auth.js'
 import { clearConfigCache } from '../utils/config-helper.js'
 
 function safeJsonParse(str, fallback) {
@@ -188,7 +188,41 @@ export const useUserStore = defineStore('user', () => {
     if (roles.value.length === 0 && permissions.value.length === 0) {
       console.warn('[user] roles/permissions failed to load after login')
     }
+    // 登录后自动选择默认租户（仅对有租户的用户生效）
+    if (tenantList.value.length > 0 && !currentTenantId.value) {
+      const defaultTenant = tenantList.value[0]?.documentId || tenantList.value[0]?.id
+      if (defaultTenant) {
+        await switchTenant(defaultTenant)
+      }
+    } else if (tenantList.value.length > 0 && currentTenantId.value) {
+      // 已有 currentTenantId，调 switchTenant 让后端 JWT 也携带
+      await switchTenant(currentTenantId.value)
+    }
     return result
+  }
+
+  async function switchTenant(tenantId) {
+    try {
+      const res = await switchTenantApi(tenantId)
+      if (res?.jwt) {
+        token.value = res.jwt
+        currentTenantId.value = tenantId
+        try {
+          uni.setStorageSync('tadmin_token', token.value)
+          uni.setStorageSync('tadmin_current_tenant_id', tenantId)
+          localStorage.setItem('tadmin_token', token.value)
+          localStorage.setItem('tadmin_current_tenant_id', tenantId)
+        } catch (e) { /* ignore storage errors */ }
+        // 清除配置缓存，强制重新加载合并后的 moduleVisibility
+        clearConfigCache()
+        // 重新加载权限（新 JWT 携带 currentTenantId，后端会按新租户计算权限）
+        await fetchPermissions()
+      }
+      return res
+    } catch (e) {
+      console.error('[user] switchTenant failed:', e)
+      throw e
+    }
   }
 
   function clearUser() {
@@ -247,6 +281,7 @@ export const useUserStore = defineStore('user', () => {
     fetchChannelScope,
     fetchTenants,
     setCurrentTenant,
+    switchTenant,
     login,
     clearUser,
     updateUserInfo
