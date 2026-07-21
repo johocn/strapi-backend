@@ -501,6 +501,22 @@
           <view class="module-icon">➕</view>
           <view class="module-name">新建租户</view>
         </view>
+        <view
+          v-if="userStore.hasRole('admin')"
+          class="module-item"
+          @click="navigateTo('/pages/module-visibility/index')"
+        >
+          <view class="module-icon">🔒</view>
+          <view class="module-name">默认功能</view>
+        </view>
+        <view
+          v-if="userStore.hasRole('admin')"
+          class="module-item"
+          @click="navigateTo('/pages/global-config/index')"
+        >
+          <view class="module-icon">⚙️</view>
+          <view class="module-name">租户权限</view>
+        </view>
       </view>
     </view>
 
@@ -594,49 +610,6 @@
       </view>
     </view>
 
-    <!-- 系统设置 > 默认功能（仅 admin 可见） -->
-    <view
-      class="module-section"
-      v-if="userStore.hasRole('admin')"
-    >
-      <view class="section-title">⚙️ 系统设置</view>
-      <view class="module-grid">
-        <view
-          v-if="userStore.hasRole('admin')"
-          class="module-item"
-          @click="navigateTo('/pages/global-config/index')"
-        >
-          <view class="module-icon">⚙️</view>
-          <view class="module-name">全局配置</view>
-        </view>
-        <view
-          v-if="userStore.hasRole('admin')"
-          class="module-item"
-          @click="navigateTo('/pages/module-visibility/index')"
-        >
-          <view class="module-icon">🔒</view>
-          <view class="module-name">默认功能</view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 租户设置 > 默认功能（channel-admin 可见，非 admin） -->
-    <view
-      class="module-section"
-      v-if="!userStore.hasRole('admin') && userStore.hasPermission('menu.module-visibility')"
-    >
-      <view class="section-title">🏢 租户设置</view>
-      <view class="module-grid">
-        <view
-          v-if="userStore.hasPermission('menu.module-visibility')"
-          class="module-item"
-          @click="navigateTo('/pages/module-visibility/index')"
-        >
-          <view class="module-icon">🔒</view>
-          <view class="module-name">默认功能</view>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
