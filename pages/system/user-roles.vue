@@ -443,8 +443,24 @@ async function handleRoleTagClick(user, roleSource) {
 }
 
 function openAssignDialog(item) {
-  currentUser.value = item
-  selectedAssignRoles.value = []
+  // 卡点 2 修复：从详情弹窗打开时补充 roleSources
+  let userWithRoles = item
+  if (!item?.roleSources && detailData.value && detailData.value.user?.id === item?.id) {
+    const rbs = detailData.value.rolesBySource || {}
+    userWithRoles = {
+      ...item,
+      roleSources: [
+        ...(rbs.core || []),
+        ...(rbs.explicit || [])
+      ]
+    }
+  }
+  currentUser.value = userWithRoles
+  // 预选中用户已拥有的角色（仅限 assignableRoleOptions 中存在的，卡点 3 处理）
+  const assignableRoleValues = assignableRoleOptions.value.map(r => r.value)
+  selectedAssignRoles.value = (userWithRoles?.roleSources || [])
+    .map(r => r.role)
+    .filter(role => assignableRoleValues.includes(role))
   assignReason.value = ''
   showDetailDialog.value = false
   showAssignDialog.value = true
