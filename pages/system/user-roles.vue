@@ -26,7 +26,6 @@
 
     <view class="legend-bar" v-if="!isAdmin">
       <text class="legend-item"><text class="legend-dot core"></text>核心</text>
-      <text class="legend-item"><text class="legend-dot auto"></text>自动授权</text>
       <text class="legend-item"><text class="legend-dot explicit"></text>显式分配</text>
     </view>
 
@@ -734,16 +733,10 @@ onMounted(() => {
   border: 1rpx solid #91d5ff;
 }
 
-.role-tag.auto {
+.role-tag.explicit {
   background: #f6ffed;
   color: #52c41a;
   border: 1rpx solid #b7eb8f;
-}
-
-.role-tag.explicit {
-  background: #fff7e6;
-  color: #fa8c16;
-  border: 1rpx solid #ffd591;
 }
 
 .legend-bar {
@@ -771,8 +764,7 @@ onMounted(() => {
 }
 
 .legend-dot.core { background: #1890ff; }
-.legend-dot.auto { background: #52c41a; }
-.legend-dot.explicit { background: #fa8c16; }
+.legend-dot.explicit { background: #52c41a; }
 
 .modal-detail {
   max-height: 80vh;
@@ -985,8 +977,7 @@ onMounted(() => {
   margin-left: 8rpx;
 }
 
-.role-source-dot.auto { background: #52c41a; }
-.role-source-dot.explicit { background: #fa8c16; }
+.role-source-dot.explicit { background: #52c41a; }
 
 .empty-tip {
   text-align: center;
