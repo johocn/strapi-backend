@@ -51,19 +51,13 @@ import { getGlobalConfig, updateGlobalConfig } from '../../src/api/global-config
 import { clearConfigCache, loadSiteConfig } from '../../src/utils/config-helper.js'
 import { useUserStore } from '../../src/store/user.js'
 import PageHeader from '../../src/components/PageHeader.vue'
+import { MODULE_LIST as SHARED_MODULE_LIST } from '../../src/constants/module.js'
 
-// 9 个有效模块（移除 payment/community/forum/channel）
-const MODULE_LIST = [
-  { key: 'website', icon: '🌐', name: '官网中心' },
-  { key: 'logistics', icon: '🚚', name: '物流中心' },
-  { key: 'studio', icon: '📹', name: '媒体发布中心' },
-  { key: 'points', icon: '💎', name: '积分中心' },
-  { key: 'course', icon: '📚', name: '课程中心' },
-  { key: 'quiz', icon: '📝', name: '题目中心' },
-  { key: 'sso', icon: '🔑', name: 'SSO 中心' },
-  { key: 'thirdParty', icon: '🔌', name: '三方配置中心' },
-  { key: 'oss', icon: '☁️', name: '存储中心' },
-]
+// 从共享常量派生，filter 掉 channel（无 manager 角色映射）
+// 共享常量用 label，本页面 Template 用 mod.name，这里做映射
+const MODULE_LIST = SHARED_MODULE_LIST
+  .filter(m => m.key !== 'channel')
+  .map(m => ({ ...m, name: m.label }))
 
 // 角色列表（按中心分组）
 const ROLE_GROUPS = [
