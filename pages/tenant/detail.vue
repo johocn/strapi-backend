@@ -103,15 +103,15 @@
         <text class="section-title">功能开关</text>
         <view class="feature-grid">
           <view
-            v-for="(label, key) in featureLabels"
-            :key="key"
+            v-for="mod in MODULE_LIST"
+            :key="mod.key"
             class="feature-item"
-            @click="toggleFeature(key)"
+            @click="toggleFeature(mod.key)"
           >
-            <view :class="['feature-icon', formData.featureFlags?.[key] ? 'enabled' : 'disabled']">
-              {{ formData.featureFlags?.[key] ? '✓' : '' }}
+            <view :class="['feature-icon', formData.featureFlags?.[mod.key] ? 'enabled' : 'disabled']">
+              {{ formData.featureFlags?.[mod.key] ? mod.icon : '' }}
             </view>
-            <text class="feature-label">{{ label }}</text>
+            <text class="feature-label">{{ mod.label }}</text>
           </view>
         </view>
       </view>
@@ -445,6 +445,7 @@ import { BASE_API } from '../../src/config/env.js'
 import MediaPicker from '../../src/components/MediaPicker.vue'
 import ColorPicker from '../../src/components/ColorPicker.vue'
 import { getTemplates } from '../../src/api/site-template.js'
+import { MODULE_LIST, DEFAULT_FEATURE_FLAGS } from '../../src/constants/module.js'
 
 const userStore = useUserStore()
 const documentId = ref('')
@@ -491,17 +492,6 @@ const thirdPartyLabels = {
 const currentAuthModeLabel = computed(() =>
   authModeOptions.find(m => m.value === formData.authConfig.authMode)?.label || ''
 )
-
-const featureLabels = {
-  sso: 'SSO登录',
-  points: '积分系统',
-  quiz: '题库管理',
-  course: '课程管理',
-  channel: '渠道管理',
-  thirdParty: '三方登录',
-  oss: 'OSS存储',
-  website: '企业官网'
-}
 
 const platformIcons = {
   wechat: '💬',
@@ -610,16 +600,7 @@ const formData = reactive({
   sharePath: '/pages/index/index',
   channels: [],
   channelUsage: 'site_cross_user',
-  featureFlags: {
-    sso: false,
-    points: true,
-    quiz: true,
-    course: true,
-    channel: true,
-    thirdParty: true,
-    oss: false,
-    website: true
-  },
+  featureFlags: { ...DEFAULT_FEATURE_FLAGS },
   authConfig: {
     authMode: 'local',
     wechatOfficialAccountEnabled: false,
@@ -709,7 +690,7 @@ async function loadTenantDetail() {
       shareTitle: data.shareTitle || '',
       shareDescription: data.shareDescription || '',
       sharePath: data.sharePath || '/pages/index/index',
-      featureFlags: data.featureFlags ?? formData.featureFlags,
+      featureFlags: { ...DEFAULT_FEATURE_FLAGS, ...(data.featureFlags || {}) },
       channelUsage: data.channelUsage || 'site_cross_user'
     })
     // 回填认证配置（按字段取默认值，避免覆盖 extraConfig 中其他字段）
