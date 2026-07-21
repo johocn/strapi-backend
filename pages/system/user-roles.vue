@@ -140,7 +140,7 @@
           <view
             v-for="role in assignableRoleOptions"
             :key="role.value"
-            class="role-checkbox-item"
+            :class="['role-checkbox-item', isAlreadyAssignedRole(role.value) ? 'already-assigned' : '']"
             @click="toggleAssignRole(role.value)"
           >
             <checkbox
@@ -151,6 +151,7 @@
             />
             <text class="role-label">{{ role.label }}</text>
             <text class="role-value">{{ role.value }}</text>
+            <text class="assigned-badge" v-if="isAlreadyAssignedRole(role.value)">已分配</text>
           </view>
         </view>
         <textarea
@@ -334,6 +335,10 @@ const revocableRoles = computed(() => {
 
 function getRoleLabel(role) {
   return ROLE_LABELS[role] || role
+}
+
+function isAlreadyAssignedRole(roleValue) {
+  return (currentUser.value?.roleSources || []).some(r => r.role === roleValue)
 }
 
 async function loadData() {
