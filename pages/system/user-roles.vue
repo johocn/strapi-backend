@@ -56,7 +56,8 @@
             <text
               v-for="role in (item.roleSources || [])"
               :key="role.role"
-              :class="['role-tag', role.source]"
+              :class="['role-tag', role.source, role.source === 'core' ? 'unclickable' : 'clickable']"
+              @click.stop="handleRoleTagClick(item, role)"
             >
               {{ role.label }}
             </text>
@@ -100,7 +101,11 @@
         <view class="role-group" v-if="detailData.rolesBySource.core.length > 0">
           <text class="group-title"><text class="legend-dot core"></text>核心角色</text>
           <view class="group-tags">
-            <text v-for="r in detailData.rolesBySource.core" :key="r.role" class="role-tag core">
+            <text
+              v-for="r in detailData.rolesBySource.core"
+              :key="r.role"
+              class="role-tag core unclickable"
+            >
               {{ r.label }}
             </text>
           </view>
@@ -109,7 +114,12 @@
         <view class="role-group" v-if="detailData.rolesBySource.auto.length > 0">
           <text class="group-title"><text class="legend-dot auto"></text>自动授权（moduleVisibility）</text>
           <view class="group-tags">
-            <text v-for="r in detailData.rolesBySource.auto" :key="r.role" class="role-tag auto">
+            <text
+              v-for="r in detailData.rolesBySource.auto"
+              :key="r.role"
+              class="role-tag auto clickable"
+              @click="handleRoleTagClick({ id: detailData.user.id, username: detailData.user.username }, r)"
+            >
               {{ r.label }}
             </text>
           </view>
@@ -118,7 +128,12 @@
         <view class="role-group" v-if="detailData.rolesBySource.explicit.length > 0">
           <text class="group-title"><text class="legend-dot explicit"></text>显式分配</text>
           <view class="group-tags">
-            <text v-for="r in detailData.rolesBySource.explicit" :key="r.role" class="role-tag explicit">
+            <text
+              v-for="r in detailData.rolesBySource.explicit"
+              :key="r.role"
+              class="role-tag explicit clickable"
+              @click="handleRoleTagClick({ id: detailData.user.id, username: detailData.user.username }, r)"
+            >
               {{ r.label }}
             </text>
           </view>
@@ -126,97 +141,114 @@
       </view>
       <view class="modal-footer">
         <button class="modal-btn modal-btn-cancel" @click="closeDialogs">关闭</button>
-        <button class="modal-btn" @click="openAssignDialog(detailData && {id: detailData.user.id, username: detailData.user.username, roles: detailData.roles.map(r=>r.role)})" v-if="hasPermission('menu.user-roles')">分配角色</button>
+        <button class="modal-btn" @click="openAssignDialog(detailData && {id: detailData.user.id, username: detailData.user.username})" v-if="hasPermission('menu.user-roles')">分配角色</button>
       </view>
     </view>
 
     <view class="modal" v-if="showAssignDialog">
       <view class="modal-header">
-        <text class="modal-title">分配角色</text>
+        <text class="modal-title">为用户 {{ currentUser?.username }} 分配角色</text>
       </view>
       <view class="modal-body">
-        <text class="modal-text">为用户 {{ currentUser?.username }} 分配角色</text>
-        <picker
-          v-model="selectedAssignRole"
-          mode="selector"
-          :range="assignableRoleOptions"
-          range-key="label"
-          @change="handleAssignRoleChange"
-          class="role-picker"
-        >
-          <view class="picker-display">
-            {{ assignRoleLabel || '请选择角色' }}
+        <view class="role-checkbox-list">
+          <view
+            v-for="role in assignableRoleOptions"
+            :key="role.value"
+            class="role-checkbox-item"
+            @click="toggleAssignRole(role.value)"
+          >
+            <checkbox
+              :value="role.value"
+              :checked="selectedAssignRoles.includes(role.value)"
+              disabled
+            />
+            <text class="role-label">{{ role.label }}</text>
+            <text class="role-value">{{ role.value }}</text>
           </view>
-        </picker>
+        </view>
         <textarea
           v-model="assignReason"
           class="reason-input"
-          placeholder="请输入操作原因（可选）"
+          placeholder="操作原因（可选）"
         ></textarea>
       </view>
       <view class="modal-footer">
         <button class="modal-btn modal-btn-cancel" @click="closeDialogs">取消</button>
-        <button class="modal-btn" @click="handleAssignRole">确认</button>
+        <button class="modal-btn" @click="handleAssignRoles">
+          确认<text v-if="selectedAssignRoles.length > 0">（已选 {{ selectedAssignRoles.length }}）</text>
+        </button>
       </view>
     </view>
 
     <view class="modal" v-if="showRevokeDialog">
       <view class="modal-header">
-        <text class="modal-title">撤销角色</text>
+        <text class="modal-title">为用户 {{ currentUser?.username }} 撤销角色</text>
       </view>
       <view class="modal-body">
-        <text class="modal-text">为用户 {{ currentUser?.username }} 撤销角色</text>
-        <picker
-          v-model="selectedRevokeRole"
-          mode="selector"
-          :range="revocableRoles"
-          range-key="label"
-          @change="handleRevokeRoleChange"
-          class="role-picker"
-        >
-          <view class="picker-display">
-            {{ revokeRoleLabel || '请选择要撤销的角色' }}
+        <view class="role-checkbox-list" v-if="revocableRoles.length > 0">
+          <view
+            v-for="role in revocableRoles"
+            :key="role.role"
+            class="role-checkbox-item"
+            @click="toggleRevokeRole(role.role)"
+          >
+            <checkbox
+              :value="role.role"
+              :checked="selectedRevokeRoles.includes(role.role)"
+              disabled
+            />
+            <text class="role-label">{{ role.label }}</text>
+            <text class="role-value">{{ role.role }}</text>
+            <text :class="['role-source-dot', role.source]"></text>
           </view>
-        </picker>
+        </view>
+        <view v-else class="empty-tip">该用户没有可撤销的角色（仅剩核心角色）</view>
         <textarea
           v-model="revokeReason"
           class="reason-input"
-          placeholder="请输入操作原因（可选）"
+          placeholder="操作原因（可选）"
         ></textarea>
       </view>
       <view class="modal-footer">
         <button class="modal-btn modal-btn-cancel" @click="closeDialogs">取消</button>
-        <button class="modal-btn" @click="handleRevokeRole">确认</button>
+        <button class="modal-btn" @click="handleRevokeRoles">
+          确认<text v-if="selectedRevokeRoles.length > 0">（已选 {{ selectedRevokeRoles.length }}）</text>
+        </button>
       </view>
     </view>
 
     <view class="modal" v-if="showBatchAssign">
       <view class="modal-header">
-        <text class="modal-title">批量分配角色</text>
+        <text class="modal-title">为选中的 {{ selectedUserIds.length }} 个用户批量分配角色</text>
       </view>
       <view class="modal-body">
-        <text class="modal-text">为选中的 {{ selectedUserIds.length }} 个用户批量分配角色</text>
-        <picker
-          v-model="batchAssignRole"
-          mode="selector"
-          :range="assignableRoleOptions"
-          range-key="label"
-          @change="handleBatchAssignRoleChange"
-          class="role-picker"
-        >
-          <view class="picker-display">
-            {{ batchAssignRoleLabel || '请选择角色' }}
+        <view class="role-checkbox-list">
+          <view
+            v-for="role in assignableRoleOptions"
+            :key="role.value"
+            class="role-checkbox-item"
+            @click="toggleBatchRole(role.value)"
+          >
+            <checkbox
+              :value="role.value"
+              :checked="selectedBatchRoles.includes(role.value)"
+              disabled
+            />
+            <text class="role-label">{{ role.label }}</text>
+            <text class="role-value">{{ role.value }}</text>
           </view>
-        </picker>
+        </view>
         <textarea
           v-model="batchAssignReason"
           class="reason-input"
-          placeholder="请输入操作原因（可选）"
+          placeholder="操作原因（可选）"
         ></textarea>
       </view>
       <view class="modal-footer">
         <button class="modal-btn modal-btn-cancel" @click="closeDialogs">取消</button>
-        <button class="modal-btn" @click="handleBatchAssignRole">确认</button>
+        <button class="modal-btn" @click="handleBatchAssignRolesMulti">
+          确认<text v-if="selectedBatchRoles.length > 0">（已选 {{ selectedBatchRoles.length }}）</text>
+        </button>
       </view>
     </view>
 
@@ -228,6 +260,7 @@ import { ref, onMounted, computed } from 'vue'
 import {
   getUsers, assignRole, revokeRole, batchAssignRoles,
   getUserDetail, getAssignableRoles,
+  assignRoles, revokeRoles, batchAssignRolesMulti,
   ROLES, ROLE_LABELS
 } from '../../src/api/role-management.js'
 import { getAllRoles } from '../../src/api/auth.js'
@@ -252,11 +285,11 @@ const showDetailDialog = ref(false)
 const currentUser = ref(null)
 const detailData = ref(null)
 
-const selectedAssignRole = ref('')
+const selectedAssignRoles = ref([])
 const assignReason = ref('')
-const selectedRevokeRole = ref('')
+const selectedRevokeRoles = ref([])
 const revokeReason = ref('')
-const batchAssignRole = ref('')
+const selectedBatchRoles = ref([])
 const batchAssignReason = ref('')
 
 // 角色筛选 picker 选项（全部角色，用 getAllRoles 加载）
@@ -306,23 +339,8 @@ const selectedRoleLabel = computed(() => {
   return option ? option.label : ''
 })
 
-const assignRoleLabel = computed(() => {
-  const option = assignableRoleOptions.value.find(o => o.value === selectedAssignRole.value)
-  return option ? option.label : ''
-})
-
 const revocableRoles = computed(() => {
   return (currentUser.value?.roleSources || []).filter(r => r.source !== 'auto')
-})
-
-const revokeRoleLabel = computed(() => {
-  const option = revocableRoles.value.find(r => r.role === selectedRevokeRole.value)
-  return option ? option.label : ''
-})
-
-const batchAssignRoleLabel = computed(() => {
-  const option = assignableRoleOptions.value.find(o => o.value === batchAssignRole.value)
-  return option ? option.label : ''
 })
 
 function getRoleLabel(role) {
@@ -389,85 +407,174 @@ function clearSelection() {
   selectedUserIds.value = []
 }
 
+async function handleRoleTagClick(user, roleSource) {
+  // core 角色不可点击撤销
+  if (roleSource.source === 'core') return
+
+  uni.showModal({
+    title: '撤销角色',
+    content: `是否确定取消角色「${roleSource.label}」？`,
+    success: async (res) => {
+      if (!res.confirm) return
+      uni.showLoading({ title: '撤销中...' })
+      try {
+        await revokeRole(user.id, roleSource.role, '')
+        uni.hideLoading()
+        uni.showToast({ title: '角色已撤销', icon: 'success' })
+        loadData()
+        // 如果详情弹窗打开，刷新详情
+        if (showDetailDialog.value && detailData.value && detailData.value.user.id === user.id) {
+          try {
+            detailData.value = await getUserDetail(user.id)
+          } catch (e) {
+            // 刷新详情失败忽略
+          }
+        }
+      } catch (error) {
+        uni.hideLoading()
+        const msg = error.message || '撤销失败'
+        // auto 角色撤销失败的特殊提示
+        if (roleSource.source === 'auto' && msg.includes('not assigned')) {
+          uni.showModal({
+            title: '无法撤销',
+            content: '自动授权角色不能通过此方式撤销，请调整 moduleVisibility 配置',
+            showCancel: false
+          })
+        } else {
+          uni.showToast({ title: msg, icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
 function openAssignDialog(item) {
   currentUser.value = item
-  selectedAssignRole.value = ''
+  selectedAssignRoles.value = []
   assignReason.value = ''
   showDetailDialog.value = false
   showAssignDialog.value = true
 }
 
-function handleAssignRoleChange(e) {
-  selectedAssignRole.value = assignableRoleOptions.value[e.detail.value].value
+function toggleAssignRole(role) {
+  const idx = selectedAssignRoles.value.indexOf(role)
+  if (idx > -1) {
+    selectedAssignRoles.value.splice(idx, 1)
+  } else {
+    selectedAssignRoles.value.push(role)
+  }
 }
 
-async function handleAssignRole() {
-  if (!selectedAssignRole.value) {
-    uni.showToast({ title: '请选择角色', icon: 'none' })
+async function handleAssignRoles() {
+  if (selectedAssignRoles.value.length === 0) {
+    uni.showToast({ title: '请至少选择一个角色', icon: 'none' })
     return
   }
+  uni.showLoading({ title: '分配中...' })
   try {
-    await assignRole(currentUser.value.id, selectedAssignRole.value, assignReason.value)
-    uni.showToast({
-      title: '角色已分配，需通知用户重新登录生效',
-      icon: 'none',
-      duration: 3000,
-    })
+    const results = await assignRoles(currentUser.value.id, selectedAssignRoles.value, assignReason.value)
+    uni.hideLoading()
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.filter(r => !r.success).length
+    if (failCount === 0) {
+      uni.showToast({ title: `成功分配 ${successCount} 个角色`, icon: 'success' })
+    } else {
+      const failList = results.filter(r => !r.success).map(r => `${r.role}: ${r.error}`).join('\n')
+      uni.showModal({
+        title: '部分失败',
+        content: `成功 ${successCount} 个，失败 ${failCount} 个：\n${failList}`,
+        showCancel: false
+      })
+    }
     closeDialogs()
     loadData()
   } catch (error) {
+    uni.hideLoading()
     uni.showToast({ title: error.message || '分配失败', icon: 'none' })
   }
 }
 
 function openRevokeDialog(item) {
   currentUser.value = item
-  const revocable = (item.roleSources || []).filter(r => r.source !== 'auto')
-  selectedRevokeRole.value = revocable.length > 0 ? revocable[0].role : ''
+  selectedRevokeRoles.value = []
   revokeReason.value = ''
   showDetailDialog.value = false
   showRevokeDialog.value = true
 }
 
-function handleRevokeRoleChange(e) {
-  selectedRevokeRole.value = revocableRoles.value[e.detail.value].role
+function toggleRevokeRole(role) {
+  const idx = selectedRevokeRoles.value.indexOf(role)
+  if (idx > -1) {
+    selectedRevokeRoles.value.splice(idx, 1)
+  } else {
+    selectedRevokeRoles.value.push(role)
+  }
 }
 
-async function handleRevokeRole() {
-  if (!selectedRevokeRole.value) {
-    uni.showToast({ title: '请选择要撤销的角色', icon: 'none' })
+async function handleRevokeRoles() {
+  if (selectedRevokeRoles.value.length === 0) {
+    uni.showToast({ title: '请至少选择一个角色', icon: 'none' })
     return
   }
-  if (revocableRoles.value.length <= 1) {
-    uni.showToast({ title: '用户至少需要保留一个角色', icon: 'none' })
-    return
-  }
+  uni.showLoading({ title: '撤销中...' })
   try {
-    await revokeRole(currentUser.value.id, selectedRevokeRole.value, revokeReason.value)
-    uni.showToast({ title: '角色撤销成功', icon: 'success' })
+    const results = await revokeRoles(currentUser.value.id, selectedRevokeRoles.value, revokeReason.value)
+    uni.hideLoading()
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.filter(r => !r.success).length
+    if (failCount === 0) {
+      uni.showToast({ title: `成功撤销 ${successCount} 个角色`, icon: 'success' })
+    } else {
+      const failList = results.filter(r => !r.success).map(r => `${r.role}: ${r.error}`).join('\n')
+      uni.showModal({
+        title: '部分失败',
+        content: `成功 ${successCount} 个，失败 ${failCount} 个：\n${failList}`,
+        showCancel: false
+      })
+    }
     closeDialogs()
     loadData()
   } catch (error) {
+    uni.hideLoading()
     uni.showToast({ title: error.message || '撤销失败', icon: 'none' })
   }
 }
 
-function handleBatchAssignRoleChange(e) {
-  batchAssignRole.value = assignableRoleOptions.value[e.detail.value].value
+function toggleBatchRole(role) {
+  const idx = selectedBatchRoles.value.indexOf(role)
+  if (idx > -1) {
+    selectedBatchRoles.value.splice(idx, 1)
+  } else {
+    selectedBatchRoles.value.push(role)
+  }
 }
 
-async function handleBatchAssignRole() {
-  if (!batchAssignRole.value) {
-    uni.showToast({ title: '请选择角色', icon: 'none' })
+async function handleBatchAssignRolesMulti() {
+  if (selectedBatchRoles.value.length === 0) {
+    uni.showToast({ title: '请至少选择一个角色', icon: 'none' })
     return
   }
+  uni.showLoading({ title: '批量分配中...' })
   try {
-    await batchAssignRoles(selectedUserIds.value, batchAssignRole.value, batchAssignReason.value)
-    uni.showToast({ title: '批量分配完成', icon: 'success' })
+    const results = await batchAssignRolesMulti(selectedUserIds.value, selectedBatchRoles.value, batchAssignReason.value)
+    uni.hideLoading()
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.filter(r => !r.success).length
+    if (failCount === 0) {
+      uni.showToast({ title: `成功为 ${selectedUserIds.value.length} 个用户分配 ${selectedBatchRoles.value.length} 个角色`, icon: 'success' })
+    } else {
+      const failList = results.filter(r => !r.success).map(r => `用户${r.userId}-${r.role}: ${r.error}`).join('\n')
+      uni.showModal({
+        title: '部分失败',
+        content: `成功 ${successCount} 个，失败 ${failCount} 个：\n${failList}`,
+        showCancel: false
+      })
+    }
     closeDialogs()
     clearSelection()
     loadData()
   } catch (error) {
+    uni.hideLoading()
     uni.showToast({ title: error.message || '批量分配失败', icon: 'none' })
   }
 }
@@ -834,5 +941,57 @@ onMounted(() => {
   background: white;
   color: #666;
   border-right: 1rpx solid #eee;
+}
+
+.role-tag.clickable {
+  cursor: pointer;
+}
+
+.role-tag.unclickable {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.role-checkbox-list {
+  max-height: 400rpx;
+  overflow-y: auto;
+  margin-bottom: 16rpx;
+}
+
+.role-checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.role-label {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  margin-left: 16rpx;
+}
+
+.role-value {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.role-source-dot {
+  display: inline-block;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  margin-left: 8rpx;
+}
+
+.role-source-dot.auto { background: #52c41a; }
+.role-source-dot.explicit { background: #fa8c16; }
+
+.empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 32rpx 0;
 }
 </style>

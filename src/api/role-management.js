@@ -53,3 +53,65 @@ export function getUserDetail(userId) {
 export function getAssignableRoles() {
   return get(`${ADMIN_PREFIX}/assignable-roles`).then(extractItem)
 }
+
+/**
+ * 单用户多角色分配（前端循环调用单角色 API）
+ * @param {number} userId
+ * @param {string[]} roles 角色名数组
+ * @param {string} reason 操作原因
+ * @returns {Promise<Array<{role: string, success: boolean, error?: string}>>}
+ */
+export async function assignRoles(userId, roles, reason = '') {
+  const results = []
+  for (const role of roles) {
+    try {
+      await assignRole(userId, role, reason)
+      results.push({ role, success: true })
+    } catch (e) {
+      results.push({ role, success: false, error: e.message })
+    }
+  }
+  return results
+}
+
+/**
+ * 单用户多角色撤销（前端循环调用单角色 API）
+ * @param {number} userId
+ * @param {string[]} roles 角色名数组
+ * @param {string} reason 操作原因
+ * @returns {Promise<Array<{role: string, success: boolean, error?: string}>>}
+ */
+export async function revokeRoles(userId, roles, reason = '') {
+  const results = []
+  for (const role of roles) {
+    try {
+      await revokeRole(userId, role, reason)
+      results.push({ role, success: true })
+    } catch (e) {
+      results.push({ role, success: false, error: e.message })
+    }
+  }
+  return results
+}
+
+/**
+ * 多用户多角色批量分配（前端双层循环调用单角色 API）
+ * @param {number[]} userIds
+ * @param {string[]} roles 角色名数组
+ * @param {string} reason 操作原因
+ * @returns {Promise<Array<{userId: number, role: string, success: boolean, error?: string}>>}
+ */
+export async function batchAssignRolesMulti(userIds, roles, reason = '') {
+  const results = []
+  for (const userId of userIds) {
+    for (const role of roles) {
+      try {
+        await assignRole(userId, role, reason)
+        results.push({ userId, role, success: true })
+      } catch (e) {
+        results.push({ userId, role, success: false, error: e.message })
+      }
+    }
+  }
+  return results
+}
