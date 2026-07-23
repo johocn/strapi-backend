@@ -34,7 +34,7 @@
         <view class="tenant-meta">
           <view class="meta-item">
             <text class="meta-label">渠道数量</text>
-            <text class="meta-value">{{ tenant.channels?.length ?? 0 }}</text>
+            <text class="meta-value">{{ tenant.channelsCount ?? 0 }}</text>
           </view>
           <view class="meta-item">
             <text class="meta-label">三方配置</text>
@@ -42,7 +42,7 @@
           </view>
           <view class="meta-item">
             <text class="meta-label">模板</text>
-            <text class="meta-value">{{ tenant.template?.name || '无' }}</text>
+            <text class="meta-value">{{ tenant.templateName || '无' }}</text>
           </view>
         </view>
 
