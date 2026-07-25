@@ -2,6 +2,11 @@
   <view class="page-container">
     <PageHeader title="三方绑定" />
 
+    <view class="help-banner">
+      <text class="help-icon">ℹ️</text>
+      <text class="help-text">三方绑定记录用户账号与微信/支付宝/抖音等第三方平台的关联关系，用户可通过已绑定的三方账号快速登录。</text>
+    </view>
+
     <view class="search-section">
       <view class="search-box">
         <input
@@ -22,12 +27,19 @@
     <view class="data-list">
       <view v-for="item in dataList" :key="item.documentId" class="data-card">
         <view class="data-info">
-          <view class="data-title">{{ item.provider || '-' }} · {{ item.provider_nickname || '无昵称' }}</view>
+          <view class="data-title">
+            <view class="provider-tag" :style="{ background: providerMeta(item.provider).bgColor, color: providerMeta(item.provider).color }">
+              <text>{{ providerMeta(item.provider).icon }}</text>
+              <text>{{ providerMeta(item.provider).label }}</text>
+            </view>
+            <text class="data-nickname">{{ item.provider_nickname || '无昵称' }}</text>
+          </view>
           <view class="data-meta">
             <text class="meta-item">用户: {{ relDoc(item.user) }}</text>
             <text class="meta-item">三方ID: {{ item.provider_user_id || '-' }}</text>
           </view>
           <view class="data-meta">
+            <text class="meta-item">头像: {{ item.provider_avatar ? '已设置' : '-' }}</text>
             <text class="meta-item">UnionID: {{ item.provider_union_id || '-' }}</text>
           </view>
           <view class="data-footer">
@@ -84,6 +96,10 @@
             <input v-model="createForm.provider_nickname" class="modal-input" placeholder="三方平台用户昵称（选填）" />
           </view>
         </view>
+          <view class="modal-guide">
+            <text class="guide-text">未配置 OAuth？</text>
+            <text class="guide-link" @click="goWechatConfig">点击配置微信登录</text>
+          </view>
         <view class="modal-footer">
           <button class="modal-btn cancel" @click="closeCreateModal" :disabled="createSubmitting">取消</button>
           <button class="modal-btn confirm" @click="submitCreate" :loading="createSubmitting" :disabled="createSubmitting">提交</button>
@@ -99,6 +115,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ssoBindingApi } from '../../../src/api/sso.js'
 import { useUserStore } from '../../../src/store/user.js'
 import PageHeader from '../../../src/components/PageHeader.vue'
+import { SSO_PROVIDERS, getProvider } from '../../../src/constants/sso-providers.js'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
@@ -110,6 +127,11 @@ const currentPage = ref(1)
 const loading = ref(false)
 
 const totalPages = computed(() => Math.ceil(pagination.value.total / (pagination.value.pageSize || 10)) || 1)
+
+function providerMeta(value) {
+  const p = getProvider(value)
+  return p || { icon: '🔗', label: value || '-', color: '#999', bgColor: '#f5f5f5' }
+}
 
 function relDoc(rel) {
   if (!rel) return '-'
@@ -178,11 +200,7 @@ function goWechatConfig() {
 
 // ==================== 新增绑定弹窗 ====================
 
-const bindingProviderOptions = [
-  { value: 'wechat', label: '微信' },
-  { value: 'alipay', label: '支付宝' },
-  { value: 'douyin', label: '抖音' },
-]
+const bindingProviderOptions = SSO_PROVIDERS.map(p => ({ value: p.value, label: `${p.icon} ${p.label}` }))
 
 const showCreateModal = ref(false)
 const createSubmitting = ref(false)
@@ -269,6 +287,61 @@ onShow(() => {
 <style scoped>
 page {
   background: #f5f5f5;
+}
+.help-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  background: #e6f4ff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  border-left: 6rpx solid #1677ff;
+}
+
+.help-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.help-text {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.provider-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+  margin-right: 12rpx;
+}
+
+.data-nickname {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.modal-guide {
+  margin-top: 16rpx;
+  padding: 16rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  text-align: center;
+}
+
+.guide-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.guide-link {
+  font-size: 24rpx;
+  color: #1677ff;
+  margin-left: 8rpx;
 }
 .page-container {
   min-height: 100vh;
