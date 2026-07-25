@@ -61,6 +61,18 @@
       }
     },
     {
+      "path": "pages/global-config/index",
+      "style": {
+        "navigationBarTitleText": "全局配置"
+      }
+    },
+    {
+      "path": "pages/module-visibility/index",
+      "style": {
+        "navigationBarTitleText": "模块可见性"
+      }
+    },
+    {
       "path": "pages/quiz/list",
       "style": {
         "navigationBarTitleText": "题库管理"
@@ -510,6 +522,8 @@
     { "path": "pages/studio/collect-workflow/index", "style": { "navigationBarTitleText": "采集工作流" } },
     { "path": "pages/studio/publish-center/index", "style": { "navigationBarTitleText": "发布中心" } },
     { "path": "pages/studio/analytics/index", "style": { "navigationBarTitleText": "数据分析" } },
+    { "path": "pages/sso/app/list", "style": { "navigationBarTitleText": "应用管理" } },
+    { "path": "pages/sso/app/edit", "style": { "navigationBarTitleText": "编辑应用" } },
     { "path": "pages/sso/token/list", "style": { "navigationBarTitleText": "Token管理" } },
     { "path": "pages/sso/auth-code/list", "style": { "navigationBarTitleText": "授权码管理" } },
     { "path": "pages/sso/binding/list", "style": { "navigationBarTitleText": "三方绑定" } },
