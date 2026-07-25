@@ -33,6 +33,10 @@
           <text class="form-label">AppID<text class="required-mark">*</text></text>
           <input v-model="form.app_id" class="form-input" :placeholder="currentHints.appId || '请输入 AppID'" />
           <text class="form-hint">{{ currentHints.appId || '应用唯一标识' }}</text>
+          <view class="provider-portal" v-if="currentProvider">
+            <text class="portal-label">申请入口：</text>
+            <text class="portal-link" @click="openPortal(currentProvider.portalUrl)">{{ currentProvider.portalUrl }}</text>
+          </view>
         </view>
 
         <view class="form-item">
@@ -109,19 +113,23 @@
         </template>
       </view>
 
-      <!-- 回调配置 -->
+      <!-- 回调配置说明（只读） -->
       <view class="form-section">
         <view class="section-title">回调配置</view>
 
-        <view class="form-item">
-          <text class="form-label">Redirect URIs</text>
-          <text class="form-hint">JSON 数组，一行一个 URL</text>
-          <textarea v-model="form.redirect_uris" class="form-textarea" placeholder="https://example.com/callback" />
+        <view class="info-banner">
+          <text class="info-icon">ℹ️</text>
+          <view class="info-content">
+            <text class="info-text">SSO 回调地址由系统自动生成，无需手动配置：</text>
+            <text class="info-code">/api/zhao-sso/v1/auth/wechat/callback</text>
+            <text class="info-text">应用方回调地址请在【应用管理】中配置 sso-app 的 redirect_uris。</text>
+          </view>
         </view>
 
         <view class="form-item">
           <text class="form-label">Scope</text>
           <input v-model="form.scope" class="form-input" placeholder="如：snsapi_userinfo / snsapi_login" />
+          <text class="form-hint">非微信平台可填写对应 scope，微信请在上方 OAuth Scope 多选</text>
         </view>
       </view>
     </scroll-view>
@@ -133,25 +141,14 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { ssoOauthConfigApi } from '../../../src/api/sso.js'
 import PageHeader from '../../../src/components/PageHeader.vue'
+import { SSO_PROVIDERS, SSO_APP_TYPES, getProvider } from '../../../src/constants/sso-providers.js'
 
-// 平台选项
-const platformOptions = [
-  { value: 'wechat', label: '微信' },
-  { value: 'alipay', label: '支付宝' },
-  { value: 'douyin', label: '抖音' },
-  { value: 'google', label: 'Google' },
-  { value: 'github', label: 'GitHub' },
-]
+// 平台选项（从共享模块派生）
+const platformOptions = SSO_PROVIDERS.map(p => ({ value: p.value, label: p.label }))
 
-// 各平台支持的应用类型
+// 各平台支持的应用类型（保留原有逻辑：wechat 支持全部，其他平台仅 default）
 const APP_TYPE_OPTIONS = {
-  wechat: [
-    { value: 'official_account', label: '公众号' },
-    { value: 'open_platform', label: '开放平台' },
-    { value: 'mini_program', label: '小程序' },
-    { value: 'app', label: 'APP' },
-    { value: 'default', label: '默认' },
-  ],
+  wechat: SSO_APP_TYPES,
   alipay: [{ value: 'default', label: '默认' }],
   douyin: [{ value: 'default', label: '默认' }],
   google: [{ value: 'default', label: '默认' }],
@@ -159,6 +156,7 @@ const APP_TYPE_OPTIONS = {
 }
 
 // 平台/应用类型对应的 AppID/AppSecret 提示
+// 保留原有特定文本，未覆盖的组合从共享模块 guide 字段派生
 const PLATFORM_HINTS = {
   'wechat:official_account': {
     appId: '微信公众号 AppID（开发者ID），登录 mp.weixin.qq.com 获取',
@@ -197,6 +195,14 @@ const PLATFORM_HINTS = {
     appSecret: 'GitHub OAuth App Client Secret，在应用详情获取',
   },
 }
+SSO_PROVIDERS.forEach(p => {
+  SSO_APP_TYPES.forEach(t => {
+    const key = `${p.value}:${t.value}`
+    if (!PLATFORM_HINTS[key]) {
+      PLATFORM_HINTS[key] = { appId: p.guide.appId, appSecret: p.guide.appSecret }
+    }
+  })
+})
 
 // OAuth Scope 选项（微信公众号）
 const oauthScopeOptions = [
@@ -220,7 +226,6 @@ const form = ref({
   is_enabled: true,
   description: '',
   scope: '',
-  redirect_uris: '',
 })
 
 // 微信专属字段（存入 extra_config）
@@ -248,6 +253,24 @@ const currentHints = computed(() => {
 })
 
 const showWechatFields = computed(() => form.value.provider === 'wechat')
+
+// 当前 provider 元数据（用于展示申请入口等引导）
+const currentProvider = computed(() => {
+  const p = platformOptions[platformIndex.value] ? platformOptions[platformIndex.value].value : ''
+  return getProvider(p)
+})
+
+function openPortal(url) {
+  // #ifdef H5
+  window.open(url, '_blank')
+  // #endif
+  // #ifndef H5
+  uni.setClipboardData({
+    data: url,
+    success: () => uni.showToast({ title: '链接已复制', icon: 'none' })
+  })
+  // #endif
+}
 
 function onPlatformChange(e) {
   platformIndex.value = e.detail.value
@@ -315,20 +338,6 @@ async function loadDetail() {
     form.value.is_enabled = item.is_enabled ?? true
     form.value.description = item.description || ''
     form.value.scope = item.scope || ''
-    // redirect_uris: 数组转文本（按行分割）
-    const uris = item.redirect_uris
-    if (Array.isArray(uris)) {
-      form.value.redirect_uris = uris.join('\n')
-    } else if (typeof uris === 'string' && uris) {
-      try {
-        const parsed = JSON.parse(uris)
-        form.value.redirect_uris = Array.isArray(parsed) ? parsed.join('\n') : uris
-      } catch (e) {
-        form.value.redirect_uris = uris
-      }
-    } else {
-      form.value.redirect_uris = ''
-    }
     // 设置 picker 索引
     const pi = findPlatformIndex(form.value.provider)
     if (pi >= 0) {
@@ -391,12 +400,6 @@ async function handleSubmit() {
     if (!isEdit.value || form.value.app_secret) {
       payload.app_secret = form.value.app_secret
     }
-    // redirect_uris 按行分割转数组
-    const uriLines = (form.value.redirect_uris || '')
-      .split('\n')
-      .map(s => s.trim())
-      .filter(Boolean)
-    payload.redirect_uris = uriLines
     // 微信专属字段打包到 extra_config
     if (form.value.provider === 'wechat' && form.value.app_type === 'official_account') {
       payload.extra_config = {
@@ -607,14 +610,62 @@ page {
 }
 
 .info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
   padding: 20rpx;
   background: #f5f7ff;
   border-radius: 8rpx;
   border-left: 6rpx solid #667eea;
+  margin-bottom: 24rpx;
+}
+
+.info-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.info-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .info-text {
   font-size: 26rpx;
   color: #666;
+  line-height: 1.5;
+}
+
+.info-code {
+  font-size: 24rpx;
+  color: #333;
+  font-family: monospace;
+  background: #fff;
+  padding: 8rpx 12rpx;
+  border-radius: 4rpx;
+  word-break: break-all;
+}
+
+.provider-portal {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 8rpx;
+  padding: 8rpx 12rpx;
+  background: #f5f5f5;
+  border-radius: 6rpx;
+}
+
+.portal-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.portal-link {
+  font-size: 22rpx;
+  color: #1677ff;
+  text-decoration: underline;
 }
 </style>
