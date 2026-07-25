@@ -4,6 +4,11 @@
       <button class="btn-primary" @click="goCreate" v-if="hasPermission('sso.oauth-config.create')">+ 新增</button>
     </PageHeader>
 
+    <view class="help-banner">
+      <text class="help-icon">ℹ️</text>
+      <text class="help-text">OAuth 配置管理各第三方平台（微信/支付宝/抖音等）的 AppID/AppSecret，全局共享，按应用类型区分。配置后所有接入方应用可共用。</text>
+    </view>
+
     <view class="search-section">
       <view class="search-box">
         <input
@@ -25,13 +30,26 @@
         @click="goEdit(item.documentId)"
       >
         <view class="data-info">
-          <view class="data-title">{{ item.provider || '-' }} · {{ item.app_id || '-' }}</view>
+          <view class="data-title">
+            <view class="provider-tag" :style="{ background: providerMeta(item.provider).bgColor, color: providerMeta(item.provider).color }">
+              <text>{{ providerMeta(item.provider).icon }}</text>
+              <text>{{ providerMeta(item.provider).label }}</text>
+            </view>
+            <text class="config-name">{{ item.name || '-' }}</text>
+          </view>
           <view class="data-meta">
-            <text class="meta-item">Scope: {{ item.scope || '-' }}</text>
-            <text class="meta-item">{{ item.description || '无描述' }}</text>
+            <text class="meta-item">应用类型: {{ appTypeMeta(item.app_type).label }}</text>
+            <text class="meta-item">AppID: {{ item.app_id || '-' }}</text>
+          </view>
+          <view class="data-meta" v-if="extractScopes(item).length > 0">
+            <text class="meta-item">Scope: {{ extractScopes(item).join(', ') }}</text>
+          </view>
+          <view class="data-meta" v-if="item.description">
+            <text class="meta-item">{{ item.description }}</text>
           </view>
           <view class="data-footer">
             <view class="data-status" :class="item.is_enabled ? 'active' : 'inactive'">{{ item.is_enabled ? '已启用' : '已禁用' }}</view>
+            <view class="data-date">{{ fmtDateTime(item.createdAt) }}</view>
           </view>
         </view>
         <view class="data-actions">
@@ -48,6 +66,14 @@
     <view v-if="!loading && dataList.length === 0" class="empty-state">
       <text class="empty-icon">⚙️</text>
       <text class="empty-text">暂无 OAuth 配置</text>
+      <view class="empty-guide">
+        <text class="guide-title">快速配置入口：</text>
+        <view class="guide-list">
+          <text class="guide-item" v-for="p in SSO_PROVIDERS" :key="p.value" @click="goCreate">
+            {{ p.icon }} {{ p.label }}：{{ p.portalUrl }}
+          </text>
+        </view>
+      </view>
     </view>
 
     <view class="pagination" v-if="pagination.total > pagination.pageSize">
@@ -64,6 +90,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ssoOauthConfigApi } from '../../../src/api/sso.js'
 import { useUserStore } from '../../../src/store/user.js'
 import PageHeader from '../../../src/components/PageHeader.vue'
+import { SSO_PROVIDERS, getProvider, getAppType } from '../../../src/constants/sso-providers.js'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
@@ -75,6 +102,30 @@ const currentPage = ref(1)
 const loading = ref(false)
 
 const totalPages = computed(() => Math.ceil(pagination.value.total / (pagination.value.pageSize || 10)) || 1)
+
+function providerMeta(value) {
+  const p = getProvider(value)
+  return p || { icon: '⚙️', label: value || '-', color: '#999', bgColor: '#f5f5f5' }
+}
+
+function appTypeMeta(value) {
+  const t = getAppType(value)
+  return t || { label: value || '-', desc: '' }
+}
+
+function extractScopes(item) {
+  if (!item.extra_config) return []
+  let ec = item.extra_config
+  if (typeof ec === 'string') {
+    try { ec = JSON.parse(ec) } catch { return [] }
+  }
+  return ec.oauthScopes || []
+}
+
+function fmtDateTime(dt) {
+  if (!dt) return '-'
+  return String(dt).replace('T', ' ').substring(0, 19)
+}
 
 async function loadData(page = 1) {
   loading.value = true
@@ -140,6 +191,76 @@ onShow(() => {
 <style scoped>
 page {
   background: #f5f5f5;
+}
+.help-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  background: #e6f4ff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  border-left: 6rpx solid #1677ff;
+}
+
+.help-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.help-text {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.provider-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+  margin-right: 12rpx;
+}
+
+.config-name {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.data-date {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.empty-guide {
+  margin-top: 20rpx;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  text-align: left;
+}
+
+.guide-title {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.guide-item {
+  font-size: 24rpx;
+  color: #1677ff;
+  padding: 8rpx 0;
 }
 .page-container {
   min-height: 100vh;
