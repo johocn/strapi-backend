@@ -45,6 +45,10 @@ export function deleteSsoApp(id) {
   return del(`${ADMIN}/apps/${id}`).then(extractItem)
 }
 
+export function getSsoAppDetail(id) {
+  return get(`${ADMIN}/apps/${id}`).then(extractItem)
+}
+
 // ==================== SSO 渠道同步管理 ====================
 
 export function getSsoChannelList(params = {}) {
