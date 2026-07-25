@@ -140,3 +140,27 @@ export const ssoSmsCodeApi = {
   list: (params = {}) => get(`${ADMIN}/sms-codes`, params).then(extractList),
   delete: (id) => del(`${ADMIN}/sms-codes/${id}`).then(extractItem),
 }
+
+// ==================== SSO 公开认证接口（auth:false，路径 /zhao-sso/v1/auth/xxx） ====================
+
+const AUTH = '/zhao-sso/v1/auth'
+
+// 微信小程序登录
+export function ssoWechatMiniProgramLogin(data) {
+  return post(`${AUTH}/wechat/miniprogram`, data)
+}
+
+// 微信 APP 登录
+export function ssoWechatAppLogin(data) {
+  return post(`${AUTH}/wechat/app`, data)
+}
+
+// JSSDK 签名
+export function ssoJssdkSignature(data) {
+  return post(`${AUTH}/jssdk-signature`, data)
+}
+
+// 获取微信登录配置
+export function ssoWechatConfig(params) {
+  return get(`${AUTH}/wechat/config`, params)
+}

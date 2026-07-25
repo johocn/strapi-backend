@@ -13,6 +13,10 @@
         />
         <text class="search-icon">🔍</text>
       </view>
+      <view class="search-actions">
+        <button class="action-button wechat" @click="goWechatConfig">配置微信登录</button>
+        <button class="action-button primary" @click="openCreateModal">+ 新增绑定</button>
+      </view>
     </view>
 
     <view class="data-list">
@@ -32,6 +36,7 @@
           </view>
         </view>
         <view class="data-actions">
+          <view class="action-btn edit" @click.stop="goEditConfig(item)">编辑</view>
           <view v-if="hasPermission('sso.third-party-binding.delete')" class="action-btn delete" @click.stop="handleUnbind(item)">解绑</view>
         </view>
       </view>
@@ -50,6 +55,40 @@
       <view class="pagination-btn" @click="prevPage" :class="{ disabled: currentPage === 1 }">上一页</view>
       <text class="pagination-info">{{ currentPage }} / {{ totalPages }}</text>
       <view class="pagination-btn" @click="nextPage" :class="{ disabled: currentPage >= totalPages }">下一页</view>
+    </view>
+
+    <!-- 新增绑定弹窗 -->
+    <view v-if="showCreateModal" class="modal-mask" @click.self="closeCreateModal">
+      <view class="modal-dialog" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">新增三方绑定</text>
+          <text class="modal-close" @click="closeCreateModal">×</text>
+        </view>
+        <view class="modal-body">
+          <view class="modal-item">
+            <text class="modal-label">Provider<text class="required-mark">*</text></text>
+            <picker mode="selector" :range="bindingProviderOptions" range-key="label" @change="onCreateProviderChange" :value="createProviderIndex">
+              <view class="modal-picker">{{ bindingProviderOptions[createProviderIndex] ? bindingProviderOptions[createProviderIndex].label : '请选择' }} ▼</view>
+            </picker>
+          </view>
+          <view class="modal-item">
+            <text class="modal-label">Provider User ID<text class="required-mark">*</text></text>
+            <input v-model="createForm.provider_user_id" class="modal-input" placeholder="三方平台的用户唯一标识" />
+          </view>
+          <view class="modal-item">
+            <text class="modal-label">Provider Union ID</text>
+            <input v-model="createForm.provider_union_id" class="modal-input" placeholder="UnionID（选填）" />
+          </view>
+          <view class="modal-item">
+            <text class="modal-label">Provider Nickname</text>
+            <input v-model="createForm.provider_nickname" class="modal-input" placeholder="三方平台用户昵称（选填）" />
+          </view>
+        </view>
+        <view class="modal-footer">
+          <button class="modal-btn cancel" @click="closeCreateModal" :disabled="createSubmitting">取消</button>
+          <button class="modal-btn confirm" @click="submitCreate" :loading="createSubmitting" :disabled="createSubmitting">提交</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -131,6 +170,97 @@ function nextPage() {
   if (currentPage.value < totalPages.value) loadData(currentPage.value + 1)
 }
 
+// ==================== 顶部操作按钮 ====================
+
+function goWechatConfig() {
+  uni.navigateTo({ url: '/pages/sso/oauth-config/edit' })
+}
+
+// ==================== 新增绑定弹窗 ====================
+
+const bindingProviderOptions = [
+  { value: 'wechat', label: '微信' },
+  { value: 'alipay', label: '支付宝' },
+  { value: 'douyin', label: '抖音' },
+]
+
+const showCreateModal = ref(false)
+const createSubmitting = ref(false)
+const createProviderIndex = ref(0)
+const createForm = ref({
+  provider: '',
+  provider_user_id: '',
+  provider_union_id: '',
+  provider_nickname: '',
+})
+
+function resetCreateForm() {
+  createProviderIndex.value = 0
+  createForm.value = {
+    provider: bindingProviderOptions[0].value,
+    provider_user_id: '',
+    provider_union_id: '',
+    provider_nickname: '',
+  }
+}
+
+function openCreateModal() {
+  resetCreateForm()
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  if (createSubmitting.value) return
+  showCreateModal.value = false
+}
+
+function onCreateProviderChange(e) {
+  createProviderIndex.value = e.detail.value
+  createForm.value.provider = bindingProviderOptions[createProviderIndex.value].value
+}
+
+async function submitCreate() {
+  if (createSubmitting.value) return
+  if (!createForm.value.provider) {
+    uni.showToast({ title: '请选择 Provider', icon: 'none' })
+    return
+  }
+  if (!createForm.value.provider_user_id) {
+    uni.showToast({ title: '请填写 Provider User ID', icon: 'none' })
+    return
+  }
+  createSubmitting.value = true
+  try {
+    const payload = {
+      provider: createForm.value.provider,
+      provider_user_id: createForm.value.provider_user_id,
+      provider_union_id: createForm.value.provider_union_id || undefined,
+      provider_nickname: createForm.value.provider_nickname || undefined,
+    }
+    await ssoBindingApi.create(payload)
+    uni.showToast({ title: '创建成功', icon: 'success' })
+    showCreateModal.value = false
+    loadData(1)
+  } catch (e) {
+    uni.showToast({ title: '创建失败', icon: 'none' })
+  } finally {
+    createSubmitting.value = false
+  }
+}
+
+// ==================== 行内编辑按钮 ====================
+
+function goEditConfig(item) {
+  if (item && item.oauth_config_id) {
+    uni.navigateTo({
+      url: '/pages/sso/oauth-config/edit?documentId=' + item.oauth_config_id
+    })
+  } else {
+    // 没有关联的 OAuth 配置 ID，跳转到 OAuth 配置列表页
+    uni.navigateTo({ url: '/pages/sso/oauth-config/list' })
+  }
+}
+
 onShow(() => {
   loadData(1)
 })
@@ -169,6 +299,37 @@ page {
 
 .search-icon {
   font-size: 32rpx;
+}
+
+.search-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.action-button {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  font-size: 26rpx;
+  border-radius: 8rpx;
+  border: none;
+  padding: 0;
+}
+
+.action-button.primary {
+  background: #ff0000;
+  color: #fff;
+}
+
+.action-button.wechat {
+  background: #07c160;
+  color: #fff;
+}
+
+.action-button[disabled] {
+  opacity: 0.6;
 }
 
 .data-list {
@@ -243,6 +404,7 @@ page {
 }
 
 .action-btn.delete { background: #fff0f0; color: #ff4d4f; }
+.action-btn.edit { background: #e6f4ff; color: #1989fa; }
 
 .loading, .empty-state {
   display: flex;
@@ -286,5 +448,129 @@ page {
 .pagination-info {
   font-size: 28rpx;
   color: #666;
+}
+
+/* 弹窗样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 640rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 40rpx;
+  color: #999;
+  line-height: 1;
+  padding: 0 8rpx;
+}
+
+.modal-body {
+  padding: 24rpx;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-item {
+  margin-bottom: 24rpx;
+}
+
+.modal-label {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.required-mark {
+  color: #ff4d4f;
+  margin-left: 4rpx;
+}
+
+.modal-input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 20rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.modal-picker {
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+  color: #333;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 16rpx;
+  padding: 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 30rpx;
+  border-radius: 8rpx;
+  border: none;
+  padding: 0;
+}
+
+.modal-btn.cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.modal-btn.confirm {
+  background: #ff0000;
+  color: #fff;
+}
+
+.modal-btn[disabled] {
+  opacity: 0.6;
 }
 </style>
