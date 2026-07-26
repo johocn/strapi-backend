@@ -32,6 +32,38 @@ async function refreshToken() {
   })
 }
 
+// 常见英文错误的中文翻译（防御后端遗漏，统一前端兜底）
+const ERROR_TRANSLATIONS = {
+  'Invalid identifier or password': '账号或密码错误',
+  'Invalid credentials': '账号或密码错误',
+  'Email or username are already taken': '用户名或邮箱已被注册',
+  'Email is already taken': '邮箱已被注册',
+  'Username already taken': '用户名已被注册',
+  'Provided identifier does not exist': '账号不存在',
+  'User does not exist': '账号不存在',
+  'Your account has been blocked': '账户已被锁定，请联系管理员',
+  'Your account email is not confirmed': '邮箱尚未激活，请先查收激活邮件',
+}
+
+function translateError(msg) {
+  if (!msg || typeof msg !== 'string') return msg
+  // 精确匹配
+  if (ERROR_TRANSLATIONS[msg]) return ERROR_TRANSLATIONS[msg]
+  // 包含匹配（处理带后缀的消息）
+  for (const en of Object.keys(ERROR_TRANSLATIONS)) {
+    if (msg.includes(en)) return ERROR_TRANSLATIONS[en]
+  }
+  return msg
+}
+
+function extractErrorMessage(data) {
+  // 兼容多种后端错误返回结构：
+  // {error: "字符串"} / {error: {message: "..."}} / {message: "..."} / {detail: "..."}
+  let msg = data?.error?.message ?? data?.error ?? data?.message ?? data?.detail ?? ''
+  if (typeof msg !== 'string') msg = String(msg || '')
+  return translateError(msg)
+}
+
 async function request(options, isRetry = false) {
   const token = getToken()
   const header = {
@@ -90,7 +122,7 @@ async function request(options, isRetry = false) {
             resolve(retryRes)
           }
         } else {
-          let msg = res.data?.error?.message ?? res.data?.error ?? `请求失败: ${res.statusCode}`
+          let msg = extractErrorMessage(res.data)
           if (res.statusCode === 403) {
             msg = '无权访问该资源'
           } else if (res.statusCode === 404) {
@@ -140,7 +172,7 @@ async function publicRequest(options) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else {
-          let msg = res.data?.error?.message ?? res.data?.error ?? `请求失败: ${res.statusCode}`
+          let msg = extractErrorMessage(res.data)
           if (res.statusCode >= 500) {
             msg = '服务异常，请稍后重试'
           }
@@ -189,7 +221,7 @@ async function adminRequest(options) {
         if (res.statusCode === 200 || res.statusCode === 201) {
           resolve(res.data)
         } else {
-          let msg = res.data?.error?.message ?? res.data?.error ?? `请求失败: ${res.statusCode}`
+          let msg = extractErrorMessage(res.data)
           if (res.statusCode === 403) {
             msg = '无权访问该资源'
           } else if (res.statusCode === 404) {

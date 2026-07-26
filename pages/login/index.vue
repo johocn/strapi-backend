@@ -378,7 +378,9 @@ async function handleLogin() {
       uni.reLaunch({ url: '/pages/dashboard/index' })
     }, 500)
   } catch (error) {
-    uni.showToast({ title: '登录失败', icon: 'none' })
+    // adminRequest 已通过 uni.showToast 显示后端返回的中文错误（如"密码错误"/"账号不存在或已注销"）
+    // 这里只在 console 留痕便于排查，不再覆盖toast
+    console.warn('[Login] login failed:', error)
   } finally {
     loading.value = false
   }
@@ -446,7 +448,7 @@ async function handleRegister() {
       uni.reLaunch({ url: '/pages/dashboard/index' })
     }, 500)
   } catch (error) {
-    uni.showToast({ title: '注册失败', icon: 'none' })
+    console.warn('[Login] register failed:', error)
   } finally {
     loading.value = false
   }
@@ -468,7 +470,7 @@ async function handleForgot() {
       mode.value = 'login'
     }, 1000)
   } catch (error) {
-    uni.showToast({ title: '发送失败', icon: 'none' })
+    console.warn('[Login] forgot password failed:', error)
   } finally {
     loading.value = false
   }
