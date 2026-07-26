@@ -270,9 +270,11 @@ async function checkDuplicate() {
 
   duplicateCheck.value.checking = true
   try {
+    // 后端 oauth-config-controller 只支持扁平语法 ?provider=xxx&app_type=yyy
+    // 不支持 Strapi 标准 filters[provider][$eq]=xxx 语法
     const params = {
-      'filters[provider][$eq]': form.value.provider,
-      'filters[app_type][$eq]': form.value.app_type,
+      provider: form.value.provider,
+      app_type: form.value.app_type,
       'pagination[pageSize]': 5,
     }
     const { list } = await ssoOauthConfigApi.list(params)
