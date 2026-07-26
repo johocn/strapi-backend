@@ -8,6 +8,12 @@
       }
     },
     {
+      "path": "pages/login/callback",
+      "style": {
+        "navigationBarTitleText": "登录回调"
+      }
+    },
+    {
       "path": "pages/register/index",
       "style": {
         "navigationBarTitleText": "渠道邀请码注册",
@@ -535,7 +541,8 @@
     { "path": "pages/sso/invite-code/edit", "style": { "navigationBarTitleText": "编辑邀请码" } },
     { "path": "pages/sso/invite-usage/list", "style": { "navigationBarTitleText": "邀请记录" } },
     { "path": "pages/sso/referral/list", "style": { "navigationBarTitleText": "推荐关系" } },
-    { "path": "pages/sso/sms-code/list", "style": { "navigationBarTitleText": "短信验证码" } }
+    { "path": "pages/sso/sms-code/list", "style": { "navigationBarTitleText": "短信验证码" } },
+    { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

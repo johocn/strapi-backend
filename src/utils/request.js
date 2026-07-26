@@ -126,6 +126,44 @@ export function del(url, data = {}) {
   return request({ url, method: 'DELETE', data })
 }
 
+// 公开接口请求（不触发 401 token 刷新/登出逻辑，用于 /zhao-sso/v1/auth/* 等公开认证接口）
+// 这些接口自身可能返回 401（如密码错误），不应被误判为"token 过期"而触发 logout 重定向
+async function publicRequest(options) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}${options.url}`,
+      method: options.method ?? 'GET',
+      data: options.data,
+      header: { 'Content-Type': 'application/json', ...(options.header || {}) },
+      timeout: TIMEOUT,
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data)
+        } else {
+          let msg = res.data?.error?.message ?? res.data?.error ?? `请求失败: ${res.statusCode}`
+          if (res.statusCode >= 500) {
+            msg = '服务异常，请稍后重试'
+          }
+          uni.showToast({ title: msg, icon: 'none' })
+          reject({ message: msg, status: res.statusCode, data: res.data })
+        }
+      },
+      fail: (err) => {
+        uni.showToast({ title: '网络请求失败', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
+}
+
+export function publicPost(url, data = {}) {
+  return publicRequest({ url, method: 'POST', data })
+}
+
+export function publicGet(url, params = {}) {
+  return publicRequest({ url, method: 'GET', data: params })
+}
+
 async function adminRequest(options) {
   const token = uni.getStorageSync('tadmin_token') ?? localStorage.getItem('tadmin_token')
   const header = {
