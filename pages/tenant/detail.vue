@@ -146,7 +146,11 @@
           </view>
           <view v-if="formData.featureFlags.sso" class="form-item">
             <text class="form-label">SSO 登录地址 *</text>
-            <input class="form-input" placeholder="https://sso.example.com/login" v-model="formData.authConfig.ssoLoginUrl" />
+            <input class="form-input" placeholder="https://h.joho.cn/#/pages/sso/login" v-model="formData.authConfig.ssoLoginUrl" />
+          </view>
+          <view v-if="formData.featureFlags.sso" class="form-item">
+            <text class="form-label">应用码 *</text>
+            <input class="form-input" placeholder="如：course" v-model="formData.authConfig.ssoAppCode" />
           </view>
         </view>
 
@@ -603,6 +607,7 @@ const formData = reactive({
     alipayEnabled: false,
     douyinEnabled: false,
     ssoLoginUrl: '',
+    ssoAppCode: 'course',
     registerEnabled: false,
     inviteCodeRequired: false
   }
@@ -696,6 +701,7 @@ async function loadTenantDetail() {
       alipayEnabled: ec.alipayEnabled ?? false,
       douyinEnabled: ec.douyinEnabled ?? false,
       ssoLoginUrl: ec.ssoLoginUrl ?? '',
+      ssoAppCode: ec.ssoAppCode ?? 'course',
       registerEnabled: ec.registerEnabled ?? false,
       inviteCodeRequired: ec.inviteCodeRequired ?? false
     }
@@ -975,10 +981,16 @@ async function saveTenant(goBack = false) {
     return
   }
 
-  // SSO 校验：开启 SSO 登录时地址必填
-  if (formData.authConfig.authMode === 'sso' && formData.featureFlags.sso && !formData.authConfig.ssoLoginUrl.trim()) {
-    uni.showToast({ title: '请填写 SSO 登录地址', icon: 'none' })
-    return
+  // SSO 校验：开启 SSO 登录时地址和应用码必填
+  if (formData.authConfig.authMode === 'sso' && formData.featureFlags.sso) {
+    if (!formData.authConfig.ssoLoginUrl.trim()) {
+      uni.showToast({ title: '请填写 SSO 登录地址', icon: 'none' })
+      return
+    }
+    if (!formData.authConfig.ssoAppCode.trim()) {
+      uni.showToast({ title: '请填写应用码', icon: 'none' })
+      return
+    }
   }
 
   saving.value = true

@@ -542,7 +542,10 @@
     { "path": "pages/sso/invite-usage/list", "style": { "navigationBarTitleText": "邀请记录" } },
     { "path": "pages/sso/referral/list", "style": { "navigationBarTitleText": "推荐关系" } },
     { "path": "pages/sso/sms-code/list", "style": { "navigationBarTitleText": "短信验证码" } },
-    { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } }
+    { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } },
+    { "path": "pages/sso/login", "style": { "navigationBarTitleText": "SSO 登录" } },
+    { "path": "pages/sso/login-callback", "style": { "navigationBarTitleText": "登录中" } },
+    { "path": "pages/sso/register", "style": { "navigationBarTitleText": "注册账号" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
