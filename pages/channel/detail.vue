@@ -74,6 +74,57 @@
       </view>
     </view>
 
+    <!-- 邀请二维码 -->
+    <view class="info-section" v-if="isEdit && detail">
+      <view class="section-title">邀请二维码</view>
+      <view class="info-card qrcode-card">
+        <view v-if="!detail.code" class="qrcode-placeholder" style="margin-bottom: 20rpx;">
+          <text class="placeholder-text">请先设置渠道代码以生成二维码</text>
+        </view>
+        <view class="qr-type-selector">
+          <view
+            class="qr-type-option"
+            :class="{ active: qrType === 'user' }"
+            @click="qrType = 'user'"
+          >
+            <text>邀请客户注册</text>
+          </view>
+          <view
+            class="qr-type-option"
+            :class="{ active: qrType === 'channel' }"
+            @click="qrType = 'channel'"
+          >
+            <text>邀请渠道商注册</text>
+          </view>
+        </view>
+
+        <view class="qrcode-display">
+          <image v-if="qrcodeUrl" :src="qrcodeUrl" class="qrcode-img" mode="aspectFit" />
+          <view v-else class="qrcode-placeholder">
+            <text class="placeholder-text">二维码生成中...</text>
+          </view>
+        </view>
+
+        <view class="qrcode-info">
+          <view class="info-row">
+            <text class="info-label">邀请码</text>
+            <text class="info-value">{{ detail.code }}</text>
+            <button class="btn-copy" @click="copyToClipboard(detail.code)">复制</button>
+          </view>
+          <view class="info-row">
+            <text class="info-label">注册链接</text>
+            <text class="info-value link-text">{{ inviteUrl }}</text>
+            <button class="btn-copy" @click="copyToClipboard(inviteUrl)">复制</button>
+          </view>
+        </view>
+
+        <view class="qrcode-actions">
+          <button class="btn-secondary" @click="downloadQRCode">保存二维码</button>
+          <button class="btn-secondary" @click="copyToClipboard(inviteUrl)">复制链接</button>
+        </view>
+      </view>
+    </view>
+
     <view class="bottom-actions" v-if="isEdit">
       <button class="btn-danger" @click="handleDelete">删除渠道</button>
     </view>
@@ -81,13 +132,88 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getAdminChannelDetail, createChannel, updateChannel, deleteChannel, getAdminChannelList } from '../../src/api/channel.js'
+import { CLIENT_BASE_URL } from '../../src/config/env.js'
+import UQRCode from 'uqrcodejs'
 import PageHeader from '../../src/components/PageHeader.vue'
 
 const channelId = ref(null)
 const isEdit = computed(() => !!channelId.value)
 const detail = ref(null)
+
+// 二维码相关状态
+const qrType = ref('user')   // 'user' | 'channel'
+const inviteUrl = ref('')    // 当前二维码对应的注册链接
+const qrcodeUrl = ref('')    // 二维码图片 dataURL
+
+// 域名推导工具函数
+function getClientBaseUrl() {
+  if (CLIENT_BASE_URL) return CLIENT_BASE_URL
+  const origin = window.location.origin
+  return origin.replace(
+    '://' + window.location.hostname,
+    '://' + window.location.hostname.replace(/^h\./, 'v.')
+  )
+}
+
+function getAdminBaseUrl() {
+  return window.location.origin
+}
+
+function buildInviteUrl() {
+  if (!detail.value?.code) return ''
+  if (qrType.value === 'user') {
+    return `${getClientBaseUrl()}/#/pages/register/register?invitecode=${detail.value.code}`
+  } else {
+    return `${getAdminBaseUrl()}/#/pages/register/index?code=${detail.value.code}`
+  }
+}
+
+function generateQRCode() {
+  inviteUrl.value = buildInviteUrl()
+  if (!inviteUrl.value) {
+    qrcodeUrl.value = ''
+    return
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = 240
+  canvas.height = 240
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const qr = new UQRCode()
+  qr.data = inviteUrl.value
+  qr.size = 240
+  qr.make()
+  const drawModules = qr.getDrawModules()
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, 240, 240)
+  for (let i = 0; i < drawModules.length; i++) {
+    const drawModule = drawModules[i]
+    if (drawModule.type === 'tile') {
+      ctx.fillStyle = drawModule.color ?? '#000000'
+      ctx.fillRect(drawModule.x, drawModule.y, drawModule.width, drawModule.height)
+    }
+  }
+  qrcodeUrl.value = canvas.toDataURL('image/png')
+}
+
+function downloadQRCode() {
+  if (!qrcodeUrl.value) return
+  const link = document.createElement('a')
+  link.download = `${detail.value.name}_${detail.value.code}.png`
+  link.href = qrcodeUrl.value
+  link.click()
+}
+
+function copyToClipboard(text) {
+  uni.setClipboardData({
+    data: text,
+    success: () => uni.showToast({ title: '已复制', icon: 'success' }),
+  })
+}
+
+watch([detail, qrType], generateQRCode, { immediate: true })
 const submitting = ref(false)
 
 const tierList = ['root', 'core', 'senior', 'global', 'authorized', 'official', 'partner', 'agent', 'national', 'regional', 'city', 'county', 'local', 'store']
@@ -293,5 +419,102 @@ page { background: #f5f5f5; }
   width: 100%; height: 88rpx; line-height: 88rpx;
   background: #fff; color: #ff4d4f; border: 2rpx solid #ff4d4f;
   border-radius: 8rpx; font-size: 30rpx;
+}
+
+/* 邀请二维码区块 */
+.qrcode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx;
+}
+.qr-type-selector {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+  width: 100%;
+}
+.qr-type-option {
+  flex: 1;
+  padding: 16rpx 20rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #606266;
+}
+.qr-type-option.active {
+  border-color: #667eea;
+  background: #667eea;
+  color: #fff;
+}
+.qrcode-display {
+  margin-bottom: 30rpx;
+}
+.qrcode-img {
+  width: 400rpx;
+  height: 400rpx;
+}
+.qrcode-placeholder {
+  width: 400rpx;
+  height: 400rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+}
+.placeholder-text {
+  font-size: 26rpx;
+  color: #909399;
+}
+.qrcode-info {
+  width: 100%;
+  margin-bottom: 20rpx;
+}
+.qrcode-info .info-row {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.qrcode-info .info-label {
+  font-size: 26rpx;
+  color: #909399;
+  width: 140rpx;
+  flex-shrink: 0;
+}
+.qrcode-info .info-value {
+  font-size: 26rpx;
+  color: #303133;
+  flex: 1;
+  word-break: break-all;
+}
+.qrcode-info .link-text {
+  font-size: 24rpx;
+  color: #409eff;
+}
+.btn-copy {
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  margin-left: 10rpx;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 4rpx;
+  flex-shrink: 0;
+}
+.qrcode-actions {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+}
+.btn-secondary {
+  flex: 1;
+  font-size: 28rpx;
+  padding: 16rpx 0;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
 }
 </style>

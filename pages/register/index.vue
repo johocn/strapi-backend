@@ -160,10 +160,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { useUserStore } from '../../src/store/user.js'
 import { validateInviteCode, registerWithInviteCode } from '../../src/api/register.js'
-
-const userStore = useUserStore()
 
 // ── 层级父子关系映射表（与服务端 config/tiers.ts 保持一致）──
 const TIER_CHILDREN_MAP = {
@@ -294,14 +291,12 @@ async function handleRegister() {
       password: form.value.password,
     })
 
-    // 自动登录：保存 JWT 和用户信息
-    userStore.setUserData({ jwt: res.token, user: res.user })
-
-    uni.showToast({ title: '注册成功', icon: 'success' })
+    // 不自动登录：避免"半登录"状态绕过 adminLocal 校验，跳登录页让用户走完整登录流程
+    uni.showToast({ title: '注册成功，请重新登录', icon: 'success' })
 
     setTimeout(() => {
-      uni.reLaunch({ url: '/pages/dashboard/index' })
-    }, 500)
+      uni.reLaunch({ url: '/pages/login/index' })
+    }, 1000)
   } catch (err) {
     registerError.value = err.message || '注册失败，请稍后重试'
   } finally {

@@ -9,12 +9,30 @@ export const ROLES = {
   USER: 'user'
 }
 
+export const ABSOLUTE_CORE_ROLES = ['admin', 'user']
+
+export const CONDITIONAL_CORE_ROLES = ['channel-admin', 'plugin-manager', 'instructor']
+
+export const CORE_ROLES = [...ABSOLUTE_CORE_ROLES, ...CONDITIONAL_CORE_ROLES]
+
 export const ROLE_LABELS = {
   [ROLES.ADMIN]: '系统管理员',
   [ROLES.CHANNEL_ADMIN]: '渠道管理员',
   [ROLES.PLUGIN_MANAGER]: '插件管理员',
   [ROLES.INSTRUCTOR]: '讲师',
   [ROLES.USER]: '普通用户'
+}
+
+export function isAbsoluteCoreRole(role) {
+  return ABSOLUTE_CORE_ROLES.includes(role)
+}
+
+export function isConditionalCoreRole(role) {
+  return CONDITIONAL_CORE_ROLES.includes(role)
+}
+
+export function isCoreRole(role) {
+  return CORE_ROLES.includes(role)
 }
 
 const ADMIN_PREFIX = '/zhao-auth/v1/admin'

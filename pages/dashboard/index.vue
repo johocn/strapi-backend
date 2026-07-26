@@ -532,6 +532,10 @@
     <view class="module-section" v-if="ssoVisible && hasPermission('menu.sso')">
       <view class="section-title">🔐 SSO 单点登录</view>
       <view class="module-grid">
+        <view class="module-item" v-if="hasPermission('menu.sso-app')" @click="navigateTo('/pages/sso/app/list')">
+          <view class="module-icon">📱</view>
+          <view class="module-name">应用管理</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.sso-token')" @click="navigateTo('/pages/sso/token/list')">
           <view class="module-icon">🔑</view>
           <view class="module-name">Token管理</view>

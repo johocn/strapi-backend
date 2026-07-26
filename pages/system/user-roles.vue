@@ -136,21 +136,37 @@
         <text class="modal-title">为用户 {{ currentUser?.username }} 分配角色</text>
       </view>
       <view class="modal-body">
+        <view class="dialog-legend">
+          <text class="legend-item"><text class="legend-badge core">基础</text>条件基础角色：admin 可操作</text>
+          <text class="legend-item"><text class="legend-badge protected">受保护</text>admin 分配的角色，无权操作</text>
+          <text class="legend-item"><text class="legend-badge assigned">已分配</text>已拥有，请用撤销功能取消</text>
+        </view>
         <view class="role-checkbox-list">
           <view
             v-for="role in assignableRoleOptions"
             :key="role.value"
-            :class="['role-checkbox-item', isAlreadyAssignedRole(role.value) ? 'already-assigned' : '']"
+            :class="[
+              'role-checkbox-item',
+              isAlreadyAssignedRole(role.value) ? 'already-assigned' : '',
+              isAbsoluteCoreRole(role.value) ? 'absolute-core-item' : '',
+              (!isAbsoluteCoreRole(role.value) && isProtectedForOperator(role.value) && !isAdminOperator) ? 'protected-role-item' : ''
+            ]"
             @click="toggleAssignRole(role.value)"
           >
-            <checkbox
-              :value="role.value"
-              :checked="selectedAssignRoles.includes(role.value)"
-              color="#52c41a"
-              disabled
-            />
+            <view
+              class="custom-checkbox"
+              :class="{
+                'checked': selectedAssignRoles.includes(role.value),
+                'disabled': isAbsoluteCoreRole(role.value) || (isProtectedForOperator(role.value) && !isAdminOperator)
+              }"
+            >
+              <text v-if="selectedAssignRoles.includes(role.value)" class="checkbox-icon">✓</text>
+            </view>
             <text class="role-label">{{ role.label }}</text>
             <text class="role-value">{{ role.value }}</text>
+            <text v-if="isAbsoluteCoreRole(role.value)" class="core-role-badge absolute">基础</text>
+            <text v-else-if="isConditionalCoreRole(role.value) && isAdminOperator" class="core-role-badge">基础</text>
+            <text v-else-if="isConditionalCoreRole(role.value) && !isAdminOperator && isProtectedForOperator(role.value)" class="protected-badge">受保护</text>
             <text class="assigned-badge" v-if="isAlreadyAssignedRole(role.value)">已分配</text>
           </view>
         </view>
@@ -173,6 +189,9 @@
         <text class="modal-title">为用户 {{ currentUser?.username }} 撤销角色</text>
       </view>
       <view class="modal-body">
+        <view class="dialog-legend" v-if="revocableRoles.length > 0">
+          <text class="legend-item"><text class="legend-badge core">基础</text>基础角色受保护，不在此列表中</text>
+        </view>
         <view class="role-checkbox-list" v-if="revocableRoles.length > 0">
           <view
             v-for="role in revocableRoles"
@@ -180,18 +199,18 @@
             class="role-checkbox-item"
             @click="toggleRevokeRole(role.role)"
           >
-            <checkbox
-              :value="role.role"
-              :checked="selectedRevokeRoles.includes(role.role)"
-              color="#52c41a"
-              disabled
-            />
+            <view
+              class="custom-checkbox"
+              :class="{ 'checked': selectedRevokeRoles.includes(role.role) }"
+            >
+              <text v-if="selectedRevokeRoles.includes(role.role)" class="checkbox-icon">✓</text>
+            </view>
             <text class="role-label">{{ role.label }}</text>
             <text class="role-value">{{ role.role }}</text>
             <text :class="['role-source-dot', role.source]"></text>
           </view>
         </view>
-        <view v-else class="empty-tip">该用户没有可撤销的角色（仅剩核心角色）</view>
+        <view v-else class="empty-tip">该用户没有可撤销的角色（仅剩基础/核心角色，受保护不可撤销）</view>
         <textarea
           v-model="revokeReason"
           class="reason-input"
@@ -211,21 +230,35 @@
         <text class="modal-title">为选中的 {{ selectedUserIds.length }} 个用户批量分配角色</text>
       </view>
       <view class="modal-body">
+        <view class="dialog-legend">
+          <text class="legend-item"><text class="legend-badge core">基础</text>条件基础角色：admin 可操作</text>
+          <text class="legend-item"><text class="legend-badge protected">受保护</text>admin 分配的角色，无权操作</text>
+        </view>
         <view class="role-checkbox-list">
           <view
             v-for="role in assignableRoleOptions"
             :key="role.value"
-            class="role-checkbox-item"
+            :class="[
+              'role-checkbox-item',
+              isAbsoluteCoreRole(role.value) ? 'absolute-core-item' : '',
+              (!isAbsoluteCoreRole(role.value) && isProtectedForOperator(role.value) && !isAdminOperator) ? 'protected-role-item' : ''
+            ]"
             @click="toggleBatchRole(role.value)"
           >
-            <checkbox
-              :value="role.value"
-              :checked="selectedBatchRoles.includes(role.value)"
-              color="#52c41a"
-              disabled
-            />
+            <view
+              class="custom-checkbox"
+              :class="{
+                'checked': selectedBatchRoles.includes(role.value),
+                'disabled': isAbsoluteCoreRole(role.value) || (isProtectedForOperator(role.value) && !isAdminOperator)
+              }"
+            >
+              <text v-if="selectedBatchRoles.includes(role.value)" class="checkbox-icon">✓</text>
+            </view>
             <text class="role-label">{{ role.label }}</text>
             <text class="role-value">{{ role.value }}</text>
+            <text v-if="isAbsoluteCoreRole(role.value)" class="core-role-badge absolute">基础</text>
+            <text v-else-if="isConditionalCoreRole(role.value) && isAdminOperator" class="core-role-badge">基础</text>
+            <text v-else-if="isConditionalCoreRole(role.value) && !isAdminOperator && isProtectedForOperator(role.value)" class="protected-badge">受保护</text>
           </view>
         </view>
         <textarea
@@ -251,7 +284,9 @@ import {
   getUsers, assignRole, revokeRole, batchAssignRoles,
   getUserDetail, getAssignableRoles,
   assignRoles, revokeRoles, batchAssignRolesMulti,
-  ROLES, ROLE_LABELS
+  ROLES, ROLE_LABELS,
+  ABSOLUTE_CORE_ROLES, CONDITIONAL_CORE_ROLES, CORE_ROLES,
+  isAbsoluteCoreRole, isConditionalCoreRole, isCoreRole
 } from '../../src/api/role-management.js'
 import { getAllRoles } from '../../src/api/auth.js'
 import { DEFAULT_PAGE_SIZE } from '../../src/config/constant.js'
@@ -263,6 +298,18 @@ const list = ref([])
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
 const isAdmin = computed(() => userStore.hasRole('admin'))
+const isAdminOperator = computed(() =>
+  (userStore.roles || []).map(r => r.toLowerCase()).includes('admin')
+)
+
+function isProtectedForOperator(roleValue) {
+  if (isAbsoluteCoreRole(roleValue)) return true
+  if (isAdminOperator.value) return false
+  const assignment = (currentUser.value?.roleSources || [])
+    .find(r => r.role === roleValue)
+  return assignment?.assignedByRole === 'admin' || assignment?.assignedByRole === 'system'
+}
+
 const searchKeyword = ref('')
 const selectedRole = ref('')
 const selectedUserIds = ref([])
@@ -330,7 +377,15 @@ const selectedRoleLabel = computed(() => {
 })
 
 const revocableRoles = computed(() => {
-  return (currentUser.value?.roleSources || []).filter(r => r.source !== 'auto')
+  const all = currentUser.value?.roleSources || []
+  return all.filter(r => {
+    if (isAbsoluteCoreRole(r.role)) return false
+    if (!isAdminOperator.value &&
+        (r.assignedByRole === 'admin' || r.assignedByRole === 'system')) {
+      return false
+    }
+    return true
+  })
 })
 
 function getRoleLabel(role) {
@@ -467,7 +522,24 @@ function openAssignDialog(item) {
 }
 
 function toggleAssignRole(role) {
-  // 已分配角色不允许在此取消（走撤销弹窗）
+  if (isAbsoluteCoreRole(role)) {
+    uni.showToast({
+      title: '绝对基础角色不可手动分配',
+      icon: 'none'
+    })
+    return
+  }
+  if (isProtectedForOperator(role)) {
+    const assignment = (currentUser.value?.roleSources || [])
+      .find(r => r.role === role)
+    if (assignment && !selectedAssignRoles.value.includes(role)) {
+      uni.showToast({
+        title: '该角色由系统管理员分配，无权操作',
+        icon: 'none'
+      })
+      return
+    }
+  }
   const isAlreadyAssigned = (currentUser.value?.roleSources || [])
     .some(r => r.role === role)
   if (isAlreadyAssigned) {
@@ -566,6 +638,13 @@ async function handleRevokeRoles() {
 }
 
 function toggleBatchRole(role) {
+  if (isAbsoluteCoreRole(role)) {
+    uni.showToast({
+      title: '绝对基础角色不可手动分配',
+      icon: 'none'
+    })
+    return
+  }
   const idx = selectedBatchRoles.value.indexOf(role)
   if (idx > -1) {
     selectedBatchRoles.value.splice(idx, 1)
@@ -903,15 +982,19 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 80%;
   max-width: 800rpx;
+  max-height: 90vh;
   background: white;
   border-radius: 16rpx;
   z-index: 1000;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
   padding: 32rpx;
   border-bottom: 1rpx solid #eee;
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -922,6 +1005,9 @@ onMounted(() => {
 
 .modal-body {
   padding: 32rpx;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-text {
@@ -944,6 +1030,7 @@ onMounted(() => {
 .modal-footer {
   display: flex;
   border-top: 1rpx solid #eee;
+  flex-shrink: 0;
 }
 
 .modal-btn {
@@ -981,6 +1068,50 @@ onMounted(() => {
   align-items: center;
   padding: 16rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
+  cursor: pointer;
+}
+
+.custom-checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #ccc;
+  border-radius: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  background: white;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.custom-checkbox.checked {
+  background: #52c41a;
+  border-color: #52c41a;
+}
+
+.custom-checkbox.disabled {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
+}
+
+.checkbox-icon {
+  color: white;
+  font-size: 28rpx;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.role-checkbox-item.absolute-core-item {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.role-checkbox-item.protected-role-item {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .role-checkbox-item.already-assigned {
@@ -995,6 +1126,76 @@ onMounted(() => {
   color: #999;
   border-radius: 4rpx;
   font-size: 20rpx;
+}
+
+.core-role-badge {
+  margin-left: 8rpx;
+  padding: 2rpx 12rpx;
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+  border-radius: 4rpx;
+  font-size: 20rpx;
+}
+
+.core-role-badge.absolute {
+  background: #f0f0f0;
+  color: #999;
+  border: 1rpx solid #d9d9d9;
+}
+
+.protected-badge {
+  margin-left: 8rpx;
+  padding: 2rpx 12rpx;
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1rpx solid #ffd591;
+  border-radius: 4rpx;
+  font-size: 20rpx;
+}
+
+/* 弹窗内图例说明 */
+.dialog-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  background: #fafafa;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  color: #666;
+}
+
+.dialog-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.legend-badge {
+  display: inline-block;
+  padding: 0 8rpx;
+  border-radius: 3rpx;
+  font-size: 18rpx;
+  line-height: 1.6;
+}
+
+.legend-badge.core {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+}
+
+.legend-badge.protected {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1rpx solid #ffd591;
+}
+
+.legend-badge.assigned {
+  background: #f0f0f0;
+  color: #999;
 }
 
 .role-label {
