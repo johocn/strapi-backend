@@ -2,7 +2,7 @@
   <view class="tenant-switcher" @click="toggleDropdown">
     <view class="current-tenant">
       <text class="label">当前租户：</text>
-      <text class="name" :class="{ placeholder: !currentTenant }">{{ currentTenant?.name || (tenantList.length === 0 ? '未关联租户' : '请选择') }}</text>
+      <text class="name" :class="{ placeholder: !currentTenant }">{{ currentTenant?.siteName || currentTenant?.name || (tenantList.length === 0 ? '未关联租户' : '请选择') }}</text>
       <text class="arrow" :class="{ open: showDropdown }">▼</text>
     </view>
     <view v-if="showDropdown" class="dropdown">
@@ -17,7 +17,7 @@
         :class="{ active: tenant.documentId === currentTenantId }"
         @click.stop="selectTenant(tenant.documentId)"
       >
-        <text>{{ tenant.name }}</text>
+        <text>{{ tenant.siteName || tenant.name }}</text>
         <text class="domain">{{ tenant.domain }}</text>
       </view>
     </view>
