@@ -168,3 +168,15 @@ export function ssoJssdkSignature(data) {
 export function ssoWechatConfig(params) {
   return get(`${AUTH}/wechat/config`, params)
 }
+
+// 降级密码登录 - code 模式
+// 非微信环境下，用账号密码换取 OAuth 授权码，前端跳转 redirect_uri?code=xxx
+export function ssoPasswordAuthorize(data) {
+  return post(`${AUTH}/password-authorize`, data)
+}
+
+// 降级密码登录 - token 模式
+// 非微信环境下，用账号密码直接换取 access_token + refresh_token
+export function ssoPasswordLogin(data) {
+  return post(`${AUTH}/login`, data)
+}
