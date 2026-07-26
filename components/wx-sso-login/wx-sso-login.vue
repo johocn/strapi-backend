@@ -28,7 +28,33 @@
       </template>
     </template>
 
-    <!-- PC 浏览器：扫码登录 -->
+    <!-- 非微信浏览器：降级为账号密码登录 -->
+    <template v-else-if="fallbackEnabled">
+      <view class="fallback-form">
+        <view class="form-title">账号登录</view>
+        <input
+          v-model="fallbackForm.identifier"
+          class="form-input"
+          placeholder="用户名 / 邮箱 / 手机号"
+        />
+        <input
+          v-model="fallbackForm.password"
+          class="form-input"
+          type="password"
+          placeholder="密码"
+          @confirm="handleFallbackLogin"
+        />
+        <button
+          class="login-btn fallback-btn"
+          :loading="fallbackLogging"
+          :disabled="fallbackLogging"
+          @click="handleFallbackLogin"
+        >{{ fallbackLogging ? '登录中...' : '登录' }}</button>
+        <text class="tip-text">非微信环境，使用账号密码登录</text>
+      </view>
+    </template>
+
+    <!-- fallbackEnabled=false 且非微信：保持原扫码逻辑 -->
     <template v-else>
       <button
         class="login-btn h5-wechat-btn"
@@ -66,6 +92,8 @@ import {
   ssoWechatAppLogin,
   ssoJssdkSignature,
   ssoWechatConfig,
+  ssoPasswordAuthorize,
+  ssoPasswordLogin,
 } from '../../src/api/sso.js'
 
 const props = defineProps({
@@ -73,6 +101,15 @@ const props = defineProps({
   redirectUri: { type: String, default: '' },
   inviteCode: { type: String, default: '' },
   channelCode: { type: String, default: '' },
+  fallbackMode: {
+    type: String,
+    default: 'code',
+    validator: (v) => ['code', 'token'].includes(v)
+  },
+  fallbackEnabled: {
+    type: Boolean,
+    default: true
+  },
 })
 const emit = defineEmits(['success', 'error', 'redirect'])
 
@@ -81,6 +118,58 @@ const SSO_BASE_URL = import.meta.env?.VITE_SSO_BASE_URL
   || (typeof window !== 'undefined' && window.location?.origin
       ? `${window.location.origin}/api/zhao-sso/v1`
       : 'http://h.joho.cn/api/zhao-sso/v1')
+
+// 降级密码登录表单状态
+const fallbackForm = ref({ identifier: '', password: '' })
+const fallbackLogging = ref(false)
+
+// 降级密码登录：非微信环境下用账号密码登录
+async function handleFallbackLogin() {
+  if (fallbackLogging.value) return
+  if (!fallbackForm.value.identifier || !fallbackForm.value.password) {
+    uni.showToast({ title: '请填写账号和密码', icon: 'none' })
+    return
+  }
+
+  fallbackLogging.value = true
+
+  try {
+    if (props.fallbackMode === 'code') {
+      // Code 模式：调 /v1/auth/password-authorize，跳转 redirectUri
+      const result = await ssoPasswordAuthorize({
+        app_code: props.appCode,
+        identifier: fallbackForm.value.identifier,
+        password: fallbackForm.value.password,
+        redirect_uri: props.redirectUri,
+        state: '',
+        invite_code: props.inviteCode,
+        channel_code: props.channelCode,
+      })
+      const url = `${result.redirect_uri}?code=${result.code}&state=${result.state || ''}`
+      emit('redirect', url)
+      // #ifdef H5
+      window.location.href = url
+      // #endif
+    } else {
+      // Token 模式：调 /v1/auth/login，emit success
+      const result = await ssoPasswordLogin({
+        type: 'password',
+        app_code: props.appCode,
+        identifier: fallbackForm.value.identifier,
+        password: fallbackForm.value.password,
+        invite_code: props.inviteCode,
+        channel_code: props.channelCode,
+      })
+      emit('success', result)
+    }
+  } catch (e) {
+    const msg = e?.message || e?.error || '登录失败'
+    uni.showToast({ title: msg, icon: 'none' })
+    emit('error', e)
+  } finally {
+    fallbackLogging.value = false
+  }
+}
 
 const loading = ref(false)
 const logging = ref(false)
@@ -279,5 +368,44 @@ onMounted(() => {
   font-size: 12px;
   color: #999;
   text-align: center;
+}
+
+/* 降级密码登录表单 */
+.fallback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 20rpx 0;
+}
+
+.form-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 10rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.fallback-btn {
+  background: #1677ff !important;
+  color: #fff !important;
+  margin-top: 10rpx;
+}
+
+.tip-text {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 10rpx;
 }
 </style>
