@@ -77,7 +77,10 @@ const props = defineProps({
 const emit = defineEmits(['success', 'error', 'redirect'])
 
 // SSO 基地址（H5/PC 跳转用），可按需配置
-const SSO_BASE_URL = 'http://h.joho.cn/api/zhao-sso/v1'
+const SSO_BASE_URL = import.meta.env?.VITE_SSO_BASE_URL
+  || (typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/api/zhao-sso/v1`
+      : 'http://h.joho.cn/api/zhao-sso/v1')
 
 const loading = ref(false)
 const logging = ref(false)
