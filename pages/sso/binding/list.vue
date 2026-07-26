@@ -195,7 +195,8 @@ function nextPage() {
 // ==================== 顶部操作按钮 ====================
 
 function goWechatConfig() {
-  uni.navigateTo({ url: '/pages/sso/oauth-config/edit' })
+  // 跳转到 OAuth 配置列表页，让用户先看到已有配置，再决定新增或编辑
+  uni.navigateTo({ url: '/pages/sso/oauth-config/list' })
 }
 
 // ==================== 新增绑定弹窗 ====================

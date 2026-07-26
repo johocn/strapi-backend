@@ -29,6 +29,18 @@
           </picker>
         </view>
 
+        <!-- 重复配置校验提示 -->
+        <view v-if="duplicateCheck.visible" class="duplicate-warning">
+          <view class="warning-icon">⚠️</view>
+          <view class="warning-content">
+            <text class="warning-text">该平台+应用类型的配置已存在{{ duplicateCheck.existingName ? `：「${duplicateCheck.existingName}」` : '' }}</text>
+            <text class="warning-hint">同一平台同一应用类型只需一份配置，所有接入方应用共用。重复配置会导致冲突。</text>
+            <view class="warning-actions" v-if="duplicateCheck.existingId">
+              <text class="warning-link" @click="goEditExisting(duplicateCheck.existingId)">去编辑现有配置 →</text>
+            </view>
+          </view>
+        </view>
+
         <view class="form-item">
           <text class="form-label">AppID<text class="required-mark">*</text></text>
           <input v-model="form.app_id" class="form-input" :placeholder="currentHints.appId || '请输入 AppID'" />
@@ -137,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { ssoOauthConfigApi } from '../../../src/api/sso.js'
 import PageHeader from '../../../src/components/PageHeader.vue'
@@ -227,6 +239,69 @@ const form = ref({
   description: '',
   scope: '',
 })
+
+// 重复配置校验状态
+// 仅在新增模式下校验（编辑模式允许保留原 provider+app_type 组合）
+const duplicateCheck = ref({
+  visible: false,        // 是否显示警告
+  checking: false,       // 是否正在查询
+  existingId: '',        // 已存在配置的 documentId
+  existingName: '',      // 已存在配置的名称
+  existingEnabled: null, // 已存在配置的启用状态
+})
+
+// 跳转到现有配置的编辑页
+function goEditExisting(id) {
+  uni.redirectTo({ url: `/pages/sso/oauth-config/edit?documentId=${id}` })
+}
+
+// 检查 (provider, app_type) 是否已存在配置
+async function checkDuplicate() {
+  // 编辑模式不校验（用户在编辑自己这条记录）
+  if (isEdit.value) {
+    duplicateCheck.value.visible = false
+    return
+  }
+  // 必须已选平台和应用类型才校验
+  if (!form.value.provider || !form.value.app_type) {
+    duplicateCheck.value.visible = false
+    return
+  }
+
+  duplicateCheck.value.checking = true
+  try {
+    const params = {
+      'filters[provider][$eq]': form.value.provider,
+      'filters[app_type][$eq]': form.value.app_type,
+      'pagination[pageSize]': 5,
+    }
+    const { list } = await ssoOauthConfigApi.list(params)
+    if (list && list.length > 0) {
+      duplicateCheck.value.visible = true
+      duplicateCheck.value.existingId = list[0].documentId || ''
+      duplicateCheck.value.existingName = list[0].name || ''
+      duplicateCheck.value.existingEnabled = list[0].is_enabled
+    } else {
+      duplicateCheck.value.visible = false
+      duplicateCheck.value.existingId = ''
+      duplicateCheck.value.existingName = ''
+      duplicateCheck.value.existingEnabled = null
+    }
+  } catch (e) {
+    // 校验失败不阻塞表单填写
+    duplicateCheck.value.visible = false
+  } finally {
+    duplicateCheck.value.checking = false
+  }
+}
+
+// 监听 provider 和 app_type 变化，触发重复校验
+watch(
+  () => [form.value.provider, form.value.app_type],
+  () => {
+    checkDuplicate()
+  }
+)
 
 // 微信专属字段（存入 extra_config）
 const wechat = ref({
@@ -381,6 +456,25 @@ async function handleSubmit() {
   if (form.value.provider === 'wechat' && form.value.app_type === 'official_account') {
     if (wechat.value.oauthScopes.length === 0) {
       uni.showToast({ title: '请至少选择一个 OAuth Scope', icon: 'none' })
+      return
+    }
+  }
+
+  // 提交前再次校验重复（防止并发场景下被其他用户抢先创建）
+  if (!isEdit.value) {
+    await checkDuplicate()
+    if (duplicateCheck.value.visible && duplicateCheck.value.existingId) {
+      uni.showModal({
+        title: '配置已存在',
+        content: `该平台+应用类型的配置已存在「${duplicateCheck.value.existingName || '未命名'}」，是否跳转到该配置进行编辑？`,
+        confirmText: '去编辑',
+        cancelText: '仍要新建',
+        success: (res) => {
+          if (res.confirm) {
+            goEditExisting(duplicateCheck.value.existingId)
+          }
+        }
+      })
       return
     }
   }
@@ -618,6 +712,54 @@ page {
   border-radius: 8rpx;
   border-left: 6rpx solid #667eea;
   margin-bottom: 24rpx;
+}
+
+/* 重复配置警告 */
+.duplicate-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 20rpx;
+  background: #fff7e6;
+  border-radius: 8rpx;
+  border-left: 6rpx solid #fa8c16;
+  margin: 12rpx 0 24rpx 0;
+}
+
+.duplicate-warning .warning-icon {
+  font-size: 32rpx;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.duplicate-warning .warning-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.duplicate-warning .warning-text {
+  font-size: 26rpx;
+  color: #d46b08;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.duplicate-warning .warning-hint {
+  font-size: 24rpx;
+  color: #8c8c8c;
+  line-height: 1.5;
+}
+
+.duplicate-warning .warning-actions {
+  margin-top: 4rpx;
+}
+
+.duplicate-warning .warning-link {
+  font-size: 26rpx;
+  color: #1677ff;
+  text-decoration: underline;
 }
 
 .info-icon {
