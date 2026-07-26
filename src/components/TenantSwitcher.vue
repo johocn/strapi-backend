@@ -2,10 +2,14 @@
   <view class="tenant-switcher" @click="toggleDropdown">
     <view class="current-tenant">
       <text class="label">当前租户：</text>
-      <text class="name">{{ currentTenant?.name || '请选择' }}</text>
+      <text class="name" :class="{ placeholder: !currentTenant }">{{ currentTenant?.name || (tenantList.length === 0 ? '未关联租户' : '请选择') }}</text>
       <text class="arrow" :class="{ open: showDropdown }">▼</text>
     </view>
     <view v-if="showDropdown" class="dropdown">
+      <view v-if="tenantList.length === 0" class="dropdown-empty">
+        <text class="empty-text">您尚未关联任何租户</text>
+        <text class="empty-hint">请联系管理员分配租户权限</text>
+      </view>
       <view
         v-for="tenant in tenantList"
         :key="tenant.documentId"
@@ -72,6 +76,10 @@ function selectTenant(documentId) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.name.placeholder {
+  color: #999;
+  font-weight: normal;
+}
 .arrow {
   font-size: 20rpx;
   color: #999;
@@ -110,6 +118,21 @@ function selectTenant(documentId) {
 .dropdown-item.active {
   background: #e6f7ff;
   color: #1890ff;
+}
+.dropdown-empty {
+  padding: 32rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  align-items: center;
+}
+.empty-text {
+  font-size: 26rpx;
+  color: #999;
+}
+.empty-hint {
+  font-size: 22rpx;
+  color: #bbb;
 }
 .domain {
   color: #999;

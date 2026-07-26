@@ -159,6 +159,14 @@ export const useUserStore = defineStore('user', () => {
       uni.setStorageSync('tadmin_tenant_list', JSON.stringify(tenantList.value))
       if (currentTenantId.value) {
         uni.setStorageSync('tadmin_current_tenant_id', currentTenantId.value)
+        // 自动选中后调用 switchTenant，让后端 JWT 也携带 currentTenantId
+        // 避免出现「列表有租户但 currentTenantId 未同步到后端」导致 TenantSwitcher 显示「请选择」
+        try {
+          await switchTenant(currentTenantId.value)
+        } catch (e) {
+          // switchTenant 失败不阻塞，前端 currentTenantId 已设置，下次操作会重新同步
+          console.warn('[user] auto switchTenant after fetchTenants failed:', e)
+        }
       }
     } catch (e) {
       console.warn('[user] fetchTenants failed:', e)
