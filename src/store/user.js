@@ -137,25 +137,35 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await getMyTenants()
       tenantList.value = res?.data || []
-      if (tenantList.value.length > 0 && !currentTenantId.value) {
-        const saved = uni.getStorageSync('tadmin_current_tenant_id')
-        if (saved) {
-          currentTenantId.value = saved
-        } else {
-          // 优先匹配当前域名对应的租户
-          const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
-          const matched = hostname
-            ? tenantList.value.find(t => t.domain === hostname)
-            : null
-          currentTenantId.value = matched?.documentId || matched?.id || tenantList.value[0].documentId || tenantList.value[0].id
+
+      // 检查 currentTenantId 是否仍在新加载的 tenantList 中
+      // 场景：用户被取消租户授权、租户被删除、localStorage 残留旧值
+      const tenantExists = currentTenantId.value
+        ? tenantList.value.some(t => (t.documentId || t.id) === currentTenantId.value)
+        : false
+
+      if (tenantList.value.length > 0 && (!currentTenantId.value || !tenantExists)) {
+        // currentTenantId 无效，需要重新选择
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+        // 优先匹配当前域名对应的租户
+        const matched = hostname
+          ? tenantList.value.find(t => t.domain === hostname)
+          : null
+        const newId = matched?.documentId || matched?.id || tenantList.value[0].documentId || tenantList.value[0].id
+        if (newId && newId !== currentTenantId.value) {
+          currentTenantId.value = newId
+          uni.setStorageSync('tadmin_current_tenant_id', newId)
+          localStorage.setItem('tadmin_current_tenant_id', newId)
         }
       }
+
       // 租户列表为空时，清除 currentTenantId（避免残留 header 导致 403）
       if (tenantList.value.length === 0 && currentTenantId.value) {
         currentTenantId.value = null
         uni.removeStorageSync('tadmin_current_tenant_id')
         localStorage.removeItem('tadmin_current_tenant_id')
       }
+
       uni.setStorageSync('tadmin_tenant_list', JSON.stringify(tenantList.value))
       if (currentTenantId.value) {
         uni.setStorageSync('tadmin_current_tenant_id', currentTenantId.value)
