@@ -50,7 +50,7 @@
           :disabled="fallbackLogging"
           @click="handleFallbackLogin"
         >{{ fallbackLogging ? '登录中...' : '登录' }}</button>
-        <text class="tip-text">非微信环境，使用账号密码登录</text>
+        <text class="fallback-tip-text">非微信环境，使用账号密码登录</text>
       </view>
     </template>
 
@@ -402,7 +402,7 @@ onMounted(() => {
   margin-top: 10rpx;
 }
 
-.tip-text {
+.fallback-tip-text {
   font-size: 24rpx;
   color: #999;
   text-align: center;
