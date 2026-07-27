@@ -22,6 +22,13 @@ const returnUrl = ref('')
 const appCode = ref('')
 
 async function init(options) {
+  // OAuth 回调失败时后端 302 携带 error 参数
+  const errorMsg = options?.error
+  if (errorMsg) {
+    error.value = decodeURIComponent(errorMsg)
+    return // 不再调 exchangeToken
+  }
+
   code.value = options?.code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
   appCode.value = options?.app_code || ''
@@ -64,7 +71,17 @@ async function exchangeToken() {
     const sep = returnUrl.value.includes('?') ? '&' : '?'
     window.location.href = `${returnUrl.value}${sep}token=${token}&user=${userEncoded}`
   } catch (e) {
+    // 失败：跳回 sso/login 携带 error 参数，让用户用降级表单登录
     error.value = e?.message || e?.error || 'token 兑换失败'
+    const errMsg = encodeURIComponent(error.value)
+    const params = new URLSearchParams({
+      app_code: appCode.value,
+      return_url: encodeURIComponent(returnUrl.value),
+      error: errMsg,
+    })
+    setTimeout(() => {
+      uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })
+    }, 1500) // 1.5 秒后跳转，让用户看到错误提示
   } finally {
     loading.value = false
   }

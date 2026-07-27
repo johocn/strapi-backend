@@ -110,6 +110,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  autoRedirect: {
+    type: Boolean,
+    default: false
+  },
 })
 const emit = defineEmits(['success', 'error', 'redirect'])
 
@@ -304,8 +308,14 @@ async function loadWechatConfig() {
   // #endif
 }
 
-onMounted(() => {
-  loadWechatConfig()
+onMounted(async () => {
+  await loadWechatConfig()
+  // #ifdef H5
+  // 微信环境 + 自动跳转模式 + 配置含 snsapi_base → 自动静默登录
+  if (props.autoRedirect && isWechatBrowser() && hasScope('snsapi_base')) {
+    handleLogin('snsapi_base')
+  }
+  // #endif
 })
 </script>
 

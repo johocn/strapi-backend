@@ -4,7 +4,19 @@
       <text class="page-title">SSO 统一登录</text>
     </view>
 
-    <view class="component-container">
+    <!-- 微信环境自动跳转中 -->
+    <view v-if="isWechatAutoRedirecting" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">正在跳转微信登录...</text>
+    </view>
+
+    <!-- 错误提示（OAuth 失败回跳） -->
+    <view v-else-if="oauthError" class="error-state">
+      <view class="error-text">⚠ {{ oauthError }}</view>
+    </view>
+
+    <!-- 正常渲染组件（含降级表单） -->
+    <view class="component-container" v-else>
       <wx-sso-login
         :app-code="appCode"
         :redirect-uri="redirectUri"
@@ -12,6 +24,7 @@
         :channel-code="channelCode"
         :fallback-mode="mode"
         :fallback-enabled="true"
+        :auto-redirect="isWechatEnv"
         @success="onSuccess"
         @error="onError"
         @redirect="onRedirect"
@@ -34,6 +47,8 @@ const returnUrl = ref('')
 const inviteCode = ref('')
 const channelCode = ref('')
 const mode = ref('token')
+const oauthError = ref('')
+const isWechatAutoRedirecting = ref(false)
 
 onLoad((options) => {
   appCode.value = options?.app_code || ''
@@ -41,6 +56,7 @@ onLoad((options) => {
   inviteCode.value = options?.invite_code || ''
   channelCode.value = options?.channel_code || ''
   mode.value = options?.mode || 'token'
+  oauthError.value = options?.error ? decodeURIComponent(options.error) : ''
 
   if (!appCode.value) {
     uni.showToast({ title: '缺少 app_code 参数', icon: 'none' })
@@ -48,6 +64,15 @@ onLoad((options) => {
   if (!returnUrl.value) {
     uni.showToast({ title: '缺少 return_url 参数', icon: 'none' })
   }
+})
+
+// 判断微信浏览器环境（与 wx-sso-login 组件内逻辑一致）
+const isWechatEnv = computed(() => {
+  // #ifdef H5
+  const ua = (navigator.userAgent || '').toLowerCase()
+  return ua.includes('micromessenger')
+  // #endif
+  return false
 })
 
 // wx-sso-login 在微信环境跳转 OAuth 时使用的 redirect_uri
@@ -80,6 +105,10 @@ function onError(err) {
 }
 
 function onRedirect(url) {
+  // wx-sso-login 触发跳转后，标记为「跳转中」（仅微信环境）
+  if (isWechatEnv.value) {
+    isWechatAutoRedirecting.value = true
+  }
   console.log('[sso-login] redirect to:', url)
 }
 
@@ -114,4 +143,42 @@ function goRegister() {
 .footer { text-align: center; padding: 20px 0; }
 .footer-text { font-size: 14px; color: #666; }
 .footer-link { font-size: 14px; color: #667eea; margin-left: 4px; }
+
+/* 微信环境自动跳转加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #07c160;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loading-text {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 错误提示 */
+.error-state {
+  padding: 30px 20px;
+  text-align: center;
+}
+.error-text {
+  font-size: 14px;
+  color: #c00;
+  background: #fee;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: inline-block;
+}
 </style>
