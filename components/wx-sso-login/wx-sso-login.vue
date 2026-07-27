@@ -282,6 +282,16 @@ async function handleLogin(scope) {
     if (props.redirectUri) params.append('redirect_uri', props.redirectUri)
     if (isWechatBrowser()) {
       params.append('scope', scope || 'snsapi_userinfo')
+      // 显式声明公众号场景，避免后端仅靠 UA 误判为 open_platform（本地调试 debugWx 也能命中）
+      params.append('app_type', 'official_account')
+      // 透传 debugWx 让后端按 official_account 处理，并便于联调
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search)
+        const hp = new URLSearchParams((window.location.hash.split('?')[1]) || '')
+        if (sp.get('debugWx') === '1' || hp.get('debugWx') === '1') {
+          params.append('debugWx', '1')
+        }
+      }
     }
     if (props.inviteCode) params.append('invite_code', props.inviteCode)
     if (props.channelCode) params.append('channel_code', props.channelCode)
