@@ -183,7 +183,15 @@ const config = ref(null)
 function isWechatBrowser() {
   // #ifdef H5
   const ua = (navigator.userAgent || '').toLowerCase()
-  return ua.includes('micromessenger')
+  if (ua.includes('micromessenger')) return true
+  // 调试开关：?debugWx=1 强制识别为微信环境
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    const hashQuery = window.location.hash.split('?')[1] || ''
+    const hashParams = new URLSearchParams(hashQuery)
+    if (params.get('debugWx') === '1' || hashParams.get('debugWx') === '1') return true
+  }
+  return false
   // #endif
   return false
 }
