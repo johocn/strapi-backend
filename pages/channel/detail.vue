@@ -135,11 +135,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getAdminChannelDetail, createChannel, updateChannel, deleteChannel, getAdminChannelList } from '../../src/api/channel.js'
 import { CLIENT_BASE_URL } from '../../src/config/env.js'
-import { useUserStore } from '../../src/store/user.js'
 import UQRCode from 'uqrcodejs'
 import PageHeader from '../../src/components/PageHeader.vue'
-
-const userStore = useUserStore()
 
 const channelId = ref(null)
 const isEdit = computed(() => !!channelId.value)
@@ -152,22 +149,27 @@ const qrcodeUrl = ref('')    // 二维码图片 dataURL
 
 // 域名推导工具函数
 // 回退链（从高到低）：
-//   1. 当前租户配置的 domain（完整 origin，含协议，如 http://localhost:5174 或 https://v.joho.cn）
-//   2. env.js 的 CLIENT_BASE_URL（仅本地开发有值，生产为 undefined 跳过）
-//   3. window.location.origin 的 h.→v. 子域替换（生产环境最终回退）
+//   1. env.js 的 CLIENT_BASE_URL（仅本地开发有值，生产为 undefined 跳过）
+//   2. window.location.origin 的子域替换：
+//      - a.→www.（生产 admin → client，如 a.shenglin.vip → www.shenglin.vip）
+//      - h.→v.（备选 admin → client，如 h.joho.cn → v.joho.cn）
+//   3. window.location.origin（兜底，不替换）
+// 注意：tenant.domain 字段存的是 admin hostname（用于 user.js 中 hostname 匹配租户），
+//       不能直接作为 client URL 使用，故不在此函数中引用。
 function getClientBaseUrl() {
-  const currentTenant = userStore.tenantList.find(
-    t => (t.documentId || t.id) === userStore.currentTenantId
-  )
-  if (currentTenant?.domain) {
-    return currentTenant.domain.replace(/\/+$/, '')
-  }
   if (CLIENT_BASE_URL) return CLIENT_BASE_URL
   const origin = window.location.origin
-  return origin.replace(
-    '://' + window.location.hostname,
-    '://' + window.location.hostname.replace(/^h\./, 'v.')
-  )
+  const hostname = window.location.hostname
+  // 生产环境：a. 子域（admin）→ www. 子域（client）
+  if (hostname.startsWith('a.')) {
+    return origin.replace('://' + hostname, '://' + hostname.replace(/^a\./, 'www.'))
+  }
+  // 备选：h. 子域（admin）→ v. 子域（client）
+  if (hostname.startsWith('h.')) {
+    return origin.replace('://' + hostname, '://' + hostname.replace(/^h\./, 'v.'))
+  }
+  // 兜底：不替换（localhost 或其他情况）
+  return origin
 }
 
 function getAdminBaseUrl() {
