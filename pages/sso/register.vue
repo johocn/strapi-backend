@@ -129,9 +129,10 @@ async function handleSubmit() {
 }
 
 function backToLogin() {
+  // URLSearchParams.toString() 会自动编码，不要手动 encodeURIComponent 避免双重编码
   const params = new URLSearchParams({
     app_code: appCode.value,
-    return_url: encodeURIComponent(returnUrl.value),
+    return_url: returnUrl.value,
   })
   if (form.value.invite_code) params.append('invite_code', form.value.invite_code)
   if (form.value.channel_code) params.append('channel_code', form.value.channel_code)

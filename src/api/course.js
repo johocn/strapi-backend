@@ -8,7 +8,16 @@ const USER_PREFIX = '/zhao-course/v1/my'
 // ==================== 管理类接口 ====================
 
 export function getCourseList(params = {}) {
-  return get(`${ADMIN_PREFIX}/courses`, params).then(extractList)
+  return get(`${ADMIN_PREFIX}/courses`, params).then(res => {
+    const result = extractList(res)
+    result.list = result.list.map(course => {
+      if (course.cover) course.coverUrl = getMediaUrl(course.cover)
+      if (course.thumbnail) course.thumbnailUrl = getMediaUrl(course.thumbnail)
+      if (course.category) course.category = extractItem(course.category)
+      return course
+    })
+    return result
+  })
 }
 
 export function getCourseDetail(documentId) {

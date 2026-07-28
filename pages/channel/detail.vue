@@ -135,8 +135,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getAdminChannelDetail, createChannel, updateChannel, deleteChannel, getAdminChannelList } from '../../src/api/channel.js'
 import { CLIENT_BASE_URL } from '../../src/config/env.js'
+import { useUserStore } from '../../src/store/user.js'
 import UQRCode from 'uqrcodejs'
 import PageHeader from '../../src/components/PageHeader.vue'
+
+const userStore = useUserStore()
 
 const channelId = ref(null)
 const isEdit = computed(() => !!channelId.value)
@@ -148,7 +151,17 @@ const inviteUrl = ref('')    // 当前二维码对应的注册链接
 const qrcodeUrl = ref('')    // 二维码图片 dataURL
 
 // 域名推导工具函数
+// 回退链（从高到低）：
+//   1. 当前租户配置的 domain（完整 origin，含协议，如 http://localhost:5174 或 https://v.joho.cn）
+//   2. env.js 的 CLIENT_BASE_URL（仅本地开发有值，生产为 undefined 跳过）
+//   3. window.location.origin 的 h.→v. 子域替换（生产环境最终回退）
 function getClientBaseUrl() {
+  const currentTenant = userStore.tenantList.find(
+    t => (t.documentId || t.id) === userStore.currentTenantId
+  )
+  if (currentTenant?.domain) {
+    return currentTenant.domain.replace(/\/+$/, '')
+  }
   if (CLIENT_BASE_URL) return CLIENT_BASE_URL
   const origin = window.location.origin
   return origin.replace(

@@ -615,6 +615,13 @@
           <view class="module-icon">🔐</view>
           <view class="module-name">验证记录</view>
         </view>
+      </view>
+    </view>
+
+    <!-- 帮助与文档（所有登录用户可见，无需任何权限） -->
+    <view class="module-section">
+      <view class="section-title">📖 帮助与文档</view>
+      <view class="module-grid">
         <view class="module-item" @click="navigateTo('/pages/manual/index')">
           <view class="module-icon">📖</view>
           <view class="module-name">使用手册</view>

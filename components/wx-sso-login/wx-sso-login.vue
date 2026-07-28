@@ -117,11 +117,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['success', 'error', 'redirect'])
 
-// SSO 基地址（H5/PC 跳转用），可按需配置
+// SSO 基地址：优先用环境变量，否则用当前 origin 推导（移除硬编码 h.joho.cn 兜底）
+// 部署到任意域名都能自动适配，避免多环境/多租户配置错误
 const SSO_BASE_URL = import.meta.env?.VITE_SSO_BASE_URL
   || (typeof window !== 'undefined' && window.location?.origin
       ? `${window.location.origin}/api/zhao-sso/v1`
-      : 'http://h.joho.cn/api/zhao-sso/v1')
+      : '/api/zhao-sso/v1')
 
 // 降级密码登录表单状态
 const fallbackForm = ref({ identifier: '', password: '' })

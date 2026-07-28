@@ -20,6 +20,8 @@ const error = ref('')
 const code = ref('')
 const returnUrl = ref('')
 const appCode = ref('')
+const inviteCode = ref('')
+const channelCode = ref('')
 
 async function init(options) {
   // OAuth 回调失败时后端 302 携带 error 参数
@@ -32,6 +34,22 @@ async function init(options) {
   code.value = options?.code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
   appCode.value = options?.app_code || ''
+
+  // 解码 state（Type A：base64url JSON 信封，由 SSO 后端 wechatRedirect/alipayRedirect 构造）
+  // 提取 invite_code 和 channel_code 用于失败回跳时透传；redirect_uri/app_code 更可靠，覆盖
+  const stateRaw = options?.state || ''
+  if (stateRaw) {
+    try {
+      const stateData = JSON.parse(atob(stateRaw.replace(/-/g, '+').replace(/_/g, '/')))
+      inviteCode.value = stateData.invite_code || ''
+      channelCode.value = stateData.channel_code || ''
+      // state 中的 return_url 和 app_code 更可靠，覆盖
+      if (stateData.redirect_uri) returnUrl.value = stateData.redirect_uri
+      if (stateData.app_code) appCode.value = stateData.app_code
+    } catch (e) {
+      console.warn('[SSO login-callback] state 解码失败:', e)
+    }
+  }
 
   if (!code.value) {
     error.value = '未收到授权码'
@@ -69,16 +87,23 @@ async function exchangeToken() {
 
     const userEncoded = btoa(encodeURIComponent(JSON.stringify(result.user || {})))
     const sep = returnUrl.value.includes('?') ? '&' : '?'
-    window.location.href = `${returnUrl.value}${sep}token=${token}&user=${userEncoded}`
+    // 透传 is_new（标识首登用户），C 端 auth-callback 会存 storage，首页据此显示欢迎提示
+    const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
+    const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
+    window.location.href = `${returnUrl.value}${sep}token=${token}&user=${userEncoded}${isNewParam}`
   } catch (e) {
     // 失败：跳回 sso/login 携带 error 参数，让用户用降级表单登录
+    // 透传 invite_code/channel_code，保证降级登录也能建立分销关系
     error.value = e?.message || e?.error || 'token 兑换失败'
-    const errMsg = encodeURIComponent(error.value)
+    // 注意：URLSearchParams.toString() 会自动对值做 application/x-www-form-urlencoded 编码
+    // 不要再手动 encodeURIComponent，否则会导致 return_url 被双重编码
     const params = new URLSearchParams({
       app_code: appCode.value,
-      return_url: encodeURIComponent(returnUrl.value),
-      error: errMsg,
+      return_url: returnUrl.value,
+      error: error.value,
     })
+    if (inviteCode.value) params.append('invite_code', inviteCode.value)
+    if (channelCode.value) params.append('channel_code', channelCode.value)
     setTimeout(() => {
       uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })
     }, 1500) // 1.5 秒后跳转，让用户看到错误提示
@@ -88,10 +113,13 @@ async function exchangeToken() {
 }
 
 function backToLogin() {
+  // 同样避免双重编码：URLSearchParams 会自动编码
   const params = new URLSearchParams({
     app_code: appCode.value,
-    return_url: encodeURIComponent(returnUrl.value),
+    return_url: returnUrl.value,
   })
+  if (inviteCode.value) params.append('invite_code', inviteCode.value)
+  if (channelCode.value) params.append('channel_code', channelCode.value)
   uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })
 }
 </script>

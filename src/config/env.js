@@ -3,6 +3,9 @@ const ENV = {
     BASE_API: 'http://localhost:1337/api',
     ADMIN_BASE_URL: '',
     STRAPI_URL: 'http://localhost:1337',
+    // 仅用于本地开发：admin 与 client 运行在不同端口（5174 vs 5173），
+    // 且 localhost 无 h.→v. 子域替换可用，故需显式指定 client 地址。
+    // 生产环境不配置此项，channel/detail.vue 会回退到动态 origin 检测（h.→v. 子域替换）。
     CLIENT_BASE_URL: 'http://localhost:5173',
     TIMEOUT: 30000
   },
@@ -10,7 +13,8 @@ const ENV = {
     BASE_API: '/api',
     ADMIN_BASE_URL: '',
     STRAPI_URL: '',
-    CLIENT_BASE_URL: '',
+    // 生产环境不配置 CLIENT_BASE_URL：channel/detail.vue 优先取当前租户 domain，
+    // 再回退到 window.location.origin 的 h.→v. 子域替换。
     TIMEOUT: 30000
   }
 }

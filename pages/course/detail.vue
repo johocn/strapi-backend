@@ -8,8 +8,8 @@
 
     <scroll-view scroll-y class="detail-scroll">
       <view class="cover-section">
-        <image 
-          :src="course.coverUrl || '/static/default-course.png'" 
+        <image
+          :src="course.coverUrl || '/static/default-course.jpg'"
           mode="aspectFill"
           class="cover-image"
         />

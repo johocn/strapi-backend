@@ -20,8 +20,8 @@
 import PageHeader from '../../src/components/PageHeader.vue'
 const manuals = [
   { key: 'admin', title: '后台管理手册', desc: '面向 admin 超级管理员，覆盖系统管理 + 业务监督', indexDoc: 'admin/index.md' },
-  { key: 'shao', title: 'C 端目录', desc: 'shao 用户端页面清单', indexDoc: 'shao-catalog/index.md' },
-  { key: 'user', title: '用户使用手册', desc: '面向终端用户，按使用流程顺序书写', indexDoc: 'user-guide/index.md' },
+  { key: 'shao', title: '课程学习答题用户使用手册', desc: '面向 C 端学员，覆盖课程学习、答题、积分兑换全流程', indexDoc: 'shao-catalog/index.md' },
+  { key: 'user', title: '课程学习答题管理用户手册', desc: '面向运营/内容管理员，覆盖课程、课时、题库、积分规则配置', indexDoc: 'user-guide/index.md' },
 ]
 
 function goViewer(doc) {

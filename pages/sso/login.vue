@@ -85,6 +85,7 @@ const isWechatEnv = computed(() => {
 
 // wx-sso-login 在微信环境跳转 OAuth 时使用的 redirect_uri
 // 指向 SSO 系统的 login-callback 中转页
+// 显式透传 invite_code/channel_code，避免依赖 state 解码兜底（state 由后端构造，前端不可见）
 const redirectUri = computed(() => {
   if (!appCode.value) return ''
   const cbUrl = window.location.origin + '/#/pages/sso/login-callback'
@@ -92,6 +93,8 @@ const redirectUri = computed(() => {
     return_url: returnUrl.value,
     app_code: appCode.value,
   })
+  if (inviteCode.value) params.append('invite_code', inviteCode.value)
+  if (channelCode.value) params.append('channel_code', channelCode.value)
   return `${cbUrl}?${params.toString()}`
 })
 
@@ -121,9 +124,10 @@ function onRedirect(url) {
 }
 
 function goRegister() {
+  // URLSearchParams.toString() 会自动编码，不要手动 encodeURIComponent 避免双重编码
   const params = new URLSearchParams({
     app_code: appCode.value,
-    return_url: encodeURIComponent(returnUrl.value),
+    return_url: returnUrl.value,
   })
   if (inviteCode.value) params.append('invite_code', inviteCode.value)
   if (channelCode.value) params.append('channel_code', channelCode.value)

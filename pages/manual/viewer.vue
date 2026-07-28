@@ -26,15 +26,40 @@ import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt({ html: true, linkify: true })
 
 // token 级拦截：把 .md 链接的 <a> 改成 <span data-doc>
+// 把 # 锚点链接改成 <span data-anchor>，避免修改 URL hash 破坏 uni-app 路由
 const linkStack = []
 const defaultLinkOpen = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
   return self.renderToken(tokens, idx, options)
 }
+
+// slugify：把标题文本转成可用的 id（与 markdown 锚点 #xxx 对应）
+// 保留中文、字母、数字、连字符，去掉点和空格等
+function slugify(text) {
+  return String(text || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')        // 空格转连字符
+    .replace(/[.)]/g, '')         // 去掉点和右括号（"1. xxx" → "1-xxx"）
+    .replace(/[^\w\u4e00-\u9fa5-]/g, '')  // 保留字母数字下划线、中文、连字符
+}
+
+// 给标题加 id，使 #锚点 能定位到对应标题
+md.renderer.rules.heading_open = function(tokens, idx, options, env, self) {
+  const token = tokens[idx]
+  const next = tokens[idx + 1]
+  if (next && next.type === 'inline') {
+    const id = slugify(next.content)
+    if (id) token.attrSet('id', id)
+  }
+  return self.renderToken(tokens, idx, options)
+}
+
 md.renderer.rules.link_open = function(tokens, idx, options, env, self) {
   const token = tokens[idx]
   const hrefIndex = token.attrIndex('href')
   if (hrefIndex >= 0) {
     const href = token.attrs[hrefIndex][1]
+    // 1) .md 文档互跳
     if (/\.md(\?|#|$)/.test(href)) {
       const resolved = resolveDocPath(href)
       if (resolved) {
@@ -42,7 +67,14 @@ md.renderer.rules.link_open = function(tokens, idx, options, env, self) {
         return `<span class="doc-link" data-doc="${resolved}">`
       }
     }
+    // 2) # 同文档锚点：转 span，避免浏览器修改 URL hash 破坏 uni-app 路由
+    if (href.startsWith('#')) {
+      const anchor = href.slice(1)
+      linkStack.push(true)
+      return `<span class="doc-anchor" data-anchor="${anchor}">`
+    }
   }
+  // 3) 外部链接：新窗口打开
   linkStack.push(false)
   token.attrPush(['target', '_blank'])
   token.attrPush(['rel', 'noopener'])
@@ -137,14 +169,46 @@ function goDoc(doc) {
 }
 
 function onDocClick(e) {
-  const target = e.target.closest && e.target.closest('[data-doc]')
-  if (target) {
-    const doc = target.getAttribute('data-doc')
+  // 1) 文档互跳
+  const docTarget = e.target.closest && e.target.closest('[data-doc]')
+  if (docTarget) {
+    const doc = docTarget.getAttribute('data-doc')
     if (doc) {
       e.preventDefault()
       goDoc(doc)
+      return
     }
   }
+  // 2) 同文档锚点定位（不修改 URL hash，避免破坏 uni-app 路由）
+  const anchorTarget = e.target.closest && e.target.closest('[data-anchor]')
+  if (anchorTarget) {
+    const anchor = anchorTarget.getAttribute('data-anchor')
+    if (anchor) {
+      e.preventDefault()
+      scrollToAnchor(anchor)
+    }
+  }
+}
+
+// 在 scroll-view 内滚动到对应 id 的标题元素
+function scrollToAnchor(anchor) {
+  nextTick(() => {
+    const container = contentRef.value?.$el || contentRef.value
+    if (!container) return
+    // 先按精确 id 查
+    let el = container.querySelector(`#${CSS.escape(anchor)}`)
+    // 再按模糊匹配（slugify 后可能与锚点有细微差异）
+    if (!el) {
+      const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      for (const h of headings) {
+        if (slugify(h.textContent) === anchor) { el = h; break }
+      }
+    }
+    if (el) {
+      // scroll-view 内部用 scrollIntoView 即可触发滚动
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
 }
 
 function bindClick() {
@@ -201,6 +265,7 @@ function resolveDocPath(href) {
 .markdown-body :deep(th) { background: #f5f7fa; font-weight: 600; }
 .markdown-body :deep(a) { color: #409eff; text-decoration: underline; }
 .markdown-body :deep(.doc-link) { color: #409eff; text-decoration: underline; }
+.markdown-body :deep(.doc-anchor) { color: #409eff; text-decoration: underline; cursor: pointer; }
 .markdown-body :deep(blockquote) { border-left: 4rpx solid #dcdfe6; padding-left: 16rpx; color: #909399; margin: 16rpx 0; }
 
 .doc-nav { display: flex; justify-content: space-between; padding: 32rpx 0; border-top: 1rpx solid #e4e7ed; margin-top: 32rpx; }

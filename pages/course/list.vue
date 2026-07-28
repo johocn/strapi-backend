@@ -41,10 +41,11 @@
         @click="goDetail(item.documentId)"
       >
         <view class="course-cover">
-          <image 
-            :src="item.coverUrl || '/static/default-course.png'" 
+          <image
+            :src="item.coverUrl || '/static/default-course.jpg'"
             mode="aspectFill"
             class="cover-image"
+            @error="onCoverError(item)"
           />
           <view class="course-status" :class="item.status">
             {{ getStatusText(item.status) }}
@@ -128,6 +129,11 @@ const statusMap = {
 
 function getStatusText(status) {
   return statusMap[status] || status
+}
+
+// 图片加载失败时清空 coverUrl，避免破图（fallback 到占位图）
+function onCoverError(item) {
+  if (item) item.coverUrl = ''
 }
 
 async function loadCategories() {

@@ -23,10 +23,14 @@ const loading = ref(true)
 const error = ref('')
 
 onMounted(async () => {
-  // 从 URL 参数获取 code 和 state
+  // 兼容 hash 路由：参数可能在 location.search，也可能在 location.hash 的 ? 之后
   const urlParams = new URLSearchParams(window.location.search)
-  const code = urlParams.get('code')
-  const state = urlParams.get('state') || ''
+  const hashQuery = window.location.hash.split('?')[1] || ''
+  const hashParams = new URLSearchParams(hashQuery)
+
+  // 从 URL 参数获取 code 和 state
+  const code = urlParams.get('code') || hashParams.get('code')
+  const state = urlParams.get('state') || hashParams.get('state') || ''
 
   if (!code) {
     error.value = '授权失败：未获取到授权码'
@@ -52,7 +56,14 @@ onMounted(async () => {
 
     if (res?.jwt) {
       userStore.setUserData(res)
-      await userStore.fetchUserRoles()
+      // 与 user.js login() 保持一致：拉取完整角色/权限/渠道范围/租户列表
+      // 缺失 fetchTenants 会导致多租户场景下 x-site-id header 不被注入，请求 403 或拿到默认租户数据
+      await Promise.all([
+        userStore.fetchUserRoles(),
+        userStore.fetchPermissions(),
+        userStore.fetchChannelScope(),
+        userStore.fetchTenants(),
+      ])
 
       uni.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => {
