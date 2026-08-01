@@ -1,0 +1,1 @@
+{"version":3,"file":"PageHeader.D68j04Np.js","sources":["../../../../../src/components/PageHeader.vue"],"names":["props","__props","goBack","getCurrentPages","length","uni.navigateBack","fallbackUrl","uni.redirectTo","url"],"mappings":"6TAaA,MAAMA,EAAQC,EAKd,SAASC,IACOC,IACJC,OAAS,EACjBC,IACSL,EAAMM,aACfC,EAAe,CAAEC,IAAKR,EAAMM,aAEhC"}

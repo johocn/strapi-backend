@@ -24,8 +24,8 @@
     <scroll-view v-else scroll-y class="result-list">
       <view class="result-count">共 {{ results.length }} 条结果</view>
       <view
-        v-for="r in results"
-        :key="r.doc"
+        v-for="(r, i) in results"
+        :key="r.doc + '-' + i"
         class="result-item"
         @click="goDoc(r.doc)"
       >
@@ -42,7 +42,7 @@ import PageHeader from '../../src/components/PageHeader.vue'
 import { ref } from 'vue'
 import { buildIndex, search, highlight } from './search-index'
 
-const docs = import.meta.glob('../../../docs/manual/**/*.md', { as: 'raw', eager: true })
+const docs = import.meta.glob('../../../docs/manual/**/*.{md,html}', { as: 'raw', eager: true })
 const index = buildIndex(docs)
 
 const query = ref('')

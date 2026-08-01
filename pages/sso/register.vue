@@ -53,6 +53,7 @@ import { publicPost } from '../../src/utils/request.js'
 
 const appCode = ref('')
 const returnUrl = ref('')
+const cEndUrl = ref('')
 const submitting = ref(false)
 
 const form = ref({
@@ -68,6 +69,7 @@ const form = ref({
 function init(options) {
   appCode.value = options?.app_code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
+  cEndUrl.value = options?.c_end_url ? decodeURIComponent(options.c_end_url) : ''
   form.value.invite_code = options?.invite_code || ''
   form.value.channel_code = options?.channel_code || ''
 }
@@ -118,8 +120,10 @@ async function handleSubmit() {
     if (!token) throw new Error('注册成功但未获取到 token')
 
     const userEncoded = btoa(encodeURIComponent(JSON.stringify(result.user || {})))
-    const sep = returnUrl.value.includes('?') ? '&' : '?'
-    window.location.href = `${returnUrl.value}${sep}token=${token}&user=${userEncoded}`
+    // 优先跳转到 C 端（c_end_url），无 c_end_url 时回退到 return_url
+    const targetUrl = cEndUrl.value || returnUrl.value
+    const sep = targetUrl.includes('?') ? '&' : '?'
+    window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}`
   } catch (e) {
     const msg = e?.message || e?.error || '注册失败'
     uni.showToast({ title: msg, icon: 'none' })
@@ -134,6 +138,7 @@ function backToLogin() {
     app_code: appCode.value,
     return_url: returnUrl.value,
   })
+  if (cEndUrl.value) params.append('c_end_url', cEndUrl.value)
   if (form.value.invite_code) params.append('invite_code', form.value.invite_code)
   if (form.value.channel_code) params.append('channel_code', form.value.channel_code)
   uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })

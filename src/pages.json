@@ -1,0 +1,557 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/login/callback",
+      "style": {
+        "navigationBarTitleText": "登录回调"
+      }
+    },
+    {
+      "path": "pages/register/index",
+      "style": {
+        "navigationBarTitleText": "渠道邀请码注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/dashboard/index",
+      "style": {
+        "navigationBarTitleText": "控制台"
+      }
+    },
+    {
+      "path": "pages/channel/list",
+      "style": {
+        "navigationBarTitleText": "渠道管理"
+      }
+    },
+    {
+      "path": "pages/channel/detail",
+      "style": {
+        "navigationBarTitleText": "渠道详情"
+      }
+    },
+    {
+      "path": "pages/channel/members",
+      "style": {
+        "navigationBarTitleText": "渠道成员"
+      }
+    },
+    {
+      "path": "pages/channel/network",
+      "style": {
+        "navigationBarTitleText": "渠道网络"
+      }
+    },
+    {
+      "path": "pages/channel/permissions",
+      "style": { "navigationBarTitleText": "渠道权限" }
+    },
+    {
+      "path": "pages/tenant/list",
+      "style": {
+        "navigationBarTitleText": "租户管理"
+      }
+    },
+    {
+      "path": "pages/tenant/detail",
+      "style": {
+        "navigationBarTitleText": "租户配置"
+      }
+    },
+    {
+      "path": "pages/global-config/index",
+      "style": {
+        "navigationBarTitleText": "全局配置"
+      }
+    },
+    {
+      "path": "pages/module-visibility/index",
+      "style": {
+        "navigationBarTitleText": "模块可见性"
+      }
+    },
+    {
+      "path": "pages/quiz/list",
+      "style": {
+        "navigationBarTitleText": "题库管理"
+      }
+    },
+    {
+      "path": "pages/quiz/form",
+      "style": {
+        "navigationBarTitleText": "题目编辑"
+      }
+    },
+    {
+      "path": "pages/quiz/batch-upload",
+      "style": {
+        "navigationBarTitleText": "批量导入"
+      }
+    },
+    {
+      "path": "pages/quiz/record/list",
+      "style": {
+        "navigationBarTitleText": "答题记录"
+      }
+    },
+    {
+      "path": "pages/quiz/record/detail",
+      "style": {
+        "navigationBarTitleText": "答题详情"
+      }
+    },
+    {
+      "path": "pages/quiz/exam/list",
+      "style": {
+        "navigationBarTitleText": "考试管理"
+      }
+    },
+    {
+      "path": "pages/quiz/exam/form",
+      "style": {
+        "navigationBarTitleText": "考试编辑"
+      }
+    },
+    {
+      "path": "pages/points/types",
+      "style": {
+        "navigationBarTitleText": "积分类型"
+      }
+    },
+    {
+      "path": "pages/points/rules",
+      "style": {
+        "navigationBarTitleText": "积分规则"
+      }
+    },
+    {
+      "path": "pages/points/records",
+      "style": {
+        "navigationBarTitleText": "积分记录"
+      }
+    },
+    {
+      "path": "pages/points/products",
+      "style": {
+        "navigationBarTitleText": "积分产品"
+      }
+    },
+    {
+      "path": "pages/points/exchanges",
+      "style": {
+        "navigationBarTitleText": "兑换记录"
+      }
+    },
+    {
+      "path": "pages/points/pickup-verify",
+      "style": {
+        "navigationBarTitleText": "扫码兑付"
+      }
+    },
+    {
+      "path": "pages/points/pickup-locations",
+      "style": {
+        "navigationBarTitleText": "自提点管理"
+      }
+    },
+    {
+      "path": "pages/points/statistics",
+      "style": {
+        "navigationBarTitleText": "积分统计"
+      }
+    },
+    {
+      "path": "pages/points/config",
+      "style": {
+        "navigationBarTitleText": "积分配置"
+      }
+    },
+
+    {
+      "path": "pages/course/list",
+      "style": {
+        "navigationBarTitleText": "课程管理"
+      }
+    },
+    {
+      "path": "pages/course/form",
+      "style": {
+        "navigationBarTitleText": "课程编辑"
+      }
+    },
+    {
+      "path": "pages/course/detail",
+      "style": {
+        "navigationBarTitleText": "课程详情"
+      }
+    },
+    {
+      "path": "pages/course/lesson/list",
+      "style": {
+        "navigationBarTitleText": "课时管理"
+      }
+    },
+    {
+      "path": "pages/course/lesson/form",
+      "style": {
+        "navigationBarTitleText": "课时编辑"
+      }
+    },
+    {
+      "path": "pages/course/lesson/detail",
+      "style": {
+        "navigationBarTitleText": "课时详情"
+      }
+    },
+    {
+      "path": "pages/course/category/list",
+      "style": {
+        "navigationBarTitleText": "课程分类"
+      }
+    },
+    {
+      "path": "pages/course/category/form",
+      "style": {
+        "navigationBarTitleText": "分类编辑"
+      }
+    },
+    {
+      "path": "pages/course/tag/list",
+      "style": {
+        "navigationBarTitleText": "课程标签"
+      }
+    },
+    {
+      "path": "pages/course/tag/form",
+      "style": {
+        "navigationBarTitleText": "标签编辑"
+      }
+    },
+    {
+      "path": "pages/course/auth/list",
+      "style": {
+        "navigationBarTitleText": "用户课程授权"
+      }
+    },
+    {
+      "path": "pages/study/progress",
+      "style": {
+        "navigationBarTitleText": "课程学习进度"
+      }
+    },
+    {
+      "path": "pages/study/lesson-progress",
+      "style": {
+        "navigationBarTitleText": "课时学习进度"
+      }
+    },
+    {
+      "path": "pages/distribution/invites",
+      "style": {
+        "navigationBarTitleText": "分销邀请"
+      }
+    },
+    {
+      "path": "pages/verification/records",
+      "style": {
+        "navigationBarTitleText": "验证记录"
+      }
+    },
+    {
+      "path": "pages/media/list",
+      "style": {
+        "navigationBarTitleText": "媒体资源"
+      }
+    },
+
+    {
+      "path": "pages/settings/site-config",
+      "style": {
+        "navigationBarTitleText": "站点配置"
+      }
+    },
+    {
+      "path": "pages/settings/site-template",
+      "style": {
+        "navigationBarTitleText": "模板管理"
+      }
+    },
+    {
+      "path": "pages/redemption/codes",
+      "style": {
+        "navigationBarTitleText": "兑换码"
+      }
+    },
+    {
+      "path": "pages/redemption/records",
+      "style": {
+        "navigationBarTitleText": "兑换记录"
+      }
+    },
+    {
+      "path": "pages/system/tools",
+      "style": {
+        "navigationBarTitleText": "系统工具"
+      }
+    },
+    {
+      "path": "pages/system/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/system/user-roles",
+      "style": {
+        "navigationBarTitleText": "用户角色管理"
+      }
+    },
+    {
+      "path": "pages/system/role-management",
+      "style": {
+        "navigationBarTitleText": "角色管理"
+      }
+    },
+    {
+      "path": "pages/system/role-logs",
+      "style": {
+        "navigationBarTitleText": "角色操作日志"
+      }
+    },
+    {
+      "path": "pages/system/permissions",
+      "style": {
+        "navigationBarTitleText": "权限管理"
+      }
+    },
+    {
+      "path": "pages/oss/dashboard",
+      "style": {
+        "navigationBarTitleText": "OSS 同步仪表盘"
+      }
+    },
+    {
+      "path": "pages/oss/records",
+      "style": {
+        "navigationBarTitleText": "OSS 同步记录"
+      }
+    },
+    {
+      "path": "pages/oss/settings",
+      "style": {
+        "navigationBarTitleText": "OSS 存储设置"
+      }
+    },
+    {
+      "path": "pages/third/config-list",
+      "style": {
+        "navigationBarTitleText": "第三方配置"
+      }
+    },
+    {
+      "path": "pages/third/config-form",
+      "style": {
+        "navigationBarTitleText": "第三方配置编辑"
+      }
+    },
+    {
+      "path": "pages/third/accounts",
+      "style": {
+        "navigationBarTitleText": "第三方账号"
+      }
+    },
+    {
+      "path": "pages/tag/list",
+      "style": {
+        "navigationBarTitleText": "标签管理"
+      }
+    },
+    {
+      "path": "pages/tag/form",
+      "style": {
+        "navigationBarTitleText": "标签编辑"
+      }
+    },
+    {
+      "path": "pages/tag/groups",
+      "style": {
+        "navigationBarTitleText": "标签分组"
+      }
+    },
+    {
+      "path": "pages/tag/presets",
+      "style": {
+        "navigationBarTitleText": "分类预设"
+      }
+    },
+    {
+      "path": "pages/tag/search",
+      "style": {
+        "navigationBarTitleText": "全局标签检索"
+      }
+    },
+    {
+      "path": "pages/tag/knowledge",
+      "style": {
+        "navigationBarTitleText": "知识点管理"
+      }
+    },
+    {
+      "path": "pages/tag/knowledge-form",
+      "style": {
+        "navigationBarTitleText": "知识点编辑"
+      }
+    },
+    {
+      "path": "pages/manual/index",
+      "style": {
+        "navigationBarTitleText": "使用手册"
+      }
+    },
+    {
+      "path": "pages/manual/viewer",
+      "style": {
+        "navigationBarTitleText": "文档查看"
+      }
+    },
+    {
+      "path": "pages/manual/search",
+      "style": {
+        "navigationBarTitleText": "搜索文档"
+      }
+    },
+    {
+      "path": "pages/website/article/list",
+      "style": {
+        "navigationBarTitleText": "资讯文章"
+      }
+    },
+    {
+      "path": "pages/website/article/edit",
+      "style": {
+        "navigationBarTitleText": "文章编辑"
+      }
+    },
+    {
+      "path": "pages/website/lead/list",
+      "style": {
+        "navigationBarTitleText": "线索管理"
+      }
+    },
+    { "path": "pages/website/product/list", "style": { "navigationBarTitleText": "产品方案" } },
+    { "path": "pages/website/product/edit", "style": { "navigationBarTitleText": "产品编辑" } },
+    { "path": "pages/website/case/list", "style": { "navigationBarTitleText": "落地案例" } },
+    { "path": "pages/website/case/edit", "style": { "navigationBarTitleText": "案例编辑" } },
+    { "path": "pages/website/faq/list", "style": { "navigationBarTitleText": "常见问答" } },
+    { "path": "pages/website/faq/edit", "style": { "navigationBarTitleText": "问答编辑" } },
+    { "path": "pages/website/tutorial/list", "style": { "navigationBarTitleText": "教程指南" } },
+    { "path": "pages/website/tutorial/edit", "style": { "navigationBarTitleText": "教程编辑" } },
+    { "path": "pages/website/compliance/list", "style": { "navigationBarTitleText": "合规公示" } },
+    { "path": "pages/website/compliance/edit", "style": { "navigationBarTitleText": "合规编辑" } },
+    { "path": "pages/website/download/list", "style": { "navigationBarTitleText": "下载管理" } },
+    { "path": "pages/website/download/edit", "style": { "navigationBarTitleText": "下载编辑" } },
+    { "path": "pages/website/article-category/list", "style": { "navigationBarTitleText": "文章分类" } },
+    { "path": "pages/website/article-category/edit", "style": { "navigationBarTitleText": "分类编辑" } },
+    { "path": "pages/website/brand-info/edit", "style": { "navigationBarTitleText": "品牌信息" } },
+    { "path": "pages/website/seo-config/edit", "style": { "navigationBarTitleText": "SEO 配置" } },
+    { "path": "pages/website/knowledge-entity/list", "style": { "navigationBarTitleText": "知识实体" } },
+    { "path": "pages/website/knowledge-entity/edit", "style": { "navigationBarTitleText": "实体编辑" } },
+    { "path": "pages/website/knowledge-relation/list", "style": { "navigationBarTitleText": "知识关系" } },
+    { "path": "pages/website/knowledge-relation/edit", "style": { "navigationBarTitleText": "关系编辑" } },
+    { "path": "pages/website/first-truth/list", "style": { "navigationBarTitleText": "第一真值" } },
+    { "path": "pages/website/first-truth/edit", "style": { "navigationBarTitleText": "真值编辑" } },
+    { "path": "pages/website/ai-summary/list", "style": { "navigationBarTitleText": "AI 摘要" } },
+    { "path": "pages/website/ai-summary/edit", "style": { "navigationBarTitleText": "摘要详情" } },
+    { "path": "pages/website/visit-log/list", "style": { "navigationBarTitleText": "访问日志" } },
+    { "path": "pages/website/interaction/list", "style": { "navigationBarTitleText": "互动记录" } },
+    { "path": "pages/website/search-log/list", "style": { "navigationBarTitleText": "搜索日志" } },
+    { "path": "pages/logistics/quote-request/list", "style": { "navigationBarTitleText": "询价单管理" } },
+    { "path": "pages/logistics/quote-request/edit", "style": { "navigationBarTitleText": "询价单编辑" } },
+    { "path": "pages/logistics/quote-field-rule/list", "style": { "navigationBarTitleText": "字段规则管理" } },
+    { "path": "pages/logistics/quote-field-rule/edit", "style": { "navigationBarTitleText": "字段规则编辑" } },
+    { "path": "pages/logistics/quote-price-rule/list", "style": { "navigationBarTitleText": "报价规则管理" } },
+    { "path": "pages/logistics/quote-price-rule/edit", "style": { "navigationBarTitleText": "报价规则编辑" } },
+    { "path": "pages/logistics/quote-price-formula/list", "style": { "navigationBarTitleText": "报价公式模板" } },
+    { "path": "pages/logistics/quote-price-formula/edit", "style": { "navigationBarTitleText": "公式模板编辑" } },
+    { "path": "pages/logistics/tracking-shipment/list", "style": { "navigationBarTitleText": "运单追踪" } },
+    { "path": "pages/logistics/tracking-shipment/edit", "style": { "navigationBarTitleText": "运单编辑" } },
+    { "path": "pages/logistics/tracking-node/list", "style": { "navigationBarTitleText": "追踪节点" } },
+    { "path": "pages/logistics/tracking-node/edit", "style": { "navigationBarTitleText": "节点编辑" } },
+    { "path": "pages/logistics/tracking-provider/list", "style": { "navigationBarTitleText": "服务商配置" } },
+    { "path": "pages/logistics/tracking-provider/edit", "style": { "navigationBarTitleText": "服务商编辑" } },
+    { "path": "pages/logistics/contact-matrix/list", "style": { "navigationBarTitleText": "联系渠道矩阵" } },
+    { "path": "pages/logistics/contact-matrix/edit", "style": { "navigationBarTitleText": "联系矩阵编辑" } },
+    { "path": "pages/logistics/review/list", "style": { "navigationBarTitleText": "客户评价" } },
+    { "path": "pages/logistics/review/edit", "style": { "navigationBarTitleText": "评价编辑" } },
+    { "path": "pages/logistics/subscription/list", "style": { "navigationBarTitleText": "通知订阅" } },
+    { "path": "pages/logistics/subscription/edit", "style": { "navigationBarTitleText": "订阅编辑" } },
+    { "path": "pages/logistics/landing-page/list", "style": { "navigationBarTitleText": "营销落地页" } },
+    { "path": "pages/logistics/landing-page/edit", "style": { "navigationBarTitleText": "落地页编辑" } },
+    { "path": "pages/logistics/conversion-funnel/list", "style": { "navigationBarTitleText": "转化漏斗" } },
+    { "path": "pages/logistics/conversion-funnel/edit", "style": { "navigationBarTitleText": "漏斗编辑" } },
+    { "path": "pages/logistics/conversion-event/list", "style": { "navigationBarTitleText": "转化事件" } },
+    { "path": "pages/logistics/conversion-event/edit", "style": { "navigationBarTitleText": "事件编辑" } },
+    { "path": "pages/logistics/intent-order/list", "style": { "navigationBarTitleText": "意向订单" } },
+    { "path": "pages/logistics/intent-order/edit", "style": { "navigationBarTitleText": "订单编辑" } },
+    { "path": "pages/logistics/referral/list", "style": { "navigationBarTitleText": "推荐奖励" } },
+    { "path": "pages/logistics/referral/edit", "style": { "navigationBarTitleText": "推荐编辑" } },
+    { "path": "pages/logistics/customer-profile/list", "style": { "navigationBarTitleText": "客户档案" } },
+    { "path": "pages/logistics/customer-profile/edit", "style": { "navigationBarTitleText": "档案编辑" } },
+    { "path": "pages/studio/article-draft/list", "style": { "navigationBarTitleText": "草稿文章" } },
+    { "path": "pages/studio/article-draft/edit", "style": { "navigationBarTitleText": "编辑草稿" } },
+    { "path": "pages/studio/knowledge-index/list", "style": { "navigationBarTitleText": "知识点索引" } },
+    { "path": "pages/studio/knowledge-index/edit", "style": { "navigationBarTitleText": "编辑索引" } },
+    { "path": "pages/studio/collect-source/list", "style": { "navigationBarTitleText": "采集源管理" } },
+    { "path": "pages/studio/collect-source/edit", "style": { "navigationBarTitleText": "编辑采集源" } },
+    { "path": "pages/studio/collect-task/list", "style": { "navigationBarTitleText": "采集任务" } },
+    { "path": "pages/studio/collect-task/detail", "style": { "navigationBarTitleText": "采集任务详情" } },
+    { "path": "pages/studio/publish-platform/list", "style": { "navigationBarTitleText": "发布平台" } },
+    { "path": "pages/studio/publish-platform/edit", "style": { "navigationBarTitleText": "编辑平台" } },
+    { "path": "pages/studio/publish-account/list", "style": { "navigationBarTitleText": "发布账号" } },
+    { "path": "pages/studio/publish-account/edit", "style": { "navigationBarTitleText": "编辑账号" } },
+    { "path": "pages/studio/publish-record/list", "style": { "navigationBarTitleText": "发布记录" } },
+    { "path": "pages/studio/publish-record/detail", "style": { "navigationBarTitleText": "发布记录详情" } },
+    { "path": "pages/studio/stat-summary/list", "style": { "navigationBarTitleText": "统计汇总" } },
+    { "path": "pages/studio/stat-summary/detail", "style": { "navigationBarTitleText": "统计详情" } },
+    { "path": "pages/studio/browser-log/list", "style": { "navigationBarTitleText": "浏览日志" } },
+    { "path": "pages/studio/browser-log/detail", "style": { "navigationBarTitleText": "日志详情" } },
+    { "path": "pages/studio/ad-slot/list", "style": { "navigationBarTitleText": "广告位管理" } },
+    { "path": "pages/studio/ad-slot/edit", "style": { "navigationBarTitleText": "编辑广告位" } },
+    { "path": "pages/studio/collect-workflow/index", "style": { "navigationBarTitleText": "采集工作流" } },
+    { "path": "pages/studio/publish-center/index", "style": { "navigationBarTitleText": "发布中心" } },
+    { "path": "pages/studio/analytics/index", "style": { "navigationBarTitleText": "数据分析" } },
+    { "path": "pages/sso/app/list", "style": { "navigationBarTitleText": "应用管理" } },
+    { "path": "pages/sso/app/edit", "style": { "navigationBarTitleText": "编辑应用" } },
+    { "path": "pages/sso/token/list", "style": { "navigationBarTitleText": "Token管理" } },
+    { "path": "pages/sso/auth-code/list", "style": { "navigationBarTitleText": "授权码管理" } },
+    { "path": "pages/sso/binding/list", "style": { "navigationBarTitleText": "三方绑定" } },
+    { "path": "pages/sso/oauth-config/list", "style": { "navigationBarTitleText": "OAuth配置" } },
+    { "path": "pages/sso/oauth-config/edit", "style": { "navigationBarTitleText": "编辑OAuth配置" } },
+    { "path": "pages/sso/user-role/list", "style": { "navigationBarTitleText": "用户角色" } },
+    { "path": "pages/sso/user-role/edit", "style": { "navigationBarTitleText": "编辑角色" } },
+    { "path": "pages/sso/invite-code/list", "style": { "navigationBarTitleText": "邀请码管理" } },
+    { "path": "pages/sso/invite-code/edit", "style": { "navigationBarTitleText": "编辑邀请码" } },
+    { "path": "pages/sso/invite-usage/list", "style": { "navigationBarTitleText": "邀请记录" } },
+    { "path": "pages/sso/referral/list", "style": { "navigationBarTitleText": "推荐关系" } },
+    { "path": "pages/sso/sms-code/list", "style": { "navigationBarTitleText": "短信验证码" } },
+    { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } },
+    { "path": "pages/sso/login", "style": { "navigationBarTitleText": "SSO 登录" } },
+    { "path": "pages/sso/login-callback", "style": { "navigationBarTitleText": "登录中" } },
+    { "path": "pages/sso/register", "style": { "navigationBarTitleText": "注册账号" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "TAdmin",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  },
+  "uniIdRouter": {}
+}
