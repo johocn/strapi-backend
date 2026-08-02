@@ -25,6 +25,37 @@ const inviteCode = ref('')
 const channelCode = ref('')
 
 async function init(options) {
+  // 兜底：UniApp onLoad 可能因 return_url 中编码的 %23（#）导致参数解析异常
+  // 当关键参数缺失时，直接从 window.location.hash 解析补充
+  if (typeof window !== 'undefined') {
+    try {
+      const hashQuery = window.location.hash.split('?')[1] || ''
+      if (hashQuery) {
+        const urlParams = new URLSearchParams(hashQuery)
+        const merged = { ...(options || {}) }
+        // 用 URL 直接解析的值补充 options 中缺失的参数
+        for (const key of ['token', 'code', 'user', 'return_url', 'c_end_url', 'app_code', 'state', 'error', 'isNew']) {
+          if (!merged[key] && urlParams.get(key)) {
+            merged[key] = urlParams.get(key)
+          }
+        }
+        options = merged
+      }
+    } catch (e) {
+      console.warn('[SSO login-callback] URL fallback parsing failed:', e)
+    }
+  }
+
+  console.log('[SSO login-callback] init options:', JSON.stringify({
+    token: options?.token ? '(present)' : '(missing)',
+    code: options?.code || '(missing)',
+    return_url: options?.return_url || '(missing)',
+    c_end_url: options?.c_end_url || '(missing)',
+    app_code: options?.app_code || '(missing)',
+    state: options?.state ? '(present)' : '(missing)',
+    error: options?.error || '(missing)',
+  }))
+
   // OAuth 回调失败时后端 302 携带 error 参数
   const errorMsg = options?.error
   if (errorMsg) {
@@ -32,32 +63,58 @@ async function init(options) {
     return // 不再调 exchangeToken
   }
 
+  // 提取所有参数
+  const tokenParam = options?.token || ''
+  const userParam = options?.user || ''
+  const isNewParam = options?.isNew || ''
   code.value = options?.code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
   cEndUrl.value = options?.c_end_url ? decodeURIComponent(options.c_end_url) : ''
   appCode.value = options?.app_code || ''
 
   // 解码 state（Type A：base64url JSON 信封，由 SSO 后端 wechatRedirect/alipayRedirect 构造）
-  // 提取 invite_code 和 channel_code 用于失败回跳时透传；redirect_uri/app_code 更可靠，覆盖
+  // 提取 invite_code 和 channel_code 用于失败回跳时透传
+  // 注意：state.redirect_uri 是 OAuth redirect_uri（即 login-callback 自身地址），不是 return_url
+  // 不能用它覆盖 returnUrl，否则会导致 redirect 回 login-callback 自身形成死循环
   const stateRaw = options?.state || ''
   if (stateRaw) {
     try {
       const stateData = JSON.parse(atob(stateRaw.replace(/-/g, '+').replace(/_/g, '/')))
       inviteCode.value = stateData.invite_code || ''
       channelCode.value = stateData.channel_code || ''
-      // state 中的 return_url 和 app_code 更可靠，覆盖
-      if (stateData.redirect_uri) returnUrl.value = stateData.redirect_uri
+      // app_code 从 state 中取更可靠（由后端构造，不受前端 URL 编码影响）
       if (stateData.app_code) appCode.value = stateData.app_code
+      // 从 state.redirect_uri 的 query 参数中提取 c_end_url 作为兜底
+      // 场景：URL query 中 c_end_url 可能因编码问题丢失，但 state 中保留的完整 redirect_uri 包含它
+      // redirect_uri 格式：https://h.joho.cn/#/pages/sso/login-callback?return_url=...&c_end_url=...
+      // query 参数在 ? 之后（hash 路由的 ? 属于 hash 内容，不能用 URL.search 解析）
+      if (!cEndUrl.value && stateData.redirect_uri) {
+        try {
+          const queryPart = stateData.redirect_uri.split('?')[1] || ''
+          const stateParams = new URLSearchParams(queryPart)
+          const cEndFromState = stateParams.get('c_end_url')
+          if (cEndFromState) cEndUrl.value = cEndFromState
+        } catch {}
+      }
     } catch (e) {
       console.warn('[SSO login-callback] state 解码失败:', e)
     }
   }
 
+  // 场景 1：URL 已携带 token（login.vue onSuccess 直接跳转，或重定向循环回此页）
+  // 跳过 code 兑换，直接转发到目标地址（c_end_url 优先，return_url 兜底）
+  if (tokenParam) {
+    console.log('[SSO login-callback] 检测到 token 参数，跳过 code 兑换，直接转发')
+    redirectToTarget(tokenParam, userParam, isNewParam)
+    return
+  }
+
+  // 场景 2：标准 OAuth code 兑换流程
   if (!code.value) {
     error.value = '未收到授权码'
     return
   }
-  if (!returnUrl.value) {
+  if (!returnUrl.value && !cEndUrl.value) {
     error.value = '未收到 return_url'
     return
   }
@@ -67,6 +124,38 @@ async function init(options) {
   }
 
   await exchangeToken()
+}
+
+/**
+ * 直接转发 token 到目标地址（c_end_url 优先，return_url 兜底）
+ * 用于 URL 已携带 token 的场景（login.vue onSuccess 跳转、重定向循环回此页等）
+ */
+function redirectToTarget(token, userEncoded, isNewFlag) {
+  const targetUrl = cEndUrl.value || returnUrl.value
+  if (!targetUrl) {
+    error.value = '未收到跳转地址（c_end_url 和 return_url 均缺失）'
+    return
+  }
+
+  // 安全检查：如果 targetUrl 与 SSO 服务器同域且指向 auth-callback，
+  // 说明 C 端未正确配置 return_url/c_end_url（应指向 v.joho.cn 等 C 端域名）
+  // 此时直接跳转会到 SSO 服务器上不存在的页面，不如给出明确错误
+  try {
+    const targetOrigin = new URL(targetUrl).origin
+    const currentOrigin = window.location.origin
+    if (targetOrigin === currentOrigin && targetUrl.includes('auth-callback')) {
+      console.error('[SSO login-callback] 目标地址指向 SSO 服务器自身，C 端 return_url/c_end_url 配置有误:', targetUrl)
+      error.value = '回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。请检查 C 端 authConfig 配置并重新部署。'
+      return
+    }
+  } catch {}
+
+  const sep = targetUrl.includes('?') ? '&' : '?'
+  const userPart = userEncoded ? `&user=${userEncoded}` : ''
+  const isNewPart = isNewFlag ? `&isNew=${isNewFlag}` : ''
+  loading.value = true
+  console.log('[SSO login-callback] redirectToTarget:', targetUrl)
+  window.location.href = `${targetUrl}${sep}token=${token}${userPart}${isNewPart}`
 }
 
 onLoad((options) => {
@@ -91,6 +180,17 @@ async function exchangeToken() {
     // 优先跳转到 C 端（c_end_url），SSO 认证完成后直接回 C 端 auth-callback 写入 token
     // 无 c_end_url 时回退到 return_url（SSO 端 auth-callback 中转）
     const targetUrl = cEndUrl.value || returnUrl.value
+
+    // 安全检查：同 redirectToTarget，防止 targetUrl 指向 SSO 服务器自身
+    try {
+      const targetOrigin = new URL(targetUrl).origin
+      if (targetOrigin === window.location.origin && targetUrl.includes('auth-callback')) {
+        throw new Error('回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。请检查 C 端配置。')
+      }
+    } catch (urlErr) {
+      if (urlErr.message.includes('回调地址配置错误')) throw urlErr
+    }
+
     const sep = targetUrl.includes('?') ? '&' : '?'
     // 透传 is_new（标识首登用户），C 端 auth-callback 会存 storage，首页据此显示欢迎提示
     const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''

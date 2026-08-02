@@ -103,15 +103,31 @@ const redirectUri = computed(() => {
 })
 
 function onSuccess(result) {
-  // result: { access_token, refresh_token, user }
+  // result: { access_token, refresh_token, user, is_new }
   const token = result.access_token || result.jwt || result.token
-  if (!token || !returnUrl.value) {
+  // 优先跳转到 C 端（c_end_url），无 c_end_url 时回退到 return_url
+  const targetUrl = cEndUrl.value || returnUrl.value
+  if (!token || !targetUrl) {
     uni.showToast({ title: '登录失败：未获取到 token', icon: 'none' })
     return
   }
+
+  // 安全检查：如果 targetUrl 与 SSO 服务器同域且指向 auth-callback，
+  // 说明 C 端未正确配置 return_url/c_end_url（应指向 v.joho.cn 等 C 端域名）
+  try {
+    const targetOrigin = new URL(targetUrl).origin
+    if (targetOrigin === window.location.origin && targetUrl.includes('auth-callback')) {
+      console.error('[sso-login] 目标地址指向 SSO 服务器自身，C 端 return_url/c_end_url 配置有误:', targetUrl)
+      uni.showToast({ title: '回调地址配置错误：return_url 应指向 C 端域名', icon: 'none', duration: 5000 })
+      return
+    }
+  } catch {}
+
   const userEncoded = btoa(encodeURIComponent(JSON.stringify(result.user || {})))
-  const sep = returnUrl.value.includes('?') ? '&' : '?'
-  window.location.href = `${returnUrl.value}${sep}token=${token}&user=${userEncoded}`
+  const sep = targetUrl.includes('?') ? '&' : '?'
+  const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
+  const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
+  window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
 }
 
 function onError(err) {

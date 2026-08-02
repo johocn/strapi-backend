@@ -4,5 +4,9 @@ import uni from '@dcloudio/vite-plugin-uni'
 export default defineConfig({
   plugins: [
     uni()
-  ]
+  ],
+  build: {
+    outDir: 'dist/build/h5',
+    emptyOutDir: false
+  }
 })

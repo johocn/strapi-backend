@@ -100,7 +100,7 @@ function validate() {
 async function handleSubmit() {
   if (submitting.value) return
   if (!validate()) return
-  if (!appCode.value || !returnUrl.value) {
+  if (!appCode.value || (!returnUrl.value && !cEndUrl.value)) {
     uni.showToast({ title: '参数缺失', icon: 'none' }); return
   }
 
@@ -123,7 +123,9 @@ async function handleSubmit() {
     // 优先跳转到 C 端（c_end_url），无 c_end_url 时回退到 return_url
     const targetUrl = cEndUrl.value || returnUrl.value
     const sep = targetUrl.includes('?') ? '&' : '?'
-    window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}`
+    const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
+    const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
+    window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
   } catch (e) {
     const msg = e?.message || e?.error || '注册失败'
     uni.showToast({ title: msg, icon: 'none' })
