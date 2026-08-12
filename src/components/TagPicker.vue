@@ -74,6 +74,9 @@
             <view v-if="!loadingTags && tagList.length === 0" class="empty-text">
               <text>暂无标签</text>
             </view>
+            <view v-if="!loadingTags && tagList.length > 0 && tagPagination.page >= tagPagination.pageCount" class="no-more-text">
+              <text>— 没有更多标签了 —</text>
+            </view>
           </scroll-view>
         </view>
       </view>
@@ -222,10 +225,14 @@ watch(() => props.visible, async (val) => {
         console.error('创建默认分组失败:', e)
       }
     }
-    // 知识点模式 + 无已选 → 自动选中所有知识点标签
-    if (props.mode === 'knowledge-point' && internalSelected.value.length === 0) {
-      await autoSelectKnowledgePoints()
-      return
+    // 知识点模式 → 默认选中"知识点"分组，让用户手动选择
+    if (props.mode === 'knowledge-point') {
+      const kpGroup = groupList.value.find(g => g.slug === 'knowledge-points')
+      if (kpGroup) {
+        selectGroup(kpGroup.documentId, kpGroup)
+        return
+      }
+      console.warn('[TagPicker] 未找到知识点分组 (slug=knowledge-points)')
     }
     // 设置默认分组
     if (props.defaultGroupId) {
@@ -262,29 +269,6 @@ async function loadGroups() {
     groupList.value = groups
   } catch (e) {
     /* ignore */
-  }
-}
-
-async function autoSelectKnowledgePoints() {
-  // 找到知识点分组
-  const kpGroup = groupList.value.find(g => g.slug === 'knowledge-points')
-  if (!kpGroup) {
-    console.warn('[TagPicker] 未找到知识点分组 (slug=knowledge-points)')
-    resetAndLoadTags()
-    return
-  }
-
-  // 通过正常流程选中知识点分组 → 左侧高亮 + 右侧加载标签列表
-  selectedGroupId.value = kpGroup.documentId
-  selectedGroup.value = kpGroup
-  tagPagination.value.page = 1
-  tagList.value = []
-  await loadTags()
-
-  // 自动全选知识点标签（仅在无已选时）
-  if (internalSelected.value.length === 0 && tagList.value.length > 0) {
-    internalSelected.value = [...tagList.value]
-    console.log(`[TagPicker] 自动选中 ${tagList.value.length} 个知识点标签`)
   }
 }
 
@@ -624,6 +608,13 @@ function handleClose() {
   padding: 40rpx;
   color: #999;
   font-size: 26rpx;
+}
+
+.no-more-text {
+  text-align: center;
+  padding: 24rpx;
+  color: #ccc;
+  font-size: 24rpx;
 }
 
 /* 底部 */
