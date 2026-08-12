@@ -1,0 +1,1 @@
+"use strict";const t=require("./request.btngW0ic.js"),e=require("./format.QYE0YuBS.js"),o="/zhao-common/v1/admin/global-config";exports.getGlobalConfig=function(){return t.get(o).then(e.extractItem)},exports.updateGlobalConfig=function(r){return t.put(o,r).then(e.extractItem)};
