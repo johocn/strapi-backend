@@ -274,27 +274,17 @@ async function autoSelectKnowledgePoints() {
     return
   }
 
-  // 选中知识点分组
+  // 通过正常流程选中知识点分组 → 左侧高亮 + 右侧加载标签列表
   selectedGroupId.value = kpGroup.documentId
   selectedGroup.value = kpGroup
+  tagPagination.value.page = 1
+  tagList.value = []
+  await loadTags()
 
-  // 加载该分组下所有标签（pageSize=200 确保一次加载完）
-  try {
-    const result = await getTagList({
-      page: 1,
-      pageSize: 200,
-      'filters[tagGroup][documentId][$eq]': kpGroup.documentId,
-    })
-    const allKpTags = result.list || []
-    // 自动全选
-    internalSelected.value = allKpTags
-    // 同时展示在标签列表中
-    tagList.value = allKpTags
-    tagPagination.value = result.pagination || {}
-    console.log(`[TagPicker] 自动选中 ${allKpTags.length} 个知识点标签`)
-  } catch (e) {
-    console.error('[TagPicker] 自动选中知识点失败:', e)
-    resetAndLoadTags()
+  // 自动全选知识点标签（仅在无已选时）
+  if (internalSelected.value.length === 0 && tagList.value.length > 0) {
+    internalSelected.value = [...tagList.value]
+    console.log(`[TagPicker] 自动选中 ${tagList.value.length} 个知识点标签`)
   }
 }
 

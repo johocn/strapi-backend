@@ -149,10 +149,6 @@
             </view>
           </view>
         </view>
-      </view>
-
-      <view class="form-section">
-        <view class="section-title">知识点关联</view>
 
         <view class="form-item">
           <text class="form-label">关联知识点</text>
