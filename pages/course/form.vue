@@ -719,11 +719,11 @@ async function loadCourseDetail() {
           form.category = data.category
         }
       }
-      // 知识点现在混在 tags 中，按 tagGroup.slug === 'knowledge-point' 过滤
+      // 知识点现在混在 tags 中，按 tagGroup.slug === 'knowledge-points' 过滤
       if (data.tags && data.tags.length > 0) {
-        const kpTags = data.tags.filter(t => t.tagGroup?.slug === 'knowledge-point')
+        const kpTags = data.tags.filter(t => t.tagGroup?.slug === 'knowledge-points')
         selectedKnowledgePoints.value = kpTags
-        const normalTags = data.tags.filter(t => t.tagGroup?.slug !== 'knowledge-point')
+        const normalTags = data.tags.filter(t => t.tagGroup?.slug !== 'knowledge-points')
         selectedTags.value = normalTags
       }
       if (data.channelScope) form.channelScope = data.channelScope

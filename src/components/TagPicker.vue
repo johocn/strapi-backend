@@ -2,7 +2,7 @@
   <view v-if="visible" class="tag-picker-overlay" @click="handleClose">
     <view class="tag-picker" @click.stop>
       <view class="picker-header">
-        <text class="picker-title">选择标签</text>
+        <text class="picker-title">{{ singleSelect ? '选择顺序标签' : '选择标签' }}</text>
         <text class="btn-close" @click="handleClose">×</text>
       </view>
 
@@ -32,6 +32,10 @@
               @click="selectGroup(g.documentId, g)"
             >
               <text class="group-name">{{ g.name }}</text>
+            </view>
+            <view v-if="filteredGroups.length === 0 && !groupKeyword" class="group-empty-tip">
+              <text class="empty-tip-text">暂无分组</text>
+              <text class="empty-tip-hint">请先运行种子脚本或点击下方新建</text>
             </view>
             <view class="group-item add-group" @click="handleAddGroup">
               <text>+ 新建分组</text>
@@ -74,7 +78,7 @@
         </view>
       </view>
 
-      <view class="picker-footer">
+      <view v-if="!singleSelect" class="picker-footer">
         <view class="selected-tags">
           <text class="selected-label">已选：</text>
           <view v-for="tag in internalSelected" :key="tag.documentId" class="selected-tag">
@@ -128,6 +132,7 @@ const props = defineProps({
   defaultGroupName: { type: String, default: null }, // 默认分组名称（用于自动创建）
   mode: { type: String, default: 'all' }, // 'tag' | 'knowledge-point' | 'all'
   siteId: { type: String, default: null },
+  singleSelect: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['select', 'update:visible'])
@@ -217,6 +222,11 @@ watch(() => props.visible, async (val) => {
         console.error('创建默认分组失败:', e)
       }
     }
+    // 知识点模式 + 无已选 → 自动选中所有知识点标签
+    if (props.mode === 'knowledge-point' && internalSelected.value.length === 0) {
+      await autoSelectKnowledgePoints()
+      return
+    }
     // 设置默认分组
     if (props.defaultGroupId) {
       const group = groupList.value.find(g => g.documentId === props.defaultGroupId)
@@ -245,13 +255,46 @@ async function loadGroups() {
     // 按 mode 过滤分组
     let groups = result.list || []
     if (props.mode === 'tag') {
-      groups = groups.filter(g => g.slug !== 'knowledge-point')
+      groups = groups.filter(g => g.slug !== 'knowledge-points')
     } else if (props.mode === 'knowledge-point') {
-      groups = groups.filter(g => g.slug === 'knowledge-point')
+      groups = groups.filter(g => g.slug === 'knowledge-points')
     }
     groupList.value = groups
   } catch (e) {
     /* ignore */
+  }
+}
+
+async function autoSelectKnowledgePoints() {
+  // 找到知识点分组
+  const kpGroup = groupList.value.find(g => g.slug === 'knowledge-points')
+  if (!kpGroup) {
+    console.warn('[TagPicker] 未找到知识点分组 (slug=knowledge-points)')
+    resetAndLoadTags()
+    return
+  }
+
+  // 选中知识点分组
+  selectedGroupId.value = kpGroup.documentId
+  selectedGroup.value = kpGroup
+
+  // 加载该分组下所有标签（pageSize=200 确保一次加载完）
+  try {
+    const result = await getTagList({
+      page: 1,
+      pageSize: 200,
+      'filters[tagGroup][documentId][$eq]': kpGroup.documentId,
+    })
+    const allKpTags = result.list || []
+    // 自动全选
+    internalSelected.value = allKpTags
+    // 同时展示在标签列表中
+    tagList.value = allKpTags
+    tagPagination.value = result.pagination || {}
+    console.log(`[TagPicker] 自动选中 ${allKpTags.length} 个知识点标签`)
+  } catch (e) {
+    console.error('[TagPicker] 自动选中知识点失败:', e)
+    resetAndLoadTags()
   }
 }
 
@@ -319,6 +362,13 @@ function isTagSelected(tag) {
 }
 
 function toggleTag(tag) {
+  if (props.singleSelect) {
+    // 单选模式：替换为单个标签，立即确认并关闭
+    internalSelected.value = [tag]
+    emit('select', [tag])
+    handleClose()
+    return
+  }
   const idx = internalSelected.value.findIndex(t => t.documentId === tag.documentId)
   if (idx > -1) {
     internalSelected.value.splice(idx, 1)
@@ -476,6 +526,23 @@ function handleClose() {
   border: 1rpx dashed #667eea;
   text-align: center;
   margin-top: 8rpx;
+}
+
+.group-empty-tip {
+  padding: 24rpx 16rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.empty-tip-text {
+  font-size: 26rpx;
+  color: #999;
+}
+.empty-tip-hint {
+  font-size: 22rpx;
+  color: #bbb;
+  line-height: 1.4;
 }
 
 .group-name {
