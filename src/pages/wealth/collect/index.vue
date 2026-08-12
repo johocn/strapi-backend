@@ -112,7 +112,7 @@
               <text class="edit-label">发行机构</text>
               <picker mode="selector" :range="companyPickerOptions" :value="companyPickerIndex" @change="onCompanyChange">
                 <view class="picker-value">
-                  <text>{{ companyPickerOptions[companyPickerIndex] }}</text>
+                  <text>{{ companyPickerOptions[companyPickerIndex] || '请选择' }}</text>
                   <text class="picker-arrow">▼</text>
                 </view>
               </picker>
@@ -383,13 +383,43 @@ const collectingNav = ref(false)
 
 // ===== 公司列表（Picker） =====
 const companyList = ref([])
-const companyPickerOptions = computed(() => {
-  const names = companyList.value.map(c => c.name)
-  return [...names, '新增公司...']
-})
+const companyPickerOptions = ref(['新增公司...'])
 const companyPickerIndex = ref(0)
 const isManualCompany = ref(false)
 const manualCompanyName = ref('')
+
+/** 重建公司 Picker 选项 */
+function rebuildCompanyOptions() {
+  const names = (companyList.value || []).map(c => c.name)
+  companyPickerOptions.value = [...names, '新增公司...']
+}
+
+/** 模糊匹配公司名称：去除"有限公司/股份有限公司/有限责任公司"等后缀后比较 */
+function fuzzyMatchCompany(name, list) {
+  if (!name || !list || !list.length) return -1
+  const normalize = (s) => (s || '')
+    .replace(/(股份有限公司|有限责任公司|有限公司|股份公司|公司|集团)$/g, '')
+    .trim()
+  const target = normalize(name)
+  if (!target) return -1
+
+  // 1. 精确匹配
+  let idx = list.findIndex(c => c.name === name)
+  if (idx >= 0) return idx
+
+  // 2. 归一化后精确匹配
+  idx = list.findIndex(c => normalize(c.name) === target)
+  if (idx >= 0) return idx
+
+  // 3. 双向 includes（短名包含在长名中）
+  idx = list.findIndex(c => {
+    const cn = normalize(c.name)
+    return cn.includes(target) || target.includes(cn)
+  })
+  if (idx >= 0) return idx
+
+  return -1
+}
 
 // ===== 风险等级 / 投资性质 Picker =====
 const riskValues = ['R1', 'R2', 'R3', 'R4', 'R5']
@@ -476,14 +506,15 @@ function initEditForm(mergedData) {
   riskPickerIndex.value = Math.max(0, riskValues.indexOf(editForm.value.riskLevel))
   typePickerIndex.value = Math.max(0, typeValues.indexOf(editForm.value.productType))
 
-  // 尝试匹配已有公司
+  // 尝试模糊匹配已有公司
   const companyName = editForm.value.companyName
   if (companyName) {
-    const idx = companyList.value.findIndex(c => c.name === companyName)
+    const idx = fuzzyMatchCompany(companyName, companyList.value)
     if (idx >= 0) {
       companyPickerIndex.value = idx
       isManualCompany.value = false
       editForm.value.company = companyList.value[idx].id
+      editForm.value.companyName = companyList.value[idx].name
     } else {
       companyPickerIndex.value = companyPickerOptions.value.length - 1
       isManualCompany.value = true
@@ -523,6 +554,7 @@ async function loadCompanies() {
   try {
     const res = await getAdminCompanyList({ pageSize: 500 })
     companyList.value = res.list || []
+    rebuildCompanyOptions()
   } catch (e) {
     console.error('loadCompanies', e)
   }
