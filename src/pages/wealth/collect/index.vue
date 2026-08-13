@@ -477,29 +477,8 @@ const verifyBadgeText = computed(() => {
   return map[status] || '未知'
 })
 
-/** 数据源 → 发行机构（公司简称）映射 */
-const SOURCE_COMPANY_MAP = {
-  'cbhb': '渤银理财',
-  'hzbank': '杭银理财',
-}
-
 function onSourceChange(e) {
   sourceIndex.value = e.detail.value
-  // 自动匹配发行机构
-  autoSelectCompanyBySource(currentSource.value)
-}
-
-/** 根据当前数据源自动选择发行机构 */
-function autoSelectCompanyBySource(source) {
-  const companyShortName = SOURCE_COMPANY_MAP[source]
-  if (!companyShortName) return
-  // 模糊匹配公司列表中的发行机构
-  const idx = fuzzyMatchCompany(companyShortName, companyList.value)
-  if (idx >= 0) {
-    companyPickerIndex.value = idx
-    editForm.value.company = companyList.value[idx].id
-    editForm.value.companyName = companyList.value[idx].name
-  }
 }
 
 /** 采集完成后，用 mergedData 填充可编辑表单 */
@@ -529,7 +508,7 @@ function initEditForm(mergedData) {
   riskPickerIndex.value = Math.max(0, riskValues.indexOf(editForm.value.riskLevel))
   typePickerIndex.value = Math.max(0, typeValues.indexOf(editForm.value.productType))
 
-  // 尝试模糊匹配已有公司：优先用采集数据中的公司名，回退到数据源对应的默认公司
+  // 发行机构：以中国理财网数据为准，匹配到则关联，匹配不到则留空
   const companyName = editForm.value.companyName
   if (companyName) {
     const idx = fuzzyMatchCompany(companyName, companyList.value)
@@ -538,12 +517,14 @@ function initEditForm(mergedData) {
       editForm.value.company = companyList.value[idx].id
       editForm.value.companyName = companyList.value[idx].name
     } else {
-      // 采集数据中的公司名未匹配到，回退到数据源对应的默认发行机构
-      autoSelectCompanyBySource(currentSource.value)
+      // 理财网发行机构未匹配到已有公司，留空
+      companyPickerIndex.value = 0
+      editForm.value.company = null
     }
   } else {
-    // 无公司名，直接用数据源对应的默认发行机构
-    autoSelectCompanyBySource(currentSource.value)
+    // 理财网无发行机构数据，留空
+    companyPickerIndex.value = 0
+    editForm.value.company = null
   }
 }
 
