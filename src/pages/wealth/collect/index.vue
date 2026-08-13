@@ -71,16 +71,24 @@
           </view>
           <view class="edit-form">
             <view class="edit-item">
-              <text class="edit-label">产品名称</text>
+              <text class="edit-label">产品名称(官网)</text>
               <input v-model="editForm.productName" class="edit-input" placeholder="产品名称" />
+            </view>
+            <view class="edit-item">
+              <text class="edit-label">产品名称(理财网)</text>
+              <input :value="editForm.productNameCw" class="edit-input readonly" disabled placeholder="中国理财网名称（不可修改）" />
+            </view>
+            <view class="edit-item">
+              <text class="edit-label">产品编号</text>
+              <input :value="editForm.productCode" class="edit-input readonly" disabled placeholder="登记编码（不可修改）" />
             </view>
             <view class="edit-item">
               <text class="edit-label">登记编码</text>
               <input :value="editForm.registerCode" class="edit-input readonly" disabled placeholder="登记编码（不可修改）" />
             </view>
             <view class="edit-item">
-              <text class="edit-label">产品代码</text>
-              <input v-model="editForm.productCode" class="edit-input" placeholder="产品代码" />
+              <text class="edit-label">销售编码</text>
+              <input v-model="editForm.saleCode" class="edit-input" placeholder="如 CSFB1Y26170A" />
             </view>
             <view class="edit-item">
               <text class="edit-label">风险等级</text>
@@ -433,8 +441,10 @@ const typePickerIndex = ref(0)
 // ===== 可编辑入库表单 =====
 const editForm = ref({
   productName: '',
+  productNameCw: '',
   registerCode: '',
   productCode: '',
+  saleCode: '',
   riskLevel: 'R2',
   productType: 'bank-wealth',
   operationMode: '',
@@ -486,8 +496,10 @@ function initEditForm(mergedData) {
   const d = mergedData || {}
   editForm.value = {
     productName: d.productName || '',
+    productNameCw: d.productNameCw || '',
     registerCode: d.registerCode || '',
     productCode: d.productCode || '',
+    saleCode: d.saleCode || '',
     riskLevel: d.riskLevel || 'R2',
     productType: d.productType || 'bank-wealth',
     operationMode: d.operationMode || '',
@@ -599,8 +611,10 @@ async function handleConfirm() {
     }
 
     const payload = {
-      productCode: editForm.value.productCode || '',
+      productCode: editForm.value.productCode || editForm.value.registerCode || editForm.value.saleCode || '',
       productName: editForm.value.productName,
+      productNameCw: editForm.value.productNameCw || null,
+      saleCode: editForm.value.saleCode || null,
       productType: editForm.value.productType || 'bank-wealth',
       registerCode: editForm.value.registerCode || null,
       riskLevel: editForm.value.riskLevel || 'R2',

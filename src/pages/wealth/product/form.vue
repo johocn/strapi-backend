@@ -9,13 +9,23 @@
         <view class="section-title">基本信息</view>
 
         <view class="form-item">
-          <text class="form-label">产品名称 *</text>
+          <text class="form-label">产品名称(官网) *</text>
           <input v-model="form.productName" placeholder="请输入产品全称" class="form-input" />
         </view>
 
         <view class="form-item">
-          <text class="form-label">产品代码</text>
-          <input v-model="form.productCode" placeholder="如：CB0001" class="form-input" />
+          <text class="form-label">产品名称(理财网)</text>
+          <input v-model="form.productNameCw" placeholder="中国理财网名称" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">产品编号(登记编码)</text>
+          <input v-model="form.productCode" placeholder="如：Z7008426000574" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">销售编码</text>
+          <input v-model="form.saleCode" placeholder="如：CSFB1Y26170A" class="form-input" />
         </view>
 
         <view class="form-row">
@@ -136,7 +146,9 @@ const riskIndex = ref(1)
 
 const form = ref({
   productName: '',
+  productNameCw: '',
   productCode: '',
+  saleCode: '',
   productType: 'bank-wealth',
   riskLevel: 'R2',
   company: null,
