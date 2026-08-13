@@ -19,13 +19,13 @@
         </view>
 
         <view class="form-item">
-          <text class="form-label">产品编号(登记编码)</text>
-          <input v-model="form.productCode" placeholder="如：Z7008426000574" class="form-input" />
+          <text class="form-label">产品编号(销售编码) *</text>
+          <input v-model="form.productCode" placeholder="如：CSFB1Y26170A" class="form-input" />
         </view>
 
         <view class="form-item">
-          <text class="form-label">销售编码</text>
-          <input v-model="form.saleCode" placeholder="如：CSFB1Y26170A" class="form-input" />
+          <text class="form-label">登记编码</text>
+          <input v-model="form.registerCode" placeholder="如：Z7008426000574" class="form-input" />
         </view>
 
         <view class="form-row">
@@ -149,6 +149,7 @@ const form = ref({
   productNameCw: '',
   productCode: '',
   saleCode: '',
+  registerCode: '',
   productType: 'bank-wealth',
   riskLevel: 'R2',
   company: null,

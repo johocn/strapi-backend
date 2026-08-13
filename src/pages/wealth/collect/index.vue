@@ -80,15 +80,11 @@
             </view>
             <view class="edit-item">
               <text class="edit-label">产品编号</text>
-              <input :value="editForm.productCode" class="edit-input readonly" disabled placeholder="登记编码（不可修改）" />
+              <input v-model="editForm.productCode" class="edit-input" placeholder="如 CSFB1Y26170A" />
             </view>
             <view class="edit-item">
               <text class="edit-label">登记编码</text>
               <input :value="editForm.registerCode" class="edit-input readonly" disabled placeholder="登记编码（不可修改）" />
-            </view>
-            <view class="edit-item">
-              <text class="edit-label">销售编码</text>
-              <input v-model="editForm.saleCode" class="edit-input" placeholder="如 CSFB1Y26170A" />
             </view>
             <view class="edit-item">
               <text class="edit-label">风险等级</text>
@@ -463,7 +459,7 @@ const currentSource = computed(() => sourceValues[sourceIndex.value])
 
 /** 是否可入库：以编辑表单为准，至少需要产品名称 */
 const canConfirm = computed(() => {
-  return !!(editForm.value.productName)
+  return !!(editForm.value.productName && editForm.value.productNameCw && editForm.value.registerCode)
 })
 
 const verifyBadgeClass = computed(() => {
@@ -611,10 +607,10 @@ async function handleConfirm() {
     }
 
     const payload = {
-      productCode: editForm.value.productCode || editForm.value.registerCode || editForm.value.saleCode || '',
+      productCode: editForm.value.productCode || editForm.value.saleCode || '',
       productName: editForm.value.productName,
       productNameCw: editForm.value.productNameCw || null,
-      saleCode: editForm.value.saleCode || null,
+      saleCode: editForm.value.productCode || editForm.value.saleCode || null,
       productType: editForm.value.productType || 'bank-wealth',
       registerCode: editForm.value.registerCode || null,
       riskLevel: editForm.value.riskLevel || 'R2',
