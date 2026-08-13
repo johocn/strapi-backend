@@ -42,6 +42,42 @@ export function removeRefreshToken() {
   } catch { /* ignore storage errors */ }
 }
 
+// ===== Token 过期管理（对齐 strapi-course 的 SSO 持久化方案）=====
+// access_token 有效期较短（通常 15-30 分钟），必须配合 refresh_token 主动续期，
+// 否则用户会频繁被登出（这是 SSO 登录"无法持久"问题的根因）
+
+export function getTokenExpiresAt() {
+  try {
+    return uni.getStorageSync('tadmin_token_expires_at') ?? localStorage.getItem('tadmin_token_expires_at') ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function setTokenExpiresAt(expiresAt) {
+  try {
+    uni.setStorageSync('tadmin_token_expires_at', String(expiresAt))
+    localStorage.setItem('tadmin_token_expires_at', String(expiresAt))
+  } catch (e) { /* ignore storage errors */ }
+}
+
+export function removeTokenExpiresAt() {
+  try {
+    uni.removeStorageSync('tadmin_token_expires_at')
+    localStorage.removeItem('tadmin_token_expires_at')
+  } catch { /* ignore storage errors */ }
+}
+
+/**
+ * 检查 token 是否即将过期（提前 60 秒触发刷新，避免请求中途过期）
+ * 没有 expires_at 时不触发主动刷新，让 401 兜底
+ */
+export function isTokenExpiring() {
+  const expiresAt = getTokenExpiresAt()
+  if (!expiresAt) return false
+  return Date.now() >= Number(expiresAt)
+}
+
 export function getUser() {
   try {
     const userStr = uni.getStorageSync('tadmin_user') ?? localStorage.getItem('tadmin_user') ?? '{}'
@@ -66,11 +102,26 @@ export function removeUser() {
   } catch { /* ignore storage errors */ }
 }
 
+/**
+ * 绕过 UniApp H5 Vue 3 KeepAlive bug 的安全路由跳转
+ * 在 H5 环境下使用 window.location.href 直接跳转，避免 KeepAlive 缓存导致页面空白
+ * 在非 H5 环境下回退到 uni.reLaunch 正常行为
+ */
+function safeReLaunch(url) {
+  // #ifdef H5
+  window.location.href = window.location.origin + '/#' + url
+  // #endif
+  // #ifndef H5
+  uni.reLaunch({ url })
+  // #endif
+}
+
 export function logout() {
   removeToken()
   removeRefreshToken()
+  removeTokenExpiresAt()
   removeUser()
-  uni.reLaunch({ url: '/pages/login/index' })
+  safeReLaunch('/pages/login/index')
 }
 
 export function isLoggedIn() {
@@ -79,7 +130,7 @@ export function isLoggedIn() {
 
 export function checkAuth() {
   if (!isLoggedIn()) {
-    uni.reLaunch({ url: '/pages/login/index' })
+    safeReLaunch('/pages/login/index')
     return false
   }
   return true

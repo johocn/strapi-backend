@@ -4,7 +4,7 @@
  * tenant/detail 和 module-visibility 页面共用
  */
 
-// 10 个有效模块（含 channel，用于 featureFlags 开关）
+// 11 个有效模块（含 channel 和 wealth，用于 featureFlags 开关）
 export const MODULE_LIST = [
   { key: 'website', label: '企业官网', icon: '🌐' },
   { key: 'logistics', label: '物流中心', icon: '🚚' },
@@ -16,6 +16,7 @@ export const MODULE_LIST = [
   { key: 'sso', label: 'SSO 登录', icon: '🔑' },
   { key: 'thirdParty', label: '三方登录', icon: '🔌' },
   { key: 'oss', label: 'OSS 存储', icon: '☁️' },
+  { key: 'wealth', label: '理财中心', icon: '💰' },
 ]
 
 // 新建租户时 featureFlags 的默认值
@@ -30,4 +31,5 @@ export const DEFAULT_FEATURE_FLAGS = {
   sso: false,
   thirdParty: true,
   oss: false,
+  wealth: false,
 }

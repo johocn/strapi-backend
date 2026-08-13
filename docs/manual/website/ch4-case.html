@@ -1,0 +1,285 @@
+<!-- 官网使用手册 — GEO/SEO 内容发布全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第四章 落地案例 ==================== -->
+<h2 id="ch4"><span class="ch-num">第四章</span>落地案例</h2>
+
+<h3 id="ch4-1">4.1 设计目的与 GEO 角色</h3>
+
+<p>落地案例是官网信任建设的核心内容。它的设计目的是通过真实的客户故事和量化成果，向潜在客户和 AI 模型提供<strong>社会证明</strong>——证明你的产品/方案在真实场景中有效。</p>
+
+<p>在 GEO 体系中，案例承担三个角色：<strong>可信度背书</strong>（CaseStudy 结构化数据向 AI 声明"这不是广告，是真实案例"）、<strong>长尾场景入口</strong>（通过"XX 行业 XX 问题解决方案"类长尾搜索获取流量）、<strong>产品页转化支撑</strong>（与产品双向关联，在产品页展示增强说服力）。</p>
+
+<p>不做案例发布的后果：产品页缺乏社会证明，转化率下降 40-60%；AI 在回答"XX 公司的客户案例""XX 行业有没有成功案例"时找不到你的信息；竞品有案例而你没有，在对比中被淘汰。正确使用的效果：案例页通过"行业+问题+方案"长尾词获取精准流量，案例中的客户名和量化数据增强 AI 引用可信度。</p>
+
+<h3 id="ch4-2">4.2 页面运作原理</h3>
+
+<h4>数据上下游流转</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>环节</th><th>数据流向</th><th>触发机制</th></tr>
+</thead>
+<tbody>
+<tr><td>上游输入</td><td>客户成功故事 &rarr; 内容运营整理 &rarr; 创建案例</td><td>手动创建</td></tr>
+<tr><td>创建/更新</td><td>填写字段 &rarr; 保存 &rarr; Lifecycle 触发</td><td>Strapi 保存</td></tr>
+<tr><td>Lifecycle 触发</td><td>标签索引 &rarr; 知识图谱 &rarr; 搜索引擎推送 &rarr; 缓存失效</td><td>自动</td></tr>
+<tr><td>产品联动</td><td>案例 &harr; <code>relatedProducts</code> 关联 &rarr; 产品页展示案例</td><td>双向关联</td></tr>
+<tr><td>下游输出</td><td>公开 API &rarr; 前端案例页 &rarr; sitemap &rarr; llms.txt</td><td>爬虫/前端</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>结构化数据输出</h4>
+
+<p>案例页生成 <code>CaseStudy</code> 或 <code>Article</code> 类型的结构化数据，包含客户行业、挑战、方案和成果。这些数据让 AI 在回答"XX 行业解决方案"类问题时引用你的案例作为证据。案例的 <code>results</code> 字段（JSON 格式的量化成果）是 AI 最关注的数据点。</p>
+
+<h3 id="ch4-3">4.3 适用人群与禁止操作人群</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>类别</th><th>角色</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>适用人群</strong></td><td>客户成功经理</td><td>最了解客户使用过程和成果</td></tr>
+<tr><td></td><td>内容运营</td><td>负责将客户故事转化为案例内容</td></tr>
+<tr><td></td><td>市场负责人</td><td>审核客户授权和敏感信息</td></tr>
+<tr><td><strong>禁止操作人群</strong></td><td>销售人员</td><td>可能夸大成果或泄露客户隐私</td></tr>
+<tr><td></td><td>技术开发</td><td>不了解客户业务背景，无法准确描述挑战和方案</td></tr>
+<tr><td></td><td>未经授权的实习生</td><td>无法获取客户授权和准确数据</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>发布内容最终用途：</strong>案例同时服务于搜索引擎长尾流量（通过行业+问题关键词匹配）、AI 可信度引用（CaseStudy 结构化数据 + 量化成果）、产品页转化支撑（关联展示在产品详情页）、客户关系维护（展示客户成功故事增强合作粘性）。案例中的数据必须真实可验证——AI 和用户都可能交叉验证你声明的事实。</p>
+
+<h3 id="ch4-4">4.4 字段四件套详解</h3>
+
+<!-- title -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">title</span>
+<span class="field-type">string / maxLength:200</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-seo">SEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">案例标题，应包含客户行业、核心问题或成果，用于搜索匹配和 AI 引用。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入 <code>&lt;h1&gt;</code> 和结构化数据 name；搜索结果标题；llms.txt 中的链接文本。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">格式建议："[客户名/行业]：[核心问题]的[方案类型]实践"或"[行业]数字化转型：[量化成果]的真实案例"。15-35 字。包含行业关键词和成果数据。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">标题不含行业关键词无法匹配搜索；不含成果数据降低点击率；泄露不应公开的客户名称引发法律风险。</div>
+</div>
+</div>
+</div>
+
+<!-- clientName & clientLogo & clientIndustry -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">clientName / clientLogo / clientIndustry</span>
+<span class="field-type">string / media / string</span>
+<span class="badge badge-required">clientName 必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">客户名称、logo 和所属行业。客户名和 logo 是信任信号，行业用于案例筛选和 AI 分类。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">clientName 写入结构化数据的提及实体；clientLogo 在案例页展示增强可信度；clientIndustry 用于案例列表的行业筛选和知识图谱分类。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">clientName：使用客户正式名称，未获授权的使用"某XX企业"脱敏。clientLogo：PNG 透明背景，宽度 200-400px。clientIndustry：使用标准行业分类名（如"制造业""医疗""教育"）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">未经授权使用客户名称引发法律纠纷；logo 模糊或变形降低专业感；行业填写不规范导致案例筛选失效。</div>
+</div>
+</div>
+</div>
+
+<!-- challenge & solution & results -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">challenge / solution / results</span>
+<span class="field-type">text / text / json</span>
+<span class="badge badge-required">全部必填</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">案例三要素：客户面临的挑战、你提供的方案、取得的成果。这是 CaseStudy 结构化数据的核心内容，也是 AI 最关注的案例信息。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">challenge 写入结构化数据描述；solution 作为方案正文展示；results 以 JSON 格式存储量化指标，AI 可直接提取数据点。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">challenge：100-300 字，描述客户的具体痛点和业务影响。solution：300-800 字，分点说明方案的核心组成和实施步骤。results：JSON 数组格式 <code>[{"metric":"生产效率","value":"提升35%","before":"100件/小时","after":"135件/小时"},...]</code>，3-8 个量化指标，每个含指标名、数值、前后对比。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">challenge 过于笼统（如"效率低下"）无法匹配搜索；results 不是 JSON 格式导致前端渲染异常和 AI 无法提取数据；成果数据不可验证损害可信度。</div>
+</div>
+</div>
+</div>
+
+<!-- testimonial & testimonialAuthor & testimonialTitle -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">testimonial / testimonialAuthor / testimonialTitle</span>
+<span class="field-type">text / string / string</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">客户评价内容、评价人姓名和职位。客户原话评价是最强的社会证明。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">在案例页突出展示；写入结构化数据的 review 字段；AI 抓取时作为客户满意度信号。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">testimonial：50-150 字客户原话，需获客户授权。testimonialAuthor：评价人姓名（可脱敏为"张XX"）。testimonialTitle：评价人职位。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">未经授权使用客户姓名和原话引发隐私纠纷；编造评价被发现后严重损害品牌信誉。</div>
+</div>
+</div>
+</div>
+
+<!-- relatedProducts -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">relatedProducts</span>
+<span class="field-type">relation &rarr; product (manyToMany)</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">关联案例中使用的产品，实现案例与产品的双向内链。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">双向关联：案例页展示使用的产品，产品页展示关联案例。知识图谱建立 CaseStudy-Product 关系。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">关联案例中实际使用的产品，通常 1-3 个。避免关联未在案例中提及的产品。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">不关联产品导致案例页缺少产品入口，流量无法导向转化；关联不相关产品误导用户。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch4-5">4.5 标准发布全流程</h3>
+
+<h4>素材准备清单</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>素材</th><th>要求</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>客户授权书</td><td>书面授权使用客户名称和 logo</td><td>合规存档</td></tr>
+<tr><td>客户 logo</td><td>PNG 透明背景, 200-400px</td><td>填入 clientLogo</td></tr>
+<tr><td>挑战描述</td><td>100-300 字，具体痛点</td><td>填入 challenge</td></tr>
+<tr><td>方案描述</td><td>300-800 字，分点说明</td><td>填入 solution</td></tr>
+<tr><td>成果数据</td><td>JSON 格式, 3-8 个量化指标</td><td>填入 results</td></tr>
+<tr><td>客户评价</td><td>50-150 字原话 + 授权</td><td>填入 testimonial</td></tr>
+<tr><td>案例图片</td><td>封面 + 3-5 张实施过程图</td><td>填入 coverImage 和 images</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>填写顺序</h4>
+
+<ol class="steps">
+<li><strong>客户信息</strong> — 填写 <code>clientName</code>、上传 <code>clientLogo</code>、填写 <code>clientIndustry</code> 和 <code>clientDescription</code></li>
+<li><strong>案例三要素</strong> — 填写 <code>title</code>、<code>challenge</code>、<code>solution</code>、<code>results</code>（JSON）</li>
+<li><strong>客户评价</strong> — 填写 <code>testimonial</code>、<code>testimonialAuthor</code>、<code>testimonialTitle</code></li>
+<li><strong>媒体资源</strong> — 上传 <code>coverImage</code> 和 <code>images</code></li>
+<li><strong>产品关联</strong> — 关联 <code>relatedProducts</code></li>
+<li><strong>分类标签</strong> — 选择 <code>tags</code>（行业+产品+场景关键词）</li>
+<li><strong>SEO 配置</strong> — 填写 <code>seoTitle</code>、<code>seoDescription</code></li>
+<li><strong>收录控制</strong> — 确认 <code>allowIndex</code>=true</li>
+<li><strong>知识图谱</strong> — 选择 <code>mainEntity</code> 和 <code>mentionedEntities</code></li>
+<li><strong>自检</strong> — 对照自检清单</li>
+<li><strong>发布</strong> — <code>status</code> 改为 <code>published</code></li>
+</ol>
+
+<h4>发布前自检清单</h4>
+
+<ul class="checklist">
+<li>客户授权已获取（书面）</li>
+<li>title 含行业和成果关键词</li>
+<li>challenge 具体描述痛点（非空泛）</li>
+<li>solution 分点说明方案组成</li>
+<li>results JSON 格式正确，含前后对比数据</li>
+<li>客户评价已获授权</li>
+<li>封面图已上传</li>
+<li>关联 1-3 个产品</li>
+<li>tags 含行业和场景关键词</li>
+<li>seoTitle 和 seoDescription 已填写</li>
+<li>allowIndex=true</li>
+<li>成果数据可验证</li>
+</ul>
+
+<h3 id="ch4-6">4.6 发布后闭环运作与禁忌</h3>
+
+<h4>前端展示与联动效果</h4>
+
+<p>案例发布后，前端渲染案例详情页，展示客户信息、挑战-方案-成果三段式内容和客户评价。关联的产品页自动展示此案例。案例通过 sitemap 和 llms.txt 输出，搜索引擎和 AI 可发现和抓取。案例的 <code>results</code> JSON 数据是 AI 引用频率最高的字段——当用户询问"XX 产品的效果怎么样"时，AI 倾向于引用有量化数据的案例。</p>
+
+<h4>字段禁忌写法</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>禁忌写法</th><th>后果</th></tr>
+</thead>
+<tbody>
+<tr><td>title</td><td>纯品牌宣传（如"XX公司成功案例"）</td><td>无搜索匹配价值</td></tr>
+<tr><td>challenge</td><td>空泛描述（如"面临数字化转型挑战"）</td><td>无法匹配具体问题搜索</td></tr>
+<tr><td>results</td><td>填写文本而非 JSON 数组</td><td>前端渲染异常，AI 无法提取数据</td></tr>
+<tr><td>results</td><td>无前后对比数据（只有"提升35%"）</td><td>数据可信度低</td></tr>
+<tr><td>testimonial</td><td>编造客户评价</td><td>被发现后严重损害品牌信誉</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>内容禁忌类型</h4>
+
+<div class="callout callout-danger">
+<div class="callout-title">禁止发布的案例内容</div>
+<p><strong>1. 未经授权的客户信息</strong> — 使用未获授权的客户名称、logo 或评价。后果：面临法律诉讼，客户关系破裂。</p>
+<p><strong>2. 虚构案例</strong> — 编造不存在的客户和成果。后果：被发现后品牌信誉归零，AI 标记为不可信来源。</p>
+<p><strong>3. 夸大成果</strong> — 数据造假或选择性呈现。后果：客户和 AI 交叉验证发现不一致，信任度下降。</p>
+<p><strong>4. 泄露商业机密</strong> — 暴露客户的运营数据、技术架构等敏感信息。后果：面临法律赔偿，客户终止合作。</p>
+<p><strong>5. 无量化数据</strong> — 案例只有描述没有数字。后果：AI 不引用（偏好有数据的案例），说服力低。</p>
+</div>

@@ -242,6 +242,31 @@
         </view>
       </view>
 
+      <!-- 顺序学习 -->
+      <view class="form-section">
+        <view class="section-title">顺序学习</view>
+
+        <view class="form-item">
+          <text class="form-label">强制顺序学习</text>
+          <switch :checked="form.enforceSequence" @change="form.enforceSequence = !form.enforceSequence" />
+          <text class="form-hint">开启后学员必须按序号依次学习本课时（硬锁），关闭则为建议顺序（软锁，可跳过）</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">顺序锁定标签</text>
+          <view class="tag-list">
+            <view v-if="form.sequenceTag" class="tag-item">
+              <text>{{ form.sequenceTag.name }}</text>
+              <text class="tag-remove" @click="removeSequenceTag">×</text>
+            </view>
+            <view class="tag-add" @click="showSequenceTagPicker = true">
+              <text>{{ form.sequenceTag ? '更换标签' : '+ 选择标签' }}</text>
+            </view>
+          </view>
+          <text class="form-hint">选择相同标签的课时按序号锁定，排除知识点标签</text>
+        </view>
+      </view>
+
       <view v-if="showPointsSection" class="form-section">
         <view class="section-title">积分设置</view>
 
@@ -291,6 +316,15 @@
       v-model:visible="showTagPicker"
       :selected="selectedTags"
       @select="onTagSelect"
+    />
+
+    <!-- 顺序标签选择器（单选） -->
+    <TagPicker
+      v-model:visible="showSequenceTagPicker"
+      mode="tag"
+      :single-select="true"
+      :selected="form.sequenceTag ? [form.sequenceTag] : []"
+      @select="onSequenceTagSelect"
     />
 
     <MediaPicker
@@ -349,6 +383,7 @@ watch(() => userStore.currentTenantId, async () => {
 const isEdit = ref(false)
 const lessonId = ref('')
 const showTagPicker = ref(false)
+const showSequenceTagPicker = ref(false)
 
 const showThumbnailPicker = ref(false)
 const showVideoPicker = ref(false)
@@ -384,7 +419,10 @@ const form = reactive({
   sort: 0,
   enablePoints: false,
   points: 0,
-  pointsType: 'lesson_points'
+  pointsType: 'lesson_points',
+  // 顺序学习
+  enforceSequence: false,
+  sequenceTag: null
 })
 
 const courseOptions = ['请选择课程']
@@ -421,6 +459,18 @@ function removeTag(tag) {
   if (index > -1) {
     selectedTags.value.splice(index, 1)
   }
+}
+
+function onSequenceTagSelect(tags) {
+  if (tags && tags.length > 0) {
+    form.sequenceTag = tags[0]
+  } else {
+    form.sequenceTag = null
+  }
+}
+
+function removeSequenceTag() {
+  form.sequenceTag = null
 }
 
 function handleCourseChange(e) {
@@ -526,7 +576,8 @@ async function loadLessonDetail() {
     // 逐字段赋值，避免 Object.assign 覆盖 form 中不存在的字段
     const fields = ['title', 'summary', 'content', 'type', 'video_url', 'audio_url',
       'duration', 'sequenceNumber', 'isFreePreview', 'previewDuration', 'completionThreshold',
-      'isRequired', 'learningObjectives', 'prerequisites', 'sort', 'enablePoints', 'points', 'pointsType']
+      'isRequired', 'learningObjectives', 'prerequisites', 'sort', 'enablePoints', 'points', 'pointsType',
+      'enforceSequence']
     for (const key of fields) {
       if (data[key] !== undefined) form[key] = data[key]
     }
@@ -544,6 +595,12 @@ async function loadLessonDetail() {
     }
     if (data.tags) {
       selectedTags.value = data.tags
+    }
+    // 顺序学习字段回显
+    if (data.sequenceTag) {
+      form.sequenceTag = data.sequenceTag
+    } else {
+      form.sequenceTag = null
     }
     typeIndex.value = typeOptions.indexOf(data.type) || 0
     pointsTypeIndex.value = pointsTypeOptions.indexOf(data.pointsType) || 0
@@ -614,6 +671,9 @@ async function handleSubmit() {
     audio_url: form.audio_url || null,
     images: imageIdList.value.length > 0 ? imageIdList.value : null,
     attachments: attachmentIdList.value.length > 0 ? attachmentIdList.value : null,
+    // 顺序学习
+    enforceSequence: form.enforceSequence,
+    sequenceTag: form.sequenceTag ? { documentId: form.sequenceTag.documentId } : null,
   }
 
   submitData.tags = selectedTags.value.map(t => ({ documentId: t.documentId }))
@@ -709,6 +769,14 @@ onMounted(async () => {
   font-size: 26rpx;
   color: #666;
   margin-bottom: 12rpx;
+}
+
+.form-hint {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+  line-height: 1.4;
 }
 
 .form-input {

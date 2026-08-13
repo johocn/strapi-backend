@@ -3,6 +3,11 @@ import { ref, computed } from 'vue'
 import { ROLES } from '../api/role-management.js'
 import { adminLogin as adminLoginApi, getMyPermissionKeys, getMyChannelScope, getMyRoles, getMyTenants, switchTenant as switchTenantApi } from '../api/auth.js'
 import { clearConfigCache } from '../utils/config-helper.js'
+import {
+  setToken, setRefreshToken, setTokenExpiresAt,
+  removeToken, removeRefreshToken, removeTokenExpiresAt,
+  setUser, removeUser
+} from '../utils/auth.js'
 
 function safeJsonParse(str, fallback) {
   if (!str || typeof str !== 'string' || str.trim() === '') return fallback
@@ -74,13 +79,23 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function setUserData(data) {
-    token.value = data.jwt ?? data.token ?? data.accessToken ?? ''
+    // 兼容多种字段命名：jwt(Strapi) / token / access_token(SSO) / accessToken
+    token.value = data.jwt ?? data.token ?? data.access_token ?? data.accessToken ?? ''
     userInfo.value = data.user ?? data.data ?? {}
+
+    // 关键：保存 refresh_token 和 expires_in，否则 token 一过期就被登出（SSO 无法持久）
+    // SSO 登录返回 refresh_token + expires_in；本地登录返回 refresh_token + expiresIn
+    const refreshTokenValue = data.refresh_token ?? data.refreshToken ?? ''
+    const expiresIn = data.expires_in ?? data.expiresIn ?? 900 // 默认 15 分钟
+
     try {
-      uni.setStorageSync('tadmin_token', token.value)
-      uni.setStorageSync('tadmin_user', JSON.stringify(userInfo.value))
-      localStorage.setItem('tadmin_token', token.value)
-      localStorage.setItem('tadmin_user', JSON.stringify(userInfo.value))
+      setToken(token.value)
+      setUser(userInfo.value)
+      if (refreshTokenValue) {
+        setRefreshToken(refreshTokenValue)
+        // 提前 60 秒标记过期，触发主动刷新
+        setTokenExpiresAt(Date.now() + (expiresIn - 60) * 1000)
+      }
     } catch (e) { /* ignore storage errors */ }
   }
 
@@ -226,10 +241,14 @@ export const useUserStore = defineStore('user', () => {
         token.value = res.jwt
         currentTenantId.value = tenantId
         try {
-          uni.setStorageSync('tadmin_token', token.value)
+          setToken(res.jwt)
           uni.setStorageSync('tadmin_current_tenant_id', tenantId)
-          localStorage.setItem('tadmin_token', token.value)
           localStorage.setItem('tadmin_current_tenant_id', tenantId)
+          // 切换租户若返回新 refresh_token，一并更新
+          const newRefresh = res.refresh_token ?? res.refreshToken
+          if (newRefresh) setRefreshToken(newRefresh)
+          const newExpiresIn = res.expires_in ?? res.expiresIn
+          if (newExpiresIn) setTokenExpiresAt(Date.now() + (newExpiresIn - 60) * 1000)
         } catch (e) { /* ignore storage errors */ }
         // 清除配置缓存，强制重新加载合并后的 moduleVisibility
         clearConfigCache()
@@ -251,14 +270,14 @@ export const useUserStore = defineStore('user', () => {
     tenantList.value = []
     currentTenantId.value = null
     try {
-      uni.removeStorageSync('tadmin_token')
-      uni.removeStorageSync('tadmin_user')
+      removeToken()
+      removeRefreshToken()
+      removeTokenExpiresAt()
+      removeUser()
       uni.removeStorageSync('tadmin_roles')
       uni.removeStorageSync('tadmin_permissions')
       uni.removeStorageSync('tadmin_tenant_list')
       uni.removeStorageSync('tadmin_current_tenant_id')
-      localStorage.removeItem('tadmin_token')
-      localStorage.removeItem('tadmin_user')
       localStorage.removeItem('tadmin_roles')
       localStorage.removeItem('tadmin_permissions')
       localStorage.removeItem('tadmin_tenant_list')

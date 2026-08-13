@@ -313,6 +313,18 @@
           <view class="module-icon">📢</view>
           <view class="module-name">广告位</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.studio-ad')" @click="navigateTo('/pages/studio/ad-zone/list')">
+          <view class="module-icon">🎯</view>
+          <view class="module-name">广告区域</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.studio-ad')" @click="navigateTo('/pages/studio/ad-content/list')">
+          <view class="module-icon">🖼️</view>
+          <view class="module-name">广告内容</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.studio-ad')" @click="navigateTo('/pages/studio/poster-template/list')">
+          <view class="module-icon">🎨</view>
+          <view class="module-name">海报模板</view>
+        </view>
       </view>
     </view>
 
@@ -412,6 +424,37 @@
         <view class="module-item" v-if="hasPermission('menu.point-config')" @click="navigateTo('/pages/points/config')">
           <view class="module-icon">⚙️</view>
           <view class="module-name">积分配置</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 理财中心 -->
+    <view class="module-section" v-if="wealthVisible">
+      <view class="section-title">💰 理财中心</view>
+      <view class="module-grid">
+        <view class="module-item" @click="navigateTo('/pages/wealth/product/list')">
+          <view class="module-icon">📊</view>
+          <view class="module-name">理财产品</view>
+        </view>
+        <view class="module-item wealth-collect-entry" @click="navigateTo('/pages/wealth/collect/index')">
+          <view class="module-icon">📡</view>
+          <view class="module-name">净值采集</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/metrics/index')">
+          <view class="module-icon">📈</view>
+          <view class="module-name">指标看板</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/compare/index')">
+          <view class="module-icon">⚖️</view>
+          <view class="module-name">产品对比</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/holding/list')">
+          <view class="module-icon">💼</view>
+          <view class="module-name">持仓追踪</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/disclosure/index')">
+          <view class="module-icon">📋</view>
+          <view class="module-name">披露管理</view>
         </view>
       </view>
     </view>
@@ -655,12 +698,34 @@ const websiteEnabled = ref(true)
 const logisticsEnabled = ref(true)
 const studioEnabled = ref(true)
 const ssoEnabled = ref(true)
+const wealthEnabled = ref(false)
 
 // channel-admin 专属快捷卡片数据
 const myChannelCount = ref(0)
 const myTenantCount = ref(userStore.tenantList?.length ?? 0)
 
 onMounted(async () => {
+  if (checkAuth()) {
+    await Promise.all([
+      userStore.fetchPermissions(),
+      userStore.fetchUserRoles(),
+      userStore.fetchTenants(),
+    ])
+    // 读取公开配置，获取功能开关状态
+    try {
+      const config = await loadSiteConfig()
+      if (config) {
+        pointsEnabled.value = config.featureFlags?.points !== false
+        websiteEnabled.value = config.featureFlags?.website !== false
+        logisticsEnabled.value = config.featureFlags?.logistics !== false
+        studioEnabled.value = config.featureFlags?.studio !== false
+        ssoEnabled.value = config.featureFlags?.sso !== false
+        wealthEnabled.value = config.featureFlags?.wealth === true
+      }
+    } catch {}
+    loadStats()
+  }
+
   if (userStore.hasRole('channel-admin')) {
     try {
       const res = await getMyChannels()
@@ -683,6 +748,7 @@ const logisticsVisible = computed(() => isModuleVisible('logistics', userStore.r
 const studioVisible = computed(() => isModuleVisible('studio', userStore.roles, userStore.currentTenantId))
 const pointsVisible = computed(() => isModuleVisible('points', userStore.roles, userStore.currentTenantId))
 const ssoVisible = computed(() => isModuleVisible('sso', userStore.roles, userStore.currentTenantId))
+const wealthVisible = computed(() => isModuleVisible('wealth', userStore.roles, userStore.currentTenantId))
 
 const courseStatusData = computed(() => {
   const statusConfig = [
@@ -767,24 +833,9 @@ async function loadStats() {
   }
 }
 
-onShow(async () => {
+onShow(() => {
+  // 每次进入页面刷新数据（确保从其他页面返回时数据是最新的）
   if (checkAuth()) {
-    // 每次进入页面都刷新权限数据，确保获取最新的权限配置
-    await userStore.fetchPermissions()
-    await userStore.fetchUserRoles()
-    // 刷新租户列表，确保 TenantSwitcher 有数据（登录时只拉一次，刷新页面后需重新加载）
-    await userStore.fetchTenants()
-    // 读取公开配置，获取功能开关状态（内部已处理错误提示）
-    try {
-      const config = await loadSiteConfig()
-      if (config) {
-        pointsEnabled.value = config.featureFlags?.points !== false
-        websiteEnabled.value = config.featureFlags?.website !== false
-        logisticsEnabled.value = config.featureFlags?.logistics !== false
-        studioEnabled.value = config.featureFlags?.studio !== false
-        ssoEnabled.value = config.featureFlags?.sso !== false
-      }
-    } catch {}
     loadStats()
   }
 })
@@ -903,6 +954,14 @@ onShow(async () => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 .pickup-verify-entry .module-name {
+  color: #fff !important;
+  font-weight: bold;
+}
+
+.wealth-collect-entry {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+}
+.wealth-collect-entry .module-name {
   color: #fff !important;
   font-weight: bold;
 }

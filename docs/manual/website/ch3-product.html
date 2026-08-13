@@ -1,0 +1,379 @@
+<!-- 官网使用手册 — GEO/SEO 内容发布全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第三章 产品/方案 ==================== -->
+<h2 id="ch3"><span class="ch-num">第三章</span>产品/方案</h2>
+
+<h3 id="ch3-1">3.1 设计目的与 GEO 角色</h3>
+
+<p>产品/方案页面是官网的转化核心。它的设计目的是向搜索引擎和 AI 模型提供<strong>结构化的产品事实声明</strong>——产品名称、价格、可用性、规格参数，这些信息以 Product + Offer 结构化数据格式输出，让 AI 在用户询问"XX 产品多少钱""XX 类产品推荐"时直接引用你的产品信息。</p>
+
+<p>在 GEO 体系中，产品页承担三个角色：<strong>事实锚点</strong>（通过结构化数据向 AI 声明产品的核心属性，防止第三方平台提供错误信息）、<strong>转化着陆页</strong>（承接文章和案例的内链流量，引导用户咨询/试用）、<strong>价格信号源</strong>（价格和可用性数据通过 sitemap 和结构化数据输出，影响购物搜索和 AI 推荐结果）。</p>
+
+<p>不做产品页的后果：AI 模型在回答产品相关问题时使用第三方平台（如电商、评测网站）的数据，可能包含过时价格或错误规格；购物搜索结果中不出现你的产品；内链流量没有转化着陆点。正确使用的效果：产品结构化数据被 Google 收录后可在搜索结果中展示价格和库存状态，AI 模型在推荐产品时引用你的官方参数。</p>
+
+<h3 id="ch3-2">3.2 页面运作原理</h3>
+
+<h4>数据上下游流转</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>环节</th><th>数据流向</th><th>触发机制</th></tr>
+</thead>
+<tbody>
+<tr><td>上游输入</td><td>产品规划文档 &rarr; 手动创建产品记录</td><td>内容运营在管理后台创建</td></tr>
+<tr><td>创建/更新</td><td>填写字段 &rarr; 保存 &rarr; Lifecycle 触发</td><td>Strapi 内容管理器保存</td></tr>
+<tr><td>Lifecycle 触发</td><td>标签索引 &rarr; 知识图谱 &rarr; 搜索引擎推送 &rarr; 缓存失效</td><td>自动执行</td></tr>
+<tr><td>结构化数据生成</td><td><code>schema-builder</code> 生成 Product schema（含 offers）&rarr; 注入页面</td><td>前端请求时动态生成</td></tr>
+<tr><td>下游输出</td><td>公开 API &rarr; 前端产品页 &rarr; sitemap（priority 0.8）&rarr; llms.txt Pages + Facts</td><td>爬虫抓取 / 前端请求</td></tr>
+<tr><td>案例联动</td><td>产品 &harr; <code>cases</code> 关联 &rarr; 产品页展示相关案例</td><td>双向关联</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>结构化数据输出</h4>
+
+<p>产品页生成的 JSON-LD 结构化数据包含 <code>Product</code> 类型，嵌套 <code>Offer</code> 对象（含 <code>price</code>、<code>priceCurrency</code>、<code>availability</code>）。这些数据让搜索引擎在购物搜索中展示价格和库存信息，让 AI 模型在推荐产品时引用准确的产品参数。同时，产品的 <code>features</code> 和 <code>specifications</code> 通过 llms.txt 的 Pages 部分输出，成为 AI 可读的产品事实。</p>
+
+<h3 id="ch3-3">3.3 适用人群与禁止操作人群</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>类别</th><th>角色</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>适用人群</strong></td><td>产品经理</td><td>最了解产品功能和规格，负责内容准确性</td></tr>
+<tr><td></td><td>产品运营</td><td>负责产品页面维护和 SEO 优化</td></tr>
+<tr><td></td><td>市场负责人</td><td>审核产品定位和价格信息的对外一致性</td></tr>
+<tr><td><strong>禁止操作人群</strong></td><td>销售人员</td><td>可能将谈判价格填入公开价格字段</td></tr>
+<tr><td></td><td>技术开发</td><td>不了解市场定位，可能填写过于技术化的描述</td></tr>
+<tr><td></td><td>外部兼职</td><td>无法获取准确的产品规格和定价信息</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>发布内容最终用途：</strong>产品页面同时服务于搜索引擎购物搜索（通过 Product schema 展示价格和库存）、AI 产品推荐（通过 llms.txt 提供产品事实）、官网转化（用户了解产品后发起咨询/试用）、案例关联展示（产品页展示相关落地案例增强说服力）。价格和规格数据的准确性直接影响 AI 是否信任你的产品信息。</p>
+
+<h3 id="ch3-4">3.4 字段四件套详解</h3>
+
+<!-- name -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">name</span>
+<span class="field-type">string / maxLength:200</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-seo">SEO</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">产品/方案的正式名称，作为结构化数据 <code>Product.name</code> 输出。AI 模型在推荐产品时使用此名称。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入 <code>&lt;h1&gt;</code> 和 Product schema 的 name 字段；llms.txt Pages 部分使用此名称作为链接文本；未设置 <code>seoTitle</code> 时作为 <code>&lt;title&gt;</code> 回退值。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">使用产品的官方正式名称，包含品牌名和产品线名。例如"智造云 MES 系统"而非"MES"。长度 4-30 字。避免使用内部代号或英文缩写（除非是公认的行业标准缩写）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">使用内部代号导致 AI 和用户无法识别产品；名称频繁变更会导致知识图谱实体断裂；名称与第一真值中的声明不一致会降低 AI 信任度。</div>
+</div>
+</div>
+</div>
+
+<!-- tagline -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">tagline</span>
+<span class="field-type">string / maxLength:200</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">产品一句话定位描述，用于列表页展示和 llms.txt 中的产品简介。AI 抓取时这是理解产品定位的第一信号。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">在产品列表 API 中返回；llms.txt 的 Pages 部分将 tagline 输出为产品链接后的描述；前端产品卡片展示此字段。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">10-30 字，用一句话说明产品的核心价值和目标场景。例如"为中小制造企业打造的轻量化生产管理系统"。避免空泛的形容词堆砌。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">留空时 AI 从 description 中自行提取可能不准确；过长失去一句话定位的效果；与实际产品功能不符会误导用户预期。</div>
+</div>
+</div>
+</div>
+
+<!-- description & content -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">description / content</span>
+<span class="field-type">text</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value"><code>description</code> 是产品概述（用于列表页和 SEO 描述回退），<code>content</code> 是产品详情正文（用于详情页展示和 AI 语料）。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">description 写入 Product schema 的 description 字段和 <code>og:description</code>；content 通过 API 返回给前端渲染为产品详情页正文。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">description：50-100 字，概括产品功能、目标用户和核心价值。content：500-2000 字，包含产品概述、核心功能、技术架构、适用场景、对比优势。使用结构化分段（H2/H3）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">description 留空时 SEO 描述回退到 content 首段可能不理想；content 过短（&lt;200 字）的产品页被搜索引擎判定为薄内容。</div>
+</div>
+</div>
+</div>
+
+<!-- features & specifications -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">features / specifications</span>
+<span class="field-type">json</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value"><code>features</code> 是产品功能列表（JSON 数组），<code>specifications</code> 是技术规格参数（JSON 键值对）。两者作为产品事实数据输出给 AI。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">通过 API 返回给前端渲染为功能列表和规格表；Product schema 的 additionalProperty 字段可包含规格数据；AI 抓取时这些结构化数据是回答"XX 产品有哪些功能""XX 产品规格参数"的直接来源。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">features 格式：<code>[{"title":"功能名","description":"功能说明"},...]</code>，5-15 个功能点。specifications 格式：<code>{"部署方式":"云端/私有化","并发用户":"500+","数据存储":"MySQL/PostgreSQL",...}</code>，包含关键技术参数。数据必须与实际产品一致。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">规格数据与实际不符会导致用户投诉和信任度下降；AI 引用错误规格会传播错误信息；留空会让 AI 无法回答产品参数相关问题。</div>
+</div>
+</div>
+</div>
+
+<!-- price / currency / availability -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">price / currency / availability</span>
+<span class="field-type">decimal / string / enumeration</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-seo">SEO</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">产品价格、货币类型和库存状态。这三个字段共同构成 Product schema 中的 <code>Offer</code> 对象，直接影响购物搜索展示和 AI 产品推荐。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value"><code>price</code> 写入 Offer.price；<code>currency</code> 写入 Offer.priceCurrency（默认 CNY）；<code>availability</code> 写入 Offer.availability（映射为 schema.org URL）。Google 购物搜索抓取这些数据展示在结果中。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">price：填写产品的公开标价（非谈判价），无公开定价的填 0 或留空。currency：CNY（人民币）或 USD（美元）等 ISO 4217 货币代码。availability：在售选 <code>in_stock</code>，停产选 <code>out_of_stock</code>，预售选 <code>pre_order</code>。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">填写谈判价格泄露定价策略；价格与实际不符引发用户投诉；availability 与实际不符导致搜索引擎展示错误库存信息；不填价格时购物搜索无法展示产品。</div>
+</div>
+</div>
+</div>
+
+<!-- priceRange & priceUnit -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">priceRange / priceUnit</span>
+<span class="field-type">string</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">价格区间和计价单位。用于无固定价格的产品（如定制化方案、按需计费服务）。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">priceRange 写入 Product schema 的 offers.priceRange 或作为页面展示文本；priceUnit 说明计价方式（如"元/年""元/用户/月"）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">priceRange 格式："5万-20万"或"￥1,000-￥5,000/月"。priceUnit："元/年""元/用户/月""元/次"等。与 <code>price</code> 字段二选一使用。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">priceRange 与实际报价差距过大会误导用户；priceUnit 不明确导致用户对价格理解错误。</div>
+</div>
+</div>
+</div>
+
+<!-- cases -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">cases</span>
+<span class="field-type">relation &rarr; case (manyToMany)</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">关联使用该产品的落地案例，在产品页展示成功案例增强说服力，同时构建产品-案例的知识关联。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">双向关联：产品页通过 API 返回关联案例列表；案例页也展示关联产品。知识图谱通过此关联建立 Product-CaseStudy 关系。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">每个产品关联 2-5 个代表性案例。选择有实际数据成果的案例，避免关联信息不完整的案例。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">不关联案例的产品页缺乏社会证明，转化率低；关联不相关案例会误导用户预期。</div>
+</div>
+</div>
+</div>
+
+<!-- SEO and index fields -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">seoTitle / seoDescription / seoKeywords / canonicalUrl / ogImage / allowIndex / sitemapPriority / sitemapFrequency</span>
+<span class="field-type">SEO 字段组</span>
+<span class="badge badge-seo">SEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">与文章的 SEO 字段组功能一致，控制产品页在搜索结果和 AI 抓取中的表现。产品页默认 sitemapPriority=0.7，建议调至 0.8。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">同文章 SEO 字段。产品页因转化价值高，建议 <code>sitemapFrequency</code> 设为 <code>weekly</code> 或 <code>daily</code>（价格变动频繁时）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">seoTitle："[产品名] - [核心功能] | [品牌名]"，25-35 字。seoDescription：包含产品核心价值、目标用户和价格信息，70-155 字。allowIndex：正式产品设为 true。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">同文章 SEO 字段。产品页 SEO 错误的代价更高，因为产品页是转化入口。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch3-5">3.5 标准发布全流程</h3>
+
+<h4>素材准备清单</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>素材</th><th>要求</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>产品文档</td><td>功能说明、技术规格、适用场景</td><td>填入 description 和 content</td></tr>
+<tr><td>产品图片</td><td>封面 1200x630px + 详情图 3-10 张</td><td>填入 coverImage 和 images</td></tr>
+<tr><td>功能列表</td><td>JSON 格式，5-15 个功能点</td><td>填入 features</td></tr>
+<tr><td>规格参数</td><td>JSON 键值对</td><td>填入 specifications</td></tr>
+<tr><td>定价信息</td><td>公开标价或价格区间</td><td>填入 price/priceRange</td></tr>
+<tr><td>关联案例</td><td>2-5 个已发布的落地案例</td><td>关联 cases</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>填写顺序</h4>
+
+<ol class="steps">
+<li><strong>基础信息</strong> — 填写 <code>name</code>、<code>slug</code>、<code>tagline</code>、<code>description</code>、<code>content</code></li>
+<li><strong>媒体资源</strong> — 上传 <code>coverImage</code> 和 <code>images</code>（多图）</li>
+<li><strong>功能规格</strong> — 填写 <code>features</code>（JSON 数组）和 <code>specifications</code>（JSON 键值对）</li>
+<li><strong>定价信息</strong> — 填写 <code>price</code>/<code>currency</code>/<code>availability</code> 或 <code>priceRange</code>/<code>priceUnit</code></li>
+<li><strong>分类标签</strong> — 选择 <code>category</code> 和 <code>tags</code></li>
+<li><strong>案例关联</strong> — 关联 <code>cases</code>（2-5 个已发布案例）</li>
+<li><strong>SEO 配置</strong> — 填写 <code>seoTitle</code>、<code>seoDescription</code>、<code>ogImage</code></li>
+<li><strong>收录控制</strong> — 确认 <code>allowIndex</code>=true，设 <code>sitemapPriority</code>=0.8</li>
+<li><strong>知识图谱</strong> — 选择 <code>mainEntity</code> 和 <code>mentionedEntities</code></li>
+<li><strong>品牌话术</strong> — 关联 <code>brandVoiceRef</code></li>
+<li><strong>自检</strong> — 对照自检清单</li>
+<li><strong>发布</strong> — <code>status</code> 改为 <code>published</code></li>
+</ol>
+
+<h4>发布前自检清单</h4>
+
+<ul class="checklist">
+<li>产品名称与官方品牌一致</li>
+<li>tagline 10-30 字，明确产品定位</li>
+<li>description 50-100 字，content 500 字以上</li>
+<li>features JSON 格式正确，5-15 个功能点</li>
+<li>specifications JSON 格式正确，关键参数齐全</li>
+<li>价格信息准确，与销售团队确认</li>
+<li>availability 与实际库存状态一致</li>
+<li>封面图和详情图已上传</li>
+<li>关联 2-5 个案例</li>
+<li>seoTitle 含产品名和核心功能</li>
+<li>allowIndex=true, sitemapPriority=0.8</li>
+<li>mainEntity 已关联</li>
+<li>brandVoiceRef 已关联</li>
+</ul>
+
+<h3 id="ch3-6">3.6 发布后闭环运作与禁忌</h3>
+
+<h4>前端展示与 GEO 效果</h4>
+
+<p>产品发布后，前端渲染产品详情页，注入 Product + Offer 结构化数据。Google 收录后可能在搜索结果中展示价格和库存富媒体片段。llms.txt 将产品名和 tagline 输出到 Pages 部分，AI 模型在回答产品推荐类问题时可引用。产品页与关联案例互相内链，形成转化闭环。</p>
+
+<h4>价格更新机制</h4>
+
+<div class="callout callout-warning">
+<div class="callout-title">价格变更操作规范</div>
+<p>产品价格变更时，只需更新 <code>price</code> 字段并保存。Lifecycle 自动触发搜索引擎推送和缓存失效，sitemap 的 lastmod 更新。不需要删除重建产品记录。价格变更后建议在 24 小时内验证 Google Search Console 中的结构化数据是否更新。</p>
+</div>
+
+<h4>字段禁忌写法</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>禁忌写法</th><th>后果</th></tr>
+</thead>
+<tbody>
+<tr><td>name</td><td>使用内部代号（如"Project-X"）</td><td>AI 和用户无法识别产品</td></tr>
+<tr><td>tagline</td><td>空泛形容词（如"最好的产品"）</td><td>无信息量，AI 忽略</td></tr>
+<tr><td>price</td><td>填写 0 但实际有价格</td><td>AI 认为产品免费，传播错误信息</td></tr>
+<tr><td>features</td><td>填写文本而非 JSON 数组</td><td>前端渲染异常，结构化数据失效</td></tr>
+<tr><td>specifications</td><td>填写营销话术而非技术参数</td><td>AI 无法提取有效规格信息</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>内容禁忌类型</h4>
+
+<div class="callout callout-danger">
+<div class="callout-title">禁止发布的产品内容</div>
+<p><strong>1. 虚假价格</strong> — 标价与实际收费不符，误导用户和 AI。后果：用户投诉，AI 标记为不可信来源。</p>
+<p><strong>2. 夸大功能</strong> — 声明产品不具备的功能。后果：用户期望落差导致差评和退款，AI 传播错误信息损害品牌。</p>
+<p><strong>3. 竞品贬低</strong> — 在产品描述中恶意贬低竞争对手。后果：可能面临不正当竞争诉讼，搜索引擎可能降权。</p>
+<p><strong>4. 过时规格</strong> — 产品已升级但规格参数未更新。后果：AI 引用过时数据，用户获取错误信息。</p>
+<p><strong>5. 无结构化数据</strong> — features/specifications 留空。后果：产品页对 AI 无价值，无法被产品推荐触达。</p>
+</div>

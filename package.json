@@ -7,6 +7,7 @@
     "author": "",
     "license": "MIT",
     "scripts": {
+        "dev:h5": "uni",
         "build:h5": "uni build"
     },
     "dependencies": {
@@ -16,12 +17,24 @@
         "markdown-it": "^14.3.0",
         "pinia": "^2.1.7",
         "uqrcodejs": "^4.0.7",
-        "vue": "^3.4.21"
+        "vue": "3.4.21"
     },
     "devDependencies": {
         "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5020320260731001",
         "sass": "^1.102.0",
         "vite": "^5.0.12"
+    },
+    "overrides": {
+        "vue": "3.4.21",
+        "@vue/runtime-core": "3.4.21",
+        "@vue/runtime-dom": "3.4.21",
+        "@vue/reactivity": "3.4.21",
+        "@vue/shared": "3.4.21",
+        "@vue/compiler-core": "3.4.21",
+        "@vue/compiler-dom": "3.4.21",
+        "@vue/compiler-sfc": "3.4.21",
+        "@vue/compiler-ssr": "3.4.21",
+        "@vue/server-renderer": "3.4.21"
     },
     "engines": {
         "HBuilderX": "^3.99"

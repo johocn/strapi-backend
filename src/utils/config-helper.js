@@ -8,7 +8,7 @@ const UNAVAILABLE_NOTIFY_INTERVAL = 30 * 1000
 // 模块可见性 key 列表（与后端 schema 保持一致）
 const VISIBILITY_MODULES = [
   'website', 'logistics', 'studio', 'points', 'course', 'quiz',
-  'channel', 'sso', 'thirdParty', 'oss', 'payment', 'community', 'forum'
+  'channel', 'sso', 'thirdParty', 'oss', 'payment', 'community', 'forum', 'wealth'
 ]
 
 // 默认模块可见性配置（每个模块对哪些角色可见）
@@ -26,6 +26,7 @@ const DEFAULT_MODULE_VISIBILITY = {
   payment: ['plugin-manager', 'wealth-manager', 'wealth-editor', 'system-manager', 'system-editor'],
   community: ['channel-admin', 'plugin-manager', 'instructor', 'marketing-manager', 'marketing-editor'],
   forum: ['channel-admin', 'plugin-manager', 'instructor', 'marketing-manager', 'marketing-editor'],
+  wealth: ['channel-admin', 'plugin-manager', 'instructor', 'wealth-manager', 'wealth-editor'],
 }
 
 function notifyServiceUnavailable() {
@@ -93,6 +94,7 @@ export function getDefaultConfig() {
       website: true,
       logistics: true,
       studio: true,
+      wealth: false,
       // 细粒度默认值
       pointsEnabled: true,
       coursePreviewEnabled: true,
@@ -134,12 +136,14 @@ export function getDefaultConfig() {
       points: true, course: true, quiz: true, channel: true,
       sso: false, thirdParty: false, oss: false,
       payment: false, community: false, forum: false,
+      wealth: false,
     },
     moduleGrantedForCurrentTenant: {
       website: false, logistics: false, studio: false,
       points: true, course: true, quiz: true, channel: true,
       sso: false, thirdParty: false, oss: false,
       payment: false, community: false, forum: false,
+      wealth: false,
     },
     moduleVisibility: DEFAULT_MODULE_VISIBILITY,
   }

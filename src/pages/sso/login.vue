@@ -51,7 +51,47 @@ const mode = ref('token')
 const oauthError = ref('')
 const isWechatAutoRedirecting = ref(false)
 
+/**
+ * 从 URL hash 中解析查询参数（UniApp H5 hash 模式兜底）
+ * UniApp onLoad 可能因 return_url/c_end_url 中编码的 %23（#）导致参数解析异常，
+ * 当关键参数缺失时，直接从 window.location.hash 解析补充。
+ * 与 login-callback.vue 的 parseHashParams 逻辑保持一致。
+ */
+function parseHashParams() {
+  if (typeof window === 'undefined') return {}
+  try {
+    const hashQuery = window.location.hash.split('?')[1] || ''
+    if (!hashQuery) return {}
+    const urlParams = new URLSearchParams(hashQuery)
+    const result = {}
+    for (const key of ['app_code', 'return_url', 'c_end_url', 'invite_code', 'channel_code', 'mode', 'error']) {
+      const val = urlParams.get(key)
+      if (val) result[key] = val
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
+
 onLoad((options) => {
+  // 兜底：UniApp onLoad 可能因 return_url 中编码的 %23（#）导致参数解析异常
+  // 当关键参数缺失时，直接从 window.location.hash 解析补充
+  if (typeof window !== 'undefined') {
+    try {
+      const hashParams = parseHashParams()
+      const merged = { ...(options || {}) }
+      for (const key of Object.keys(hashParams)) {
+        if (!merged[key] && hashParams[key]) {
+          merged[key] = hashParams[key]
+        }
+      }
+      options = merged
+    } catch (e) {
+      console.warn('[SSO login] URL fallback parsing failed:', e)
+    }
+  }
+
   appCode.value = options?.app_code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
   cEndUrl.value = options?.c_end_url ? decodeURIComponent(options.c_end_url) : ''
@@ -59,6 +99,8 @@ onLoad((options) => {
   channelCode.value = options?.channel_code || ''
   mode.value = options?.mode || 'token'
   oauthError.value = options?.error ? decodeURIComponent(options.error) : ''
+
+  console.log('[SSO login] onLoad options:', { app_code: appCode.value, return_url: returnUrl.value, c_end_url: cEndUrl.value, mode: mode.value })
 
   if (!appCode.value) {
     uni.showToast({ title: '缺少 app_code 参数', icon: 'none' })
@@ -103,11 +145,13 @@ const redirectUri = computed(() => {
 })
 
 function onSuccess(result) {
+  console.log('[SSO login] onSuccess called with result:', { hasToken: !!(result?.access_token || result?.jwt || result?.token), cEndUrl: cEndUrl.value, returnUrl: returnUrl.value })
   // result: { access_token, refresh_token, user, is_new }
   const token = result.access_token || result.jwt || result.token
   // 优先跳转到 C 端（c_end_url），无 c_end_url 时回退到 return_url
   const targetUrl = cEndUrl.value || returnUrl.value
   if (!token || !targetUrl) {
+    console.warn('[SSO login] Redirect aborted: token or targetUrl missing', { token: !!token, targetUrl })
     uni.showToast({ title: '登录失败：未获取到 token', icon: 'none' })
     return
   }
@@ -127,7 +171,14 @@ function onSuccess(result) {
   const sep = targetUrl.includes('?') ? '&' : '?'
   const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
   const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
-  window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
+  // 传递 refresh_token 和 expires_in，供 C 端实现 token 刷新
+  const refreshToken = result.refresh_token || ''
+  const expiresIn = result.expires_in || 900
+  const refreshParam = refreshToken ? `&refresh_token=${encodeURIComponent(refreshToken)}` : ''
+  const expiresInParam = `&expires_in=${expiresIn}`
+  const redirectUrl = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}${refreshParam}${expiresInParam}`
+  console.log('[SSO login] Redirecting to:', redirectUrl)
+  window.location.href = redirectUrl
 }
 
 function onError(err) {

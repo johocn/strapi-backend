@@ -1,0 +1,383 @@
+<!-- 自定义海报使用手册 — 海报模板设计与前端集成全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第二章 模板设计 ==================== -->
+<h2 id="ch2"><span class="ch-num">第二章</span>模板设计</h2>
+
+<h3 id="ch2-1">2.1 模板创建流程</h3>
+
+<p>海报模板通过管理后台的"海报模板管理"页面创建。创建流程分为两步：<strong>第一步</strong>在模板列表页点击"新增模板"填写基础信息，<strong>第二步</strong>进入模板编辑器添加和配置元素。</p>
+
+<h4>创建步骤</h4>
+
+<ol class="steps">
+<li><strong>进入海报模板管理</strong> — 在 zhao-studio 管理后台导航中进入"海报模板"页面</li>
+<li><strong>点击新增模板</strong> — 弹出模板创建弹窗，填写模板名称、代码、画布尺寸、背景配置等信息</li>
+<li><strong>保存模板</strong> — 点击确认保存，模板出现在列表中</li>
+<li><strong>进入编辑器</strong> — 点击列表中的"编辑"按钮，进入模板编辑器视图</li>
+<li><strong>添加元素</strong> — 在编辑器右侧"元素列表"中点击"添加元素"，配置元素属性</li>
+<li><strong>保存全部元素</strong> — 点击"保存全部元素"按钮，通过批量保存 API 将所有元素一次性写入</li>
+<li><strong>保存模板属性</strong> — 如有修改，点击"保存模板属性"按钮更新模板配置</li>
+</ol>
+
+<div class="callout callout-info">
+<div class="callout-title">模板编码 (code) 的唯一性</div>
+<p><code>code</code> 字段在数据库中设置了 <code>unique: true</code> 约束，是前端获取模板的唯一标识。建议使用有语义的命名，如 <code>course_share_default</code>、<code>activity_promotion_2026</code>、<code>product_detail_v2</code>。前端通过 <code>GET /api/zhao-studio/v1/posters/templates/:code</code> 获取模板配置。</p>
+</div>
+
+<h3 id="ch2-2">2.2 画布尺寸配置</h3>
+
+<p>画布尺寸决定了海报的物理像素大小。所有元素的坐标都基于画布尺寸进行定位。系统提供两个核心字段：</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">canvasWidth</span>
+<span class="field-type">integer / default: 600</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义海报画布的宽度（像素）。所有元素的 x 坐标和 width 不应超过此值。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入数据库后，公开 API 返回此值；前端 Canvas 根据此值设置画布宽度；管理后台预览区域按比例缩放显示。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">默认 600px，适合手机端竖屏海报。常见尺寸：600（微信分享海报）、750（高清竖版）、1080（超高清竖版）。宽度应与目标展示场景的屏幕宽度匹配。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">设置过小（如 320）会导致海报在高清屏上模糊；设置过大（如 2000）会增加前端 Canvas 渲染性能压力和生成的图片体积。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">canvasHeight</span>
+<span class="field-type">integer / default: 1000</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义海报画布的高度（像素）。所有元素的 y 坐标和 height 不应超过此值。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入数据库后，公开 API 返回此值；前端 Canvas 根据此值设置画布高度；管理后台预览区域按比例缩放显示。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">默认 1000px，配合 600 宽度形成 3:5 竖版比例。常见比例：3:5 (600x1000)、2:3 (600x900)、9:16 (600x1067)。高度应确保所有元素内容能完整展示。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">高度不足导致底部元素被截断；高度过大导致海报过长，用户在手机端需要滚动查看，影响分享转化率。</div>
+</div>
+</div>
+</div>
+
+<h4>常见画布尺寸参考</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>场景</th><th>画布尺寸</th><th>比例</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>微信分享海报</td><td>600 x 1000</td><td>3:5</td><td>课程分享、活动推广</td></tr>
+<tr><td>高清竖版海报</td><td>750 x 1060</td><td>~3:4.2</td><td>商品详情、品牌宣传</td></tr>
+<tr><td>朋友圈海报</td><td>600 x 900</td><td>2:3</td><td>朋友圈九宫格分享</td></tr>
+<tr><td>超高清海报</td><td>1080 x 1920</td><td>9:16</td><td>全屏展示、视频封面</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch2-3">2.3 背景配置</h3>
+
+<p>模板背景是海报的最底层视觉元素，可以是纯色背景或图片背景。背景配置由三个字段组成：</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">backgroundColor</span>
+<span class="field-type">string / default: #FFFFFF</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">画布的纯色背景色，作为最底层的视觉基底。当未设置 backgroundImage 时，画布以此颜色填充。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入数据库后，公开 API 返回此值；前端 Canvas 以此值填充 <code>fillRect</code>；管理后台预览以此值作为画布背景。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">使用 HEX 格式颜色值，如 <code>#FFFFFF</code>（白色）、<code>#F5F5F5</code>（浅灰）、<code>#1A1A2E</code>（深蓝）。白色背景适合文字密集型海报，深色背景适合图片突出型海报。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">使用非标准格式（如 RGB 或颜色名称）可能导致部分前端渲染库无法解析；背景色与文字颜色对比度不足会导致可读性差。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">backgroundImage</span>
+<span class="field-type">string</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">画布的背景图片 URL。设置后图片覆盖在 backgroundColor 之上，作为画布的视觉基底。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">写入数据库后，公开 API 返回此值；前端根据 backgroundMode 决定图片的填充方式；管理后台预览以 cover 模式显示背景图。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">填写完整的 HTTPS 图片 URL。图片应预先上传到 CDN 或对象存储。建议图片尺寸与画布尺寸同比例，格式 JPG/WebP，大小不超过 500KB。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">使用 HTTP 协议的图片 URL 在 HTTPS 页面中会被浏览器拦截（Mixed Content）；图片过大导致海报加载缓慢；图片比例与画布不匹配导致拉伸变形。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">backgroundMode</span>
+<span class="field-type">enumeration / default: cover</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制背景图片的填充方式，等同于 CSS <code>background-size</code> 属性。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端根据此值决定如何将 backgroundImage 绘制到画布上。仅在设置了 backgroundImage 时生效。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">枚举值说明</div>
+<div class="field-item-value">
+<strong>cover</strong> — 等比缩放图片填满画布，超出部分裁剪（默认值，最常用）<br>
+<strong>contain</strong> — 等比缩放图片完整显示在画布内，不足部分留白<br>
+<strong>stretch</strong> — 拉伸图片填满画布，可能导致变形<br>
+<strong>tile</strong> — 平铺重复图片填满画布
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">大多数场景使用 <code>cover</code>（背景图填满画布）。如果背景图是图案纹理需要重复，使用 <code>tile</code>。如果需要完整展示背景图内容，使用 <code>contain</code>。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger"><code>stretch</code> 模式会使非等比例的图片变形；<code>contain</code> 模式可能在画布边缘留下 backgroundColor 色块。</div>
+</div>
+</div>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">背景与背景元素的区别</div>
+<p>模板的 <code>backgroundColor</code> / <code>backgroundImage</code> / <code>backgroundMode</code> 是<strong>画布级背景</strong>，始终位于最底层。此外，元素类型中也有 <code>background</code> 类型（elementType=background），用于在画布背景之上、其他元素之下添加额外的背景层（如半透明遮罩、渐变层）。两者的区别：画布背景是全局的，背景元素是局部的、可定位的。</p>
+</div>
+
+<h3 id="ch2-4">2.4 变量定义</h3>
+
+<p>每个模板声明两组变量列表，以 JSON 数组形式存储。变量定义决定了前端调用渲染 API 时需要传入哪些参数。</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">requiredVariables</span>
+<span class="field-type">json / default: ["title", "description", "image_url", "qr_code"]</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">声明前端调用渲染 API 时必须提供的变量。系统在解析时会校验这些变量是否全部提供，缺失任何一个（除 invite_code 外）会返回 400 错误。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">存储为 JSON 数组。渲染服务 <code>resolveTemplate</code> 遍历此数组，检查 <code>variables</code> 中是否存在对应的 key。若缺失（且不是 <code>invite_code</code>），抛出 <code>POSTER_002</code> 错误并列出缺失的变量名。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">JSON 数组格式，如 <code>["title", "description", "image_url", "qr_code"]</code>。变量名使用 snake_case 命名。默认值包含四个核心变量。根据业务需求可增减，但移除默认变量需确保前端不再传入该变量。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">将实际需要的变量从 requiredVariables 中移除，会导致前端可能不传该变量，渲染时元素内容为空；将不存在的变量加入 requiredVariables，会导致前端必须传一个无用的变量才能渲染成功。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">optionalVariables</span>
+<span class="field-type">json / default: ["market_price", "sale_price", "invite_code"]</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">声明前端可选提供的变量。选填变量缺失时，系统使用元素的 <code>defaultValue</code> 作为回退内容，不会报错。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">存储为 JSON 数组。渲染服务在解析元素时，若元素的 <code>variableName</code> 对应的变量未传入，使用 <code>defaultValue</code> 或空字符串。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">JSON 数组格式，如 <code>["market_price", "sale_price", "invite_code"]</code>。<code>invite_code</code> 是特殊选填变量，即使在 requiredVariables 中也允许缺失（因为不是所有用户都有邀请码）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">选填变量对应的元素未设置 defaultValue 时，变量缺失会导致元素内容为空，可能影响海报视觉效果。</div>
+</div>
+</div>
+</div>
+
+<h4>变量与元素的绑定关系</h4>
+
+<p>变量定义在模板级别，变量绑定在元素级别。一个变量可以被多个元素绑定（如 <code>title</code> 变量同时绑定到标题文本元素和一个隐藏的 SEO 元素）。元素的变量绑定通过以下字段实现：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>元素字段</th><th>作用</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>isVariable</code></td><td>标记此元素是否为变量驱动</td><td>true / false</td></tr>
+<tr><td><code>variableName</code></td><td>绑定的变量名（必须在 requiredVariables 或 optionalVariables 中声明）</td><td>"title", "sale_price"</td></tr>
+<tr><td><code>defaultValue</code></td><td>变量缺失时的回退值</td><td>"精品课程", "0"</td></tr>
+<tr><td><code>content</code></td><td>非变量元素的固定内容</td><td>"扫码分享赚积分"</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch2-5">2.5 模板状态控制</h3>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">isActive</span>
+<span class="field-type">boolean / default: true</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制模板是否对前端可见。设为 false 时，公开 API 无法获取此模板，相当于下线。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">公开 API <code>getTemplate</code> 查询时附带 <code>filters: { code, isActive: true }</code> 条件。isActive 为 false 的模板不会被查询到。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">正式使用的模板设为 true。需要下线但保留数据的模板设为 false。测试中的模板建议设为 false，测试完成后改为 true。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">误将正式模板设为 false 会导致前端获取不到模板，海报无法生成。误将测试模板设为 true 会导致前端可能获取到未完成的模板。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">isDefault</span>
+<span class="field-type">boolean / default: false</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">标记模板是否为系统默认模板。种子机制检查此字段判断是否需要创建默认模板。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value"><code>seedDefaultTemplate()</code> 在启动时查询 <code>filters: { isDefault: true }</code>，若存在则跳过种子创建。克隆模板时，新模板的 isDefault 强制设为 false。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">系统中只应有一个模板的 isDefault 为 true（即种子创建的默认模板）。手动创建的模板保持 false。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">手动将多个模板设为 isDefault=true 不会报错，但会导致种子逻辑判断紊乱（种子会找到已存在的默认模板并跳过创建）。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch2-6">2.6 模板完整字段参考</h3>
+
+<p>以下是 poster-template 内容类型的完整字段列表：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段名</th><th>类型</th><th>必填</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>string</td><td><span class="badge badge-required">必填</span></td><td>-</td><td>模板名称</td></tr>
+<tr><td><code>code</code></td><td>string (unique)</td><td><span class="badge badge-required">必填</span></td><td>-</td><td>模板唯一编码</td></tr>
+<tr><td><code>site</code></td><td>relation &rarr; site-config</td><td><span class="badge badge-required">必填</span></td><td>-</td><td>关联站点（manyToOne）</td></tr>
+<tr><td><code>canvasWidth</code></td><td>integer</td><td>-</td><td>600</td><td>画布宽度（px）</td></tr>
+<tr><td><code>canvasHeight</code></td><td>integer</td><td>-</td><td>1000</td><td>画布高度（px）</td></tr>
+<tr><td><code>backgroundColor</code></td><td>string</td><td>-</td><td>#FFFFFF</td><td>背景颜色</td></tr>
+<tr><td><code>backgroundImage</code></td><td>string</td><td>-</td><td>-</td><td>背景图片 URL</td></tr>
+<tr><td><code>backgroundMode</code></td><td>enum</td><td>-</td><td>cover</td><td>背景填充模式</td></tr>
+<tr><td><code>requiredVariables</code></td><td>json</td><td>-</td><td>["title","description","image_url","qr_code"]</td><td>必填变量列表</td></tr>
+<tr><td><code>optionalVariables</code></td><td>json</td><td>-</td><td>["market_price","sale_price","invite_code"]</td><td>选填变量列表</td></tr>
+<tr><td><code>isActive</code></td><td>boolean</td><td>-</td><td>true</td><td>是否启用</td></tr>
+<tr><td><code>isDefault</code></td><td>boolean</td><td>-</td><td>false</td><td>是否为默认模板</td></tr>
+<tr><td><code>elements</code></td><td>relation oneToMany</td><td>-</td><td>-</td><td>关联的海报元素</td></tr>
+<tr><td><code>thumbnail</code></td><td>string</td><td>-</td><td>-</td><td>模板缩略图 URL</td></tr>
+<tr><td><code>description</code></td><td>text</td><td>-</td><td>-</td><td>模板描述</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch2-7">2.7 模板克隆</h3>
+
+<p>模板克隆功能允许基于现有模板快速创建副本。克隆操作会完整复制模板属性和所有关联元素，适用于"基于默认模板修改"的场景。</p>
+
+<h4>克隆逻辑</h4>
+
+<ol class="steps">
+<li><strong>查询原始模板</strong> — 根据 ID 查询模板及其所有关联元素</li>
+<li><strong>复制模板属性</strong> — 去除 id、documentId、createdAt、updatedAt、elements 字段，保留其余所有属性</li>
+<li><strong>修改标识字段</strong> — name 追加 "(副本)" 后缀，code 追加 <code>_copy_{timestamp}</code> 后缀，isDefault 设为 false</li>
+<li><strong>创建新模板</strong> — 调用 <code>createTemplate</code> 写入数据库</li>
+<li><strong>复制元素</strong> — 遍历原始模板的每个元素，去除 id、documentId、createdAt、updatedAt、posterTemplate 字段，将 posterTemplate 指向新模板的 documentId，逐一创建</li>
+<li><strong>返回完整模板</strong> — 查询新模板（包含元素）并返回</li>
+</ol>
+
+<div class="callout callout-warning">
+<div class="callout-title">克隆注意事项</div>
+<p>克隆操作的 code 字段追加 <code>_copy_{Date.now()}</code> 时间戳后缀以保证唯一性。克隆后建议立即修改 name 和 code 为有意义的值。克隆的模板 isActive 继承原模板的值，如果原模板是启用的，克隆后也是启用的状态。</p>
+</div>
+
+<!-- 章节导航 -->
+<div class="chapter-nav">
+  <div class="chapter-nav-prev" onclick="window._goDoc('poster/ch1-overview.html')">
+    <span class="chapter-nav-label">&larr; 上一章：功能概述</span>
+  </div>
+  <div class="chapter-nav-next" onclick="window._goDoc('poster/ch3-elements.html')">
+    <span class="chapter-nav-label">下一章：元素配置 &rarr;</span>
+  </div>
+</div>

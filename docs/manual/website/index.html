@@ -1,0 +1,233 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  .nav-root {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    color: #1e293b;
+    background: #f8fafc;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .nav-cover {
+    text-align: center;
+    padding: 48px 20px 36px;
+    margin-bottom: 40px;
+  }
+  .nav-cover h1 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+  .nav-cover .subtitle {
+    font-size: 16px;
+    color: #64748b;
+    margin: 0 0 20px;
+    line-height: 1.6;
+  }
+  .nav-cover .meta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .nav-cover .meta span {
+    background: #f1f5f9;
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .nav-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .nav-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #1a56db;
+    border-radius: 4px 0 0 4px;
+  }
+  .nav-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(26,86,219,0.12);
+    border-color: #1a56db;
+  }
+  .nav-card:active {
+    transform: translateY(-1px);
+  }
+  .nav-card .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
+  .nav-card .card-desc {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+  .nav-card .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nav-card .card-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 12px;
+    line-height: 1.5;
+  }
+  .tag-blue   { background: #e0edff; color: #1a56db; }
+  .tag-green  { background: #dcfce7; color: #15803d; }
+  .tag-orange { background: #ffedd5; color: #c2410c; }
+  .tag-purple { background: #f3e8ff; color: #7c3aed; }
+  .tag-cyan   { background: #cffafe; color: #0e7490; }
+  .tag-rose   { background: #ffe4e6; color: #be123c; }
+  .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  .tag-amber  { background: #fef3c7; color: #b45309; }
+  .nav-card .card-arrow {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #94a3b8;
+    transition: all 0.25s ease;
+  }
+  .nav-card:hover .card-arrow {
+    background: #1a56db;
+    color: #fff;
+  }
+  @media (max-width: 640px) {
+    .nav-root { padding: 20px 12px 40px; }
+    .nav-cover { padding: 32px 12px 24px; }
+    .nav-cover h1 { font-size: 28px; }
+    .nav-grid { grid-template-columns: 1fr; }
+    .nav-card { padding: 20px; }
+  }
+</style>
+<div class="nav-root">
+  <div class="nav-cover">
+    <h1>官网使用手册</h1>
+    <p class="subtitle">GEO/SEO 内容发布全景指南 &mdash; 从字段填写到流量闭环</p>
+    <div class="meta">
+      <span>版本 v2.0</span>
+      <span>更新日期 2026-07-31</span>
+      <span>适用系统 zhao-website 插件</span>
+    </div>
+  </div>
+  <div class="nav-grid">
+    <div class="nav-card" onclick="window._goDoc('website/ch1-overview.html')">
+      <div class="card-title">系统总览</div>
+      <div class="card-desc">GEO 体系定位、内容类型矩阵、发布闭环机制、联动逻辑</div>
+      <div class="card-tags">
+        <span class="card-tag tag-blue">GEO 体系</span>
+        <span class="card-tag tag-green">内容矩阵</span>
+        <span class="card-tag tag-orange">发布闭环</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch2-article.html')">
+      <div class="card-title">资讯文章</div>
+      <div class="card-desc">知识播种 + 长尾流量入口，字段四件套详解</div>
+      <div class="card-tags">
+        <span class="card-tag tag-purple">知识播种</span>
+        <span class="card-tag tag-cyan">长尾流量</span>
+        <span class="card-tag tag-rose">字段四件套</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch3-product.html')">
+      <div class="card-title">产品/方案</div>
+      <div class="card-desc">事实锚点 + 转化着陆，产品描述规范与结构化数据</div>
+      <div class="card-tags">
+        <span class="card-tag tag-blue">事实锚点</span>
+        <span class="card-tag tag-green">转化着陆</span>
+        <span class="card-tag tag-indigo">结构化数据</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch4-case.html')">
+      <div class="card-title">落地案例</div>
+      <div class="card-desc">社会证明与可信度背书，案例结构规范</div>
+      <div class="card-tags">
+        <span class="card-tag tag-orange">社会证明</span>
+        <span class="card-tag tag-purple">可信度背书</span>
+        <span class="card-tag tag-amber">案例规范</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch5-tutorial.html')">
+      <div class="card-title">教程/操作指南</div>
+      <div class="card-desc">HowTo 知识图谱与视频搜索，步骤结构规范</div>
+      <div class="card-tags">
+        <span class="card-tag tag-cyan">HowTo</span>
+        <span class="card-tag tag-rose">知识图谱</span>
+        <span class="card-tag tag-green">视频搜索</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch6-faq.html')">
+      <div class="card-title">常见问答</div>
+      <div class="card-desc">直接匹配 AI 问答查询，FAQPage 结构化数据</div>
+      <div class="card-tags">
+        <span class="card-tag tag-blue">AI 问答</span>
+        <span class="card-tag tag-indigo">FAQPage</span>
+        <span class="card-tag tag-orange">语音搜索</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch7-compliance.html')">
+      <div class="card-title">合规公示</div>
+      <div class="card-desc">法律合规信号与信任建设</div>
+      <div class="card-tags">
+        <span class="card-tag tag-purple">法律合规</span>
+        <span class="card-tag tag-amber">信任建设</span>
+        <span class="card-tag tag-rose">资质公示</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('website/ch8-cases.html')">
+      <div class="card-title">5 大行业案例详解</div>
+      <div class="card-desc">SaaS &middot; 医疗器械 &middot; 教育培训 &middot; 工业制造 &middot; 电商平台</div>
+      <div class="card-tags">
+        <span class="card-tag tag-cyan">SaaS</span>
+        <span class="card-tag tag-green">医疗器械</span>
+        <span class="card-tag tag-orange">教育培训</span>
+        <span class="card-tag tag-indigo">工业制造</span>
+        <span class="card-tag tag-rose">电商平台</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+  </div>
+</div>

@@ -294,3 +294,111 @@ export function claimCoursePoints(id) {
 export function checkCourseAuth(courseDocumentId) {
   return get(`${USER_PREFIX}/course-auth/${courseDocumentId}`).then(extractItem)
 }
+
+// ==================== 报名管理（管理员） ====================
+
+/**
+ * 查询报名记录列表
+ * @param {Object} params - 可选筛选：status, courseDocumentId, enrollType, pagination
+ */
+export function getEnrollmentList(params = {}) {
+  return get(`${ADMIN_PREFIX}/enrollments`, params).then(res => {
+    const result = extractList(res)
+    // 拆分嵌套对象
+    result.list = result.list.map(item => {
+      if (item.user && typeof item.user === 'object') item.user = extractItem(item.user)
+      if (item.course && typeof item.course === 'object') {
+        item.course = extractItem(item.course)
+        if (item.course?.cover) item.course.coverUrl = getMediaUrl(item.course.cover)
+      }
+      if (item.reviewer && typeof item.reviewer === 'object') item.reviewer = extractItem(item.reviewer)
+      if (item.voucherUrl && !item.voucherUrl.startsWith('http')) {
+        item.voucherUrl = getMediaUrl({ url: item.voucherUrl })
+      }
+      return item
+    })
+    return result
+  })
+}
+
+export function getEnrollmentDetail(documentId) {
+  return get(`${ADMIN_PREFIX}/enrollments/${documentId}`).then(res => {
+    const item = extractItem(res)
+    if (item) {
+      if (item.user && typeof item.user === 'object') item.user = extractItem(item.user)
+      if (item.course && typeof item.course === 'object') {
+        item.course = extractItem(item.course)
+        if (item.course?.cover) item.course.coverUrl = getMediaUrl(item.course.cover)
+      }
+      if (item.reviewer && typeof item.reviewer === 'object') item.reviewer = extractItem(item.reviewer)
+      if (item.voucherUrl && !item.voucherUrl.startsWith('http')) {
+        item.voucherUrl = getMediaUrl({ url: item.voucherUrl })
+      }
+    }
+    return item
+  })
+}
+
+/** 审核通过 */
+export function approveEnrollment(documentId) {
+  return put(`${ADMIN_PREFIX}/enrollments/${documentId}/approve`).then(extractItem)
+}
+
+/** 审核驳回，需传 reviewNote */
+export function rejectEnrollment(documentId, reviewNote = '') {
+  return put(`${ADMIN_PREFIX}/enrollments/${documentId}/reject`, { data: { reviewNote } }).then(extractItem)
+}
+
+/** 撤销已开通权限 */
+export function revokeEnrollment(documentId, reviewNote = '') {
+  return put(`${ADMIN_PREFIX}/enrollments/${documentId}/revoke`, { data: { reviewNote } }).then(extractItem)
+}
+
+// ==================== 开通码管理（管理员） ====================
+
+/**
+ * 查询开通码列表
+ * @param {Object} params - 可选筛选：code, status, course, pagination
+ */
+export function getAccessCodeList(params = {}) {
+  return get(`${ADMIN_PREFIX}/access-codes`, params).then(res => {
+    const result = extractList(res)
+    result.list = result.list.map(item => {
+      if (item.course && typeof item.course === 'object') item.course = extractItem(item.course)
+      if (item.createdBy && typeof item.createdBy === 'object') item.createdBy = extractItem(item.createdBy)
+      if (item.usedBy && typeof item.usedBy === 'object') item.usedBy = extractItem(item.usedBy)
+      return item
+    })
+    return result
+  })
+}
+
+export function getAccessCodeDetail(documentId) {
+  return get(`${ADMIN_PREFIX}/access-codes/${documentId}`).then(res => {
+    const item = extractItem(res)
+    if (item) {
+      if (item.course && typeof item.course === 'object') item.course = extractItem(item.course)
+      if (item.createdBy && typeof item.createdBy === 'object') item.createdBy = extractItem(item.createdBy)
+      if (item.usedBy && typeof item.usedBy === 'object') item.usedBy = extractItem(item.usedBy)
+    }
+    return item
+  })
+}
+
+/**
+ * 批量生成开通码
+ * @param {Object} data - { courseDocumentId, count, totalQuota?, expireAt?, batchNote? }
+ */
+export function batchGenerateAccessCodes(data) {
+  return post(`${ADMIN_PREFIX}/access-codes/batch`, { data }).then(extractItem)
+}
+
+/** 禁用开通码 */
+export function disableAccessCode(documentId) {
+  return put(`${ADMIN_PREFIX}/access-codes/${documentId}/disable`).then(extractItem)
+}
+
+/** 删除开通码 */
+export function deleteAccessCode(documentId) {
+  return del(`${ADMIN_PREFIX}/access-codes/${documentId}`).then(extractItem)
+}

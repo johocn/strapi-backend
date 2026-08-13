@@ -1,0 +1,295 @@
+<!-- 官网使用手册 — GEO/SEO 内容发布全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第五章 教程/操作指南 ==================== -->
+<h2 id="ch5"><span class="ch-num">第五章</span>教程/操作指南</h2>
+
+<h3 id="ch5-1">5.1 设计目的与 GEO 角色</h3>
+
+<p>教程/操作指南是官网知识深度建设的载体。它的设计目的是通过结构化的操作步骤指导用户完成特定任务，同时以 HowTo + VideoObject 结构化数据向搜索引擎和 AI 声明"这是一篇可执行的教程"。</p>
+
+<p>在 GEO 体系中，教程承担三个角色：<strong>HowTo 知识图谱节点</strong>（HowTo 结构化数据让 AI 在回答"怎么做 XX"类问题时直接引用你的步骤）、<strong>视频搜索入口</strong>（通过 VideoObject 结构化数据进入 Google 视频搜索结果）、<strong>用户留存工具</strong>（教程内容关联课程中心，引导用户从免费教程进入付费课程体系）。</p>
+
+<p>不做教程的后果：AI 在回答"XX 怎么操作""XX 教程"类问题时引用第三方平台的教程，你的产品失去使用指导话语权；视频搜索结果中不出现你的教程视频；用户在产品使用中遇到困难时找不到官方指导，转向竞品。正确使用的效果：HowTo 结构化数据在搜索结果中展示步骤富媒体片段，教程视频进入 Google 视频搜索，教程引导用户进入课程中心形成学习闭环。</p>
+
+<h3 id="ch5-2">5.2 页面运作原理</h3>
+
+<h4>数据上下游流转</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>环节</th><th>数据流向</th><th>触发机制</th></tr>
+</thead>
+<tbody>
+<tr><td>上游输入</td><td>产品操作手册 / 课程内容片段 &rarr; 创建教程</td><td>内容运营或教研团队创建</td></tr>
+<tr><td>创建/更新</td><td>填写字段 &rarr; 保存 &rarr; Lifecycle 触发</td><td>Strapi 保存</td></tr>
+<tr><td>Lifecycle 触发</td><td>标签索引 &rarr; 知识图谱 &rarr; 搜索引擎推送 &rarr; 缓存失效</td><td>自动</td></tr>
+<tr><td>结构化数据</td><td><code>schema-builder</code> 生成 HowTo schema + VideoObject schema</td><td>前端请求时生成</td></tr>
+<tr><td>课程联动</td><td>教程 &harr; 课程中心（共享知识实体和品牌话术）</td><td>知识实体关联</td></tr>
+<tr><td>下游输出</td><td>公开 API &rarr; 前端教程页 &rarr; sitemap &rarr; llms.txt</td><td>爬虫/前端</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>结构化数据输出</h4>
+
+<p>教程页生成两类结构化数据：<code>HowTo</code>（包含步骤名称、描述、预计时间）和 <code>VideoObject</code>（包含视频标题、上传日期、缩略图、内容 URL）。HowTo 数据让 Google 在搜索结果中展示步骤富媒体片段——用户无需点击就能看到前几步，吸引点击。VideoObject 数据让教程视频进入 Google 视频搜索索引。</p>
+
+<h3 id="ch5-3">5.3 适用人群与禁止操作人群</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>类别</th><th>角色</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>适用人群</strong></td><td>产品培训师</td><td>最了解产品操作流程</td></tr>
+<tr><td></td><td>教研团队</td><td>负责教程内容的教学设计</td></tr>
+<tr><td></td><td>技术文档工程师</td><td>负责技术类教程的准确性</td></tr>
+<tr><td></td><td>内容运营</td><td>负责 SEO 字段和发布流程</td></tr>
+<tr><td><strong>禁止操作人群</strong></td><td>市场部非内容岗</td><td>不了解操作细节，可能写出不准确的步骤</td></tr>
+<tr><td></td><td>未实际使用产品的实习生</td><td>无法验证步骤的正确性</td></tr>
+<tr><td></td><td>外部兼职</td><td>无法获取产品最新版本的操作流程</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>发布内容最终用途：</strong>教程同时服务于搜索引擎 HowTo 搜索（通过步骤富媒体片段获取流量）、AI 操作指导引用（HowTo 结构化数据被 AI 直接引用为操作步骤）、视频搜索（VideoObject 数据进入视频索引）、课程中心导流（教程作为免费内容引导用户进入付费课程）。教程的 <code>steps</code> JSON 数据是 AI 最关注的字段——当用户询问"XX 怎么做"时，AI 倾向于引用有结构化步骤的教程。</p>
+
+<h3 id="ch5-4">5.4 字段四件套详解</h3>
+
+<!-- title & description -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">title / description</span>
+<span class="field-type">string / text</span>
+<span class="badge badge-required">title 必填</span>
+<span class="badge badge-seo">SEO</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">教程标题和描述。标题应包含"怎么做""操作指南"等 HowTo 类关键词，描述概括教程目标和适用场景。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">title 写入 HowTo schema 的 name 字段和 <code>&lt;h1&gt;</code>；description 写入 HowTo schema 的 description 和 <code>og:description</code>；llms.txt 使用 title 和 description 作为教程链接的描述。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">title 格式："如何[完成某任务]"或"[产品名] [操作] 完整指南"。15-35 字。description：50-150 字，说明教程目标、适用版本和难度。例如"本教程指导你如何在 30 分钟内完成 MES 系统的初始配置，适用于 v3.0 以上版本。"</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">标题不含"如何/怎么做"等 HowTo 关键词无法匹配 HowTo 搜索；description 不含适用版本信息导致用户按过时教程操作出错。</div>
+</div>
+</div>
+</div>
+
+<!-- steps -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">steps</span>
+<span class="field-type">json</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-geo">GEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">教程操作步骤，以 JSON 数组格式存储。这是 HowTo 结构化数据的核心，也是 AI 引用教程时的直接数据来源。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端渲染为分步展示；HowTo schema 将每个步骤转为 <code>HowToStep</code> 对象（含 name、text、image）；Google 搜索结果可能展示前 3-5 步的富媒体片段。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">JSON 数组格式：<code>[{"name":"步骤标题","text":"详细操作说明","image":"步骤截图URL"},...]</code>。3-15 个步骤。每个步骤的 name 控制在 5-15 字，text 控制在 50-200 字。步骤顺序必须是可执行的操作顺序。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">JSON 格式错误导致前端渲染异常和 HowTo schema 失效；步骤缺失关键操作导致用户卡住；步骤顺序混乱导致操作失败；无截图的步骤在搜索结果中展示效果差。</div>
+</div>
+</div>
+</div>
+
+<!-- videoUrl & thumbnailUrl -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">videoUrl / thumbnailUrl</span>
+<span class="field-type">string</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-seo">SEO</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">教程视频 URL 和缩略图 URL。填写后生成 VideoObject 结构化数据，让视频进入 Google 视频搜索索引。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">videoUrl 写入 VideoObject.contentUrl；thumbnailUrl 写入 VideoObject.thumbnailUrl。Google 视频搜索抓取这些数据后在视频搜索结果中展示缩略图和链接。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">videoUrl：填写视频的公开访问 URL（支持 MP4 直链或 YouTube/B 站嵌入链接）。thumbnailUrl：填写视频缩略图 URL，尺寸 1280x720px，JPG/WebP 格式。两个字段需同时填写。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">videoUrl 不可访问导致 Google 视频索引失败；只填 videoUrl 不填 thumbnailUrl 导致视频搜索结果无缩略图；URL 指向需要登录才能访问的视频会被搜索引擎跳过。</div>
+</div>
+</div>
+</div>
+
+<!-- difficulty -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">difficulty</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">教程难度等级（入门/中级/高级），帮助用户选择适合自己水平的教程，同时让 AI 在推荐教程时考虑用户水平。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端展示难度标签；教程列表按难度筛选；AI 抓取时通过难度标签理解教程的目标受众。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">beginner：零基础可操作的基础教程。intermediate：需要一定产品使用经验的进阶教程。advanced：面向管理员或开发者的深度教程。根据教程实际需要的先决知识选择。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">难度标记过低导致新手尝试后失败，体验差；难度标记过高吓退目标用户。</div>
+</div>
+</div>
+</div>
+
+<!-- materials & estimatedTime & result -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">materials / estimatedTime / result</span>
+<span class="field-type">json / string / text</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value"><code>materials</code> 是教程所需素材清单（JSON），<code>estimatedTime</code> 是预计完成时间，<code>result</code> 是教程完成后的预期结果描述。三者共同构成 HowTo schema 的补充信息。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">materials 写入 HowTo.supply；estimatedTime 写入 HowTo.totalTime（ISO 8601 格式）；result 在教程末尾展示并写入 HowTo schema 的 expected结果描述。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">materials 格式：<code>["账号权限","测试数据","操作手册PDF"]</code>。estimatedTime 格式："30分钟"或"PT30M"（ISO 8601）。result：50-100 字描述完成教程后的状态，例如"完成本教程后，你将拥有一个配置完整的生产管理系统，可以开始录入生产订单。"</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">materials 不完整导致用户中途缺少素材无法继续；estimatedTime 与实际差距过大影响用户预期管理；result 不明确让用户不确定教程是否完成。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch5-5">5.5 标准发布全流程</h3>
+
+<h4>素材准备清单</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>素材</th><th>要求</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>操作步骤文档</td><td>3-15 步，每步含标题和说明</td><td>填入 steps</td></tr>
+<tr><td>步骤截图</td><td>每步 1 张, 1280x720px</td><td>填入 steps 中的 image</td></tr>
+<tr><td>视频（可选）</td><td>MP4 或视频平台链接</td><td>填入 videoUrl</td></tr>
+<tr><td>视频缩略图</td><td>1280x720px, JPG/WebP</td><td>填入 thumbnailUrl</td></tr>
+<tr><td>封面图</td><td>1200x630px</td><td>填入 coverImage</td></tr>
+<tr><td>素材清单</td><td>JSON 数组</td><td>填入 materials</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>填写顺序</h4>
+
+<ol class="steps">
+<li><strong>基础信息</strong> — 填写 <code>title</code>、<code>slug</code>、<code>description</code></li>
+<li><strong>操作步骤</strong> — 填写 <code>steps</code>（JSON 数组，含 name/text/image）</li>
+<li><strong>补充信息</strong> — 填写 <code>materials</code>、<code>estimatedTime</code>、<code>result</code></li>
+<li><strong>难度与分类</strong> — 选择 <code>difficulty</code>、<code>category</code>、<code>tags</code></li>
+<li><strong>视频资源</strong> — 填写 <code>videoUrl</code> 和 <code>thumbnailUrl</code>（如有视频）</li>
+<li><strong>媒体资源</strong> — 上传 <code>coverImage</code></li>
+<li><strong>排序</strong> — 设置 <code>order</code>（同分类教程的展示顺序）</li>
+<li><strong>知识图谱</strong> — 选择 <code>mainEntity</code> 和 <code>mentionedEntities</code></li>
+<li><strong>品牌话术</strong> — 关联 <code>brandVoiceRef</code></li>
+<li><strong>自检</strong> — 对照自检清单</li>
+<li><strong>发布</strong> — <code>status</code> 改为 <code>published</code></li>
+</ol>
+
+<h4>发布前自检清单</h4>
+
+<ul class="checklist">
+<li>title 含"如何/怎么做/指南"等 HowTo 关键词</li>
+<li>steps JSON 格式正确，3-15 个步骤</li>
+<li>每个步骤含 name 和 text，有截图</li>
+<li>步骤顺序可执行，无遗漏</li>
+<li>difficulty 已选择</li>
+<li>materials 列表完整</li>
+<li>estimatedTime 合理</li>
+<li>result 描述明确</li>
+<li>视频 URL 可访问（如有）</li>
+<li>封面图已上传</li>
+<li>mainEntity 已关联</li>
+<li>实际操作验证步骤正确性</li>
+</ul>
+
+<h3 id="ch5-6">5.6 发布后闭环运作与禁忌</h3>
+
+<h4>前端展示与 GEO 效果</h4>
+
+<p>教程发布后，前端渲染分步教程页面，展示步骤列表、素材清单、预计时间和结果。HowTo 结构化数据让 Google 可能在搜索结果中展示步骤富媒体片段（前 3-5 步），显著提高点击率。VideoObject 数据让教程视频进入视频搜索。教程通过 llms.txt 输出，AI 在回答操作类问题时引用你的步骤。教程关联的知识实体与课程中心共享，用户从教程可跳转到相关课程。</p>
+
+<h4>与课程中心的联动</h4>
+
+<div class="callout callout-info">
+<div class="callout-title">教程到课程的学习闭环</div>
+<p>教程是免费内容，承担引流角色。用户通过搜索"怎么做 XX"进入教程页 &rarr; 完成教程操作 &rarr; 发现需要更系统的学习 &rarr; 通过知识实体关联跳转到课程中心 &rarr; 注册付费课程。这个闭环中，教程的知识实体和课程的实体重合，确保主题衔接。品牌话术 <code>brandVoiceRef</code> 统一两者的表述方式。</p>
+</div>
+
+<h4>字段禁忌写法</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>禁忌写法</th><th>后果</th></tr>
+</thead>
+<tbody>
+<tr><td>title</td><td>不含 HowTo 关键词（如"产品介绍"）</td><td>无法匹配 HowTo 搜索</td></tr>
+<tr><td>steps</td><td>填写纯文本而非 JSON 数组</td><td>HowTo schema 失效，前端渲染异常</td></tr>
+<tr><td>steps</td><td>步骤无截图</td><td>搜索富媒体片段展示效果差</td></tr>
+<tr><td>videoUrl</td><td>填写需要登录才能访问的视频</td><td>Google 视频索引失败</td></tr>
+<tr><td>estimatedTime</td><td>与实际差距过大</td><td>用户预期管理失败，中途放弃</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>内容禁忌类型</h4>
+
+<div class="callout callout-danger">
+<div class="callout-title">禁止发布的教程内容</div>
+<p><strong>1. 未验证的步骤</strong> — 未实际操作验证的教程步骤。后果：用户操作失败，信任度下降，差评传播。</p>
+<p><strong>2. 过时操作</strong> — 产品已更新但教程未同步。后果：用户按旧教程操作出错，增加客服压力。</p>
+<p><strong>3. 步骤跳跃</strong> — 省略关键中间步骤。后果：新手用户卡住，教程完成率低。</p>
+<p><strong>4. 无截图教程</strong> — 纯文字无截图的操作教程。后果：HowTo 富媒体片段无法展示，用户体验差。</p>
+<p><strong>5. 与产品功能不符</strong> — 教程描述的操作在产品中不存在。后果：用户质疑产品功能，AI 传播错误操作信息。</p>
+</div>

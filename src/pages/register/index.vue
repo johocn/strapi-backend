@@ -294,8 +294,9 @@ async function handleRegister() {
     // 不自动登录：避免"半登录"状态绕过 adminLocal 校验，跳登录页让用户走完整登录流程
     uni.showToast({ title: '注册成功，请重新登录', icon: 'success' })
 
+    // 使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
     setTimeout(() => {
-      uni.reLaunch({ url: '/pages/login/index' })
+      window.location.href = window.location.origin + '/#/pages/login/index'
     }, 1000)
   } catch (err) {
     registerError.value = err.message || '注册失败，请稍后重试'
@@ -307,7 +308,8 @@ async function handleRegister() {
 // ── 导航 ──
 
 function goLogin() {
-  uni.reLaunch({ url: '/pages/login/index' })
+  // 使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
+  window.location.href = window.location.origin + '/#/pages/login/index'
 }
 </script>
 

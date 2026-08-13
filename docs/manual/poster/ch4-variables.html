@@ -1,0 +1,467 @@
+<!-- 自定义海报使用手册 — 海报模板设计与前端集成全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第四章 变量与二维码 ==================== -->
+<h2 id="ch4"><span class="ch-num">第四章</span>变量与二维码</h2>
+
+<h3 id="ch4-1">4.1 变量绑定机制</h3>
+
+<p>变量绑定是将模板声明的变量与元素内容关联的机制。通过变量绑定，元素的内容不再硬编码，而是在渲染时根据前端传入的变量值动态填充。</p>
+
+<h4>绑定流程</h4>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">模板声明变量</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">元素绑定变量名</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">前端传入变量值</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">渲染服务解析</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">变量值注入元素</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node flow-node-primary">返回已解析配置</span>
+</div>
+</div>
+
+<h4>绑定字段说明</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>元素字段</th><th>作用</th><th>是否必填</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>isVariable</code></td><td>开关：元素是否由变量驱动</td><td>是（默认 false）</td><td>true</td></tr>
+<tr><td><code>variableName</code></td><td>绑定的变量名，需在模板的 requiredVariables 或 optionalVariables 中声明</td><td>isVariable=true 时必填</td><td>"title"</td></tr>
+<tr><td><code>defaultValue</code></td><td>变量缺失时的回退内容</td><td>选填</td><td>"精品课程"</td></tr>
+<tr><td><code>content</code></td><td>非变量元素的固定内容</td><td>isVariable=false 时使用</td><td>"扫码分享赚积分"</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>变量解析逻辑详解</h4>
+
+<p>渲染服务 <code>resolveTemplate</code> 对每个元素执行以下解析逻辑：</p>
+
+<ol class="steps">
+<li><strong>判断 isVariable</strong> — 若为 false，<code>resolvedContent</code> 直接取 <code>content</code> 字段值</li>
+<li><strong>判断 variableName</strong> — 若为 true 但 variableName 为空，<code>resolvedContent</code> 取 <code>defaultValue</code></li>
+<li><strong>特殊处理 invite_code</strong> — 若 variableName 为 <code>invite_code</code> 且前端未传入该变量，<code>resolvedContent</code> 取 <code>defaultValue</code>（允许缺失）</li>
+<li><strong>普通变量取值</strong> — 若 variableName 不为 <code>invite_code</code>，<code>resolvedContent</code> = <code>variables[variableName]</code>，若未传入则取 <code>defaultValue</code></li>
+<li><strong>二维码特殊处理</strong> — 若元素类型为 qrcode 且 <code>qrContentMode</code> 为 <code>url_with_invite</code>，执行二维码专属的拼接逻辑（见 4.3 节）</li>
+</ol>
+
+<div class="callout callout-info">
+<div class="callout-title">invite_code 的特殊性</div>
+<p><code>invite_code</code> 是唯一一个即使在 <code>requiredVariables</code> 中声明也允许缺失的变量。这是因为不是所有用户都有邀请码（如新注册用户、游客访问）。系统在校验必填变量时，会跳过 <code>invite_code</code> 的检查：<code>const missing = requiredVars.filter(v => !variables[v] && v !== 'invite_code')</code>。</p>
+</div>
+
+<h3 id="ch4-2">4.2 二维码内容模式</h3>
+
+<p>二维码元素支持两种内容模式，通过 <code>qrContentMode</code> 字段控制：</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">qrContentMode: direct</span>
+<span class="field-type">enumeration / default</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">直接模式：使用传入的 <code>qr_code</code> 变量值或元素的 <code>content</code>/<code>defaultValue</code> 作为二维码内容，不做任何处理。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">适用场景</div>
+<div class="field-item-value">二维码内容是固定的 URL 或文本，不需要拼接邀请码。如：公众号关注二维码、客服微信二维码、固定活动页面二维码。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">内容来源</div>
+<div class="field-item-value">遵循通用变量解析逻辑：若 isVariable=true，取 variables[variableName] 或 defaultValue；若 isVariable=false，取 content 字段。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">qrContentMode: url_with_invite</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">邀请链接模式：将基础 URL 与用户邀请码拼接后作为二维码内容。这是分销场景的核心模式，实现"每个用户的海报二维码都携带专属邀请码"。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">适用场景</div>
+<div class="field-item-value">课程分享海报、商品推广海报、活动裂变海报——任何需要追踪用户邀请关系的场景。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">内容来源</div>
+<div class="field-item-value">基础 URL 优先取 <code>variables.qr_code</code>，若未传入则取元素的 <code>qrBaseUrl</code> 字段。邀请码取 <code>variables.invite_code</code>。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">拼接公式</div>
+<div class="field-item-value"><code>{baseUrl}{separator}{param}={inviteCode}</code><br>例如：<code>https://v.joho.cn/share?inviteCode=ABC123</code></div>
+</div>
+</div>
+</div>
+
+<h4>两种模式对比</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>维度</th><th>direct 模式</th><th>url_with_invite 模式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>内容来源</strong></td><td>变量值或 content 直接作为二维码内容</td><td>基础 URL + 邀请码拼接后作为二维码内容</td></tr>
+<tr><td><strong>邀请码处理</strong></td><td>不涉及邀请码</td><td>自动拼接 inviteCode 参数</td></tr>
+<tr><td><strong>降级策略</strong></td><td>无（缺失时使用 defaultValue）</td><td>三种降级模式可选</td></tr>
+<tr><td><strong>适用场景</strong></td><td>固定二维码（公众号、客服号）</td><td>分销分享二维码（课程、商品、活动）</td></tr>
+<tr><td><strong>配置复杂度</strong></td><td>低（仅需设置内容）</td><td>中（需配置 URL、参数名、分隔符、降级模式）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch4-3">4.3 邀请码自动拼接</h3>
+
+<p>当 <code>qrContentMode</code> 为 <code>url_with_invite</code> 时，系统自动将用户邀请码拼接到基础 URL 上。拼接过程涉及以下字段：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>qrBaseUrl</code></td><td>string</td><td>-</td><td>基础 URL，如 https://v.joho.cn/share</td></tr>
+<tr><td><code>qrInviteParam</code></td><td>string</td><td>inviteCode</td><td>邀请码参数名</td></tr>
+<tr><td><code>qrInviteSeparator</code></td><td>string</td><td>?</td><td>URL 参数分隔符</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>拼接逻辑</h4>
+
+<p>当邀请码存在时（<code>variables.invite_code</code> 有值），系统执行以下拼接：</p>
+
+<p><code>resolvedContent = `${baseUrl}${separator}${param}=${inviteCode}`</code></p>
+
+<p>具体来说：</p>
+
+<ol class="steps">
+<li><strong>获取基础 URL</strong> — 优先取 <code>variables.qr_code</code>，若未传入则取元素的 <code>qrBaseUrl</code> 字段，若两者都为空则使用空字符串</li>
+<li><strong>获取邀请码</strong> — 取 <code>variables.invite_code</code> 的值</li>
+<li><strong>获取分隔符</strong> — 取 <code>qrInviteSeparator</code>，默认 <code>?</code></li>
+<li><strong>获取参数名</strong> — 取 <code>qrInviteParam</code>，默认 <code>inviteCode</code></li>
+<li><strong>拼接 URL</strong> — <code>{baseUrl}{separator}{param}={inviteCode}</code></li>
+</ol>
+
+<h4>拼接示例</h4>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-title">示例 1：标准拼接</div>
+</div>
+<div class="case-card-body">
+<div class="table-wrap">
+<table>
+<thead><tr><th>配置项</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>qrBaseUrl</td><td>https://v.joho.cn/share</td></tr>
+<tr><td>qrInviteParam</td><td>inviteCode (默认)</td></tr>
+<tr><td>qrInviteSeparator</td><td>? (默认)</td></tr>
+<tr><td>variables.invite_code</td><td>ABC123</td></tr>
+<tr><td><strong>拼接结果</strong></td><td><code>https://v.joho.cn/share?inviteCode=ABC123</code></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-title">示例 2：已有查询参数的 URL</div>
+</div>
+<div class="case-card-body">
+<div class="table-wrap">
+<table>
+<thead><tr><th>配置项</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>qrBaseUrl</td><td>https://v.joho.cn/course/123?source=poster</td></tr>
+<tr><td>qrInviteParam</td><td>inviteCode</td></tr>
+<tr><td>qrInviteSeparator</td><td>&amp;</td></tr>
+<tr><td>variables.invite_code</td><td>XYZ789</td></tr>
+<tr><td><strong>拼接结果</strong></td><td><code>https://v.joho.cn/course/123?source=poster&amp;inviteCode=XYZ789</code></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">分隔符选择</div>
+<p>当基础 URL 已包含查询参数（即 URL 中已有 <code>?</code>）时，应将 <code>qrInviteSeparator</code> 设为 <code>&amp;</code> 而非 <code>?</code>，否则拼接出的 URL 会有两个 <code>?</code>，导致参数解析错误。当基础 URL 不含查询参数时，使用默认的 <code>?</code>。</p>
+</div>
+
+<h3 id="ch4-4">4.4 降级策略</h3>
+
+<p>当邀请码缺失时（<code>variables.invite_code</code> 未传入或为空），系统根据 <code>qrFallbackMode</code> 配置决定如何处理二维码元素。这是保证海报始终可生成的容错机制。</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">qrFallbackMode: base_url_only</span>
+<span class="field-type">enumeration / default</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">行为</div>
+<div class="field-item-value">仅使用基础 URL 生成二维码，不拼接邀请码参数。<code>resolvedContent = baseUrl</code></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">适用场景</div>
+<div class="field-item-value">默认策略。适用于希望即使没有邀请码也能生成有效二维码的场景。用户扫码后访问基础 URL 页面，不受邀约关系追踪。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">示例</div>
+<div class="field-item-value">baseUrl = <code>https://v.joho.cn/share</code>，invite_code 缺失 &rarr; 二维码内容 = <code>https://v.joho.cn/share</code></div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">qrFallbackMode: default_value</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">行为</div>
+<div class="field-item-value">使用元素的 <code>defaultValue</code> 作为二维码内容。若 defaultValue 也为空，则回退到 baseUrl。<code>resolvedContent = defaultValue || baseUrl</code></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">适用场景</div>
+<div class="field-item-value">适用于有默认二维码内容的场景。如：未登录用户的二维码使用官方推广链接作为默认值。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">示例</div>
+<div class="field-item-value">defaultValue = <code>https://v.joho.cn/official</code>，invite_code 缺失 &rarr; 二维码内容 = <code>https://v.joho.cn/official</code></div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">qrFallbackMode: hide_element</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">行为</div>
+<div class="field-item-value">隐藏该二维码元素。元素被标记为 <code>hidden: true</code>，并在返回结果中被过滤掉，前端不会收到该元素。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">适用场景</div>
+<div class="field-item-value">适用于没有邀请码就不显示二维码的场景。如：仅限已登录用户可见的分享二维码，未登录用户的海报不包含二维码区域。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">影响</div>
+<div class="field-item-value">被隐藏的元素完全不出现在返回的 <code>elements</code> 数组中。前端在渲染时不会为该元素分配画布空间，可能导致海报布局出现空白区域。建议在模板设计时预留该区域的替代内容。</div>
+</div>
+</div>
+</div>
+
+<h4>降级策略对比</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>策略</th><th>二维码内容</th><th>元素是否显示</th><th>推荐场景</th></tr>
+</thead>
+<tbody>
+<tr><td><code>base_url_only</code></td><td>仅基础 URL</td><td>显示</td><td>默认策略，通用场景</td></tr>
+<tr><td><code>default_value</code></td><td>defaultValue 或 baseUrl</td><td>显示</td><td>有默认推广链接的场景</td></tr>
+<tr><td><code>hide_element</code></td><td>不生成</td><td>隐藏（从结果中移除）</td><td>仅登录用户可见二维码的场景</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>降级决策流程</h4>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">邀请码是否存在?</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node success">是 &rarr; 拼接 URL</span>
+  <span class="flow-arrow">&nbsp;</span>
+  <span class="flow-node warning">否 &rarr; 检查 qrFallbackMode</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&nbsp;</span>
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">base_url_only</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">使用 baseUrl</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">default_value</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">使用 defaultValue 或 baseUrl</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">hide_element</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node danger">标记 hidden，从结果中过滤</span>
+</div>
+</div>
+
+<h3 id="ch4-5">4.5 容错级别</h3>
+
+<p>二维码的容错级别（Error Correction Level）决定了二维码在部分损坏时仍能被正确扫描的能力。通过 <code>qrErrorLevel</code> 字段配置。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>级别</th><th>容错率</th><th>可恢复数据比例</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td><code>L</code> (Low)</td><td>~7%</td><td>约 7% 的数据模块可被损坏</td><td>高质量打印环境，二维码不会被遮挡或变形</td></tr>
+<tr><td><code>M</code> (Medium)</td><td>~15%</td><td>约 15% 的数据模块可被损坏</td><td><strong>默认值</strong>，适用于大多数场景</td></tr>
+<tr><td><code>Q</code> (Quartile)</td><td>~25%</td><td>约 25% 的数据模块可被损坏</td><td>二维码上可能叠加 logo 或部分遮挡</td></tr>
+<tr><td><code>H</code> (High)</td><td>~30%</td><td>约 30% 的数据模块可被损坏</td><td>二维码中心叠加 logo，或打印在易损材质上</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">容错级别选择建议</div>
+<p>默认使用 <code>M</code>（15% 容错率），适用于绝大多数场景。如果需要在二维码中心叠加品牌 logo，建议使用 <code>H</code>（30% 容错率），确保 logo 遮挡部分不影响扫描。容错级别越高，二维码的模块密度越大，相同尺寸下可容纳的数据量越少。</p>
+</div>
+
+<h3 id="ch4-6">4.6 二维码视觉配置</h3>
+
+<p>除了内容配置，二维码元素还支持视觉样式定制：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>qrSize</code></td><td>integer</td><td>120</td><td>二维码尺寸（px），决定二维码在元素区域内的绘制大小</td></tr>
+<tr><td><code>qrColor</code></td><td>string</td><td>#000000</td><td>二维码前景色（模块颜色），默认黑色</td></tr>
+<tr><td><code>qrBgColor</code></td><td>string</td><td>#FFFFFF</td><td>二维码背景色，默认白色</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">颜色对比度要求</div>
+<p>二维码的 <code>qrColor</code> 和 <code>qrBgColor</code> 必须有足够的对比度，否则扫描设备无法识别。推荐使用经典的黑底白字（<code>qrColor: #000000, qrBgColor: #FFFFFF</code>）或反色。如果使用品牌色，确保前景色和背景色的亮度差异足够大。避免使用相近色（如深蓝背景+黑色二维码）。</p>
+</div>
+
+<h3 id="ch4-7">4.7 完整渲染示例</h3>
+
+<p>以下是一个完整的二维码元素配置和渲染结果示例：</p>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-title">课程分享海报二维码配置</div>
+</div>
+<div class="case-card-body">
+
+<h4>元素配置</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>elementType</td><td>qrcode</td></tr>
+<tr><td>elementKey</td><td>qr_code</td></tr>
+<tr><td>elementName</td><td>分享二维码</td></tr>
+<tr><td>isVariable</td><td>false</td></tr>
+<tr><td>x / y</td><td>240 / 800</td></tr>
+<tr><td>width / height</td><td>120 / 120</td></tr>
+<tr><td>zIndex</td><td>10</td></tr>
+<tr><td>qrContentMode</td><td>url_with_invite</td></tr>
+<tr><td>qrBaseUrl</td><td>https://v.joho.cn/share</td></tr>
+<tr><td>qrInviteParam</td><td>inviteCode</td></tr>
+<tr><td>qrInviteSeparator</td><td>?</td></tr>
+<tr><td>qrFallbackMode</td><td>base_url_only</td></tr>
+<tr><td>qrErrorLevel</td><td>M</td></tr>
+<tr><td>qrSize</td><td>120</td></tr>
+<tr><td>qrColor / qrBgColor</td><td>#000000 / #FFFFFF</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>场景 A：用户有邀请码</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>输入</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>variables.qr_code</td><td>https://v.joho.cn/share</td></tr>
+<tr><td>variables.invite_code</td><td>USER_ABC123</td></tr>
+<tr><td><strong>resolvedContent</strong></td><td><code>https://v.joho.cn/share?inviteCode=USER_ABC123</code></td></tr>
+<tr><td><strong>hidden</strong></td><td>false（元素正常显示）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>场景 B：用户无邀请码（降级）</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>输入</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>variables.qr_code</td><td>https://v.joho.cn/share</td></tr>
+<tr><td>variables.invite_code</td><td>（未传入）</td></tr>
+<tr><td><strong>resolvedContent</strong></td><td><code>https://v.joho.cn/share</code>（base_url_only 降级）</td></tr>
+<tr><td><strong>hidden</strong></td><td>false（元素正常显示，二维码内容为纯 baseUrl）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>场景 C：无邀请码且降级模式为 hide_element</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>输入</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>variables.qr_code</td><td>https://v.joho.cn/share</td></tr>
+<tr><td>variables.invite_code</td><td>（未传入）</td></tr>
+<tr><td>qrFallbackMode</td><td>hide_element</td></tr>
+<tr><td><strong>resolvedContent</strong></td><td>不生成</td></tr>
+<tr><td><strong>hidden</strong></td><td>true（元素从返回结果中过滤，前端不渲染该元素）</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- 章节导航 -->
+<div class="chapter-nav">
+  <div class="chapter-nav-prev" onclick="window._goDoc('poster/ch3-elements.html')">
+    <span class="chapter-nav-label">&larr; 上一章：元素配置</span>
+  </div>
+  <div class="chapter-nav-next" onclick="window._goDoc('poster/ch5-api.html')">
+    <span class="chapter-nav-label">下一章：前端 API 集成 &rarr;</span>
+  </div>
+</div>

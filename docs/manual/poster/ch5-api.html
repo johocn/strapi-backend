@@ -1,0 +1,592 @@
+<!-- 自定义海报使用手册 — 海报模板设计与前端集成全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第五章 前端 API 集成 ==================== -->
+<h2 id="ch5"><span class="ch-num">第五章</span>前端 API 集成</h2>
+
+<h3 id="ch5-1">5.1 API 总览</h3>
+
+<p>海报模板功能提供两类 API：<strong>公开 API</strong>（无需认证，供前端 C 端调用）和<strong>管理端 API</strong>（需认证和权限，供管理后台调用）。所有 API 的基础路径为 <code>/api/zhao-studio/v1</code>。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>类别</th><th>路径前缀</th><th>认证</th><th>权限策略</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>公开 API</strong></td><td>/api/zhao-studio/v1/posters</td><td>无需认证 (auth: false)</td><td>无</td><td>前端获取模板配置、提交变量渲染</td></tr>
+<tr><td><strong>管理端 API</strong></td><td>/api/zhao-studio/v1/admin/poster-templates</td><td>需认证</td><td>is-authenticated + has-permission + has-channel-scope + has-tenant-access</td><td>模板 CRUD、元素 CRUD、批量保存、克隆</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch5-2">5.2 公开 API</h3>
+
+<h4>获取模板配置</h4>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">GET /api/zhao-studio/v1/posters/templates/:code</span>
+<span class="field-type">公开 API</span>
+<span class="badge badge-required">无需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">用途</div>
+<div class="field-item-value">根据模板编码获取完整的模板配置（包含元素列表）。前端在渲染海报前调用此接口获取布局配置。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">路径参数</div>
+<div class="field-item-value"><code>code</code> — 模板唯一编码，如 <code>course_share_default</code></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">查询条件</div>
+<div class="field-item-value">系统自动附加 <code>isActive: true</code> 过滤条件，仅返回已启用的模板。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">成功响应 (200)</div>
+<div class="field-item-value"><pre><code>{
+  "data": {
+    "id": 1,
+    "documentId": "abc123...",
+    "name": "默认课程分享海报",
+    "code": "course_share_default",
+    "canvasWidth": 600,
+    "canvasHeight": 1000,
+    "backgroundColor": "#FFFFFF",
+    "backgroundImage": null,
+    "backgroundMode": "cover",
+    "requiredVariables": ["title","description","image_url","qr_code"],
+    "optionalVariables": ["market_price","sale_price","invite_code"],
+    "isActive": true,
+    "isDefault": true,
+    "elements": [
+      {
+        "id": 1,
+        "documentId": "elem1...",
+        "elementType": "text",
+        "elementKey": "title",
+        "elementName": "课程标题",
+        "isVariable": true,
+        "variableName": "title",
+        "defaultValue": "精品课程",
+        "x": 50, "y": 60, "width": 500, "height": 50,
+        "zIndex": 10, "sortOrder": 1,
+        "fontSize": 28, "fontColor": "#1A1A1A",
+        "fontWeight": "bold", "textAlign": "center"
+      }
+      // ... 更多元素
+    ],
+    "site": { "id": 1, "documentId": "site1...", "name": "主站" }
+  }
+}</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 (404)</div>
+<div class="field-item-value"><pre><code>{
+  "error": {
+    "code": "POSTER_001",
+    "message": "Template not found"
+  }
+}</code></pre></div>
+</div>
+</div>
+</div>
+
+<h4>渲染模板（变量解析）</h4>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">POST /api/zhao-studio/v1/posters/render</span>
+<span class="field-type">公开 API</span>
+<span class="badge badge-required">无需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">用途</div>
+<div class="field-item-value">传入模板编码和变量数据，系统解析变量后返回已解析的元素配置。前端根据返回的配置直接渲染海报。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">请求体</div>
+<div class="field-item-value"><pre><code>{
+  "templateCode": "course_share_default",
+  "variables": {
+    "title": "React 进阶实战课程",
+    "description": "从入门到精通，12 周系统学习 React 开发",
+    "image_url": "https://cdn.example.com/course/react-advanced.jpg",
+    "qr_code": "https://v.joho.cn/share",
+    "sale_price": "299",
+    "market_price": "599",
+    "invite_code": "USER_ABC123"
+  }
+}</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">成功响应 (200)</div>
+<div class="field-item-value"><pre><code>{
+  "data": {
+    "template": {
+      "canvasWidth": 600,
+      "canvasHeight": 1000,
+      "backgroundColor": "#FFFFFF",
+      "backgroundImage": null,
+      "backgroundMode": "cover"
+    },
+    "elements": [
+      {
+        "elementType": "text",
+        "elementKey": "title",
+        "resolvedContent": "React 进阶实战课程",
+        "x": 50, "y": 60, "width": 500, "height": 50,
+        "zIndex": 10, "fontSize": 28, "fontColor": "#1A1A1A",
+        "fontWeight": "bold", "textAlign": "center"
+      },
+      {
+        "elementType": "qrcode",
+        "elementKey": "qr_code",
+        "resolvedContent": "https://v.joho.cn/share?inviteCode=USER_ABC123",
+        "x": 240, "y": 800, "width": 120, "height": 120,
+        "qrSize": 120, "qrColor": "#000000", "qrBgColor": "#FFFFFF"
+      }
+      // ... 更多已解析元素（hidden 元素已被过滤）
+    ]
+  }
+}</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 — 模板不存在 (404)</div>
+<div class="field-item-value"><pre><code>{
+  "error": { "code": "POSTER_001", "message": "Template not found" }
+}</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 — 缺失必填变量 (400)</div>
+<div class="field-item-value"><pre><code>{
+  "error": {
+    "code": "POSTER_002",
+    "message": "Missing required variables: title, image_url",
+    "details": { "missing": ["title", "image_url"] }
+  }
+}</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 — 服务器错误 (500)</div>
+<div class="field-item-value"><pre><code>{
+  "error": { "code": "POSTER_500", "message": "Internal error" }
+}</code></pre></div>
+</div>
+</div>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">前端集成建议</div>
+<p>前端有两种集成方式：<br>
+<strong>方式一（两步式）</strong>：先调用 <code>GET /posters/templates/:code</code> 获取原始模板配置（用于展示模板预览），再调用 <code>POST /posters/render</code> 获取已解析配置进行渲染。<br>
+<strong>方式二（一步式）</strong>：直接调用 <code>POST /posters/render</code>，一步获取已解析的元素配置，直接渲染。适用于不需要展示原始模板预览的场景。</p>
+</div>
+
+<h3 id="ch5-3">5.3 管理端模板 API</h3>
+
+<p>管理端 API 需要通过认证中间件链：<code>is-authenticated</code> &rarr; <code>has-permission</code> &rarr; <code>has-channel-scope</code> &rarr; <code>has-tenant-access</code>。所需权限为 <code>zhao-studio.poster-template.manage</code>。</p>
+
+<h4>模板 CRUD</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>方法</th><th>路径</th><th>用途</th><th>权限</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td>/admin/poster-templates</td><td>查询模板列表</td><td>poster-template.manage</td></tr>
+<tr><td>POST</td><td>/admin/poster-templates</td><td>创建模板</td><td>poster-template.manage</td></tr>
+<tr><td>GET</td><td>/admin/poster-templates/:id</td><td>查询单个模板（含元素）</td><td>poster-template.manage</td></tr>
+<tr><td>PUT</td><td>/admin/poster-templates/:id</td><td>更新模板</td><td>poster-template.manage</td></tr>
+<tr><td>DELETE</td><td>/admin/poster-templates/:id</td><td>删除模板</td><td>poster-template.manage</td></tr>
+<tr><td>POST</td><td>/admin/poster-templates/:id/clone</td><td>克隆模板</td><td>poster-template.manage</td></tr>
+<tr><td>PUT</td><td>/admin/poster-templates/:id/elements</td><td>批量保存元素</td><td>poster-template.manage</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>创建模板</h4>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">POST /admin/poster-templates</span>
+<span class="field-type">管理端 API</span>
+<span class="badge badge-required">需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">请求体</div>
+<div class="field-item-value"><pre><code>{
+  "data": {
+    "name": "暑期促销海报",
+    "code": "summer_promo_2026",
+    "site": "site_document_id",
+    "canvasWidth": 600,
+    "canvasHeight": 1000,
+    "backgroundColor": "#FFF8E1",
+    "backgroundMode": "cover",
+    "isActive": true,
+    "isDefault": false,
+    "requiredVariables": ["title","description","image_url","qr_code"],
+    "optionalVariables": ["market_price","sale_price","invite_code"],
+    "description": "2026年暑期促销活动分享海报"
+  }
+}</code></pre></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">成功响应</div>
+<div class="field-item-value">返回 <code>{ "data": { ...createdTemplate } }</code></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 (400)</div>
+<div class="field-item-value"><pre><code>{ "error": { "code": "POSTER_400", "message": "错误描述" } }</code></pre></div>
+</div>
+</div>
+</div>
+
+<h4>更新模板</h4>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">PUT /admin/poster-templates/:id</span>
+<span class="field-type">管理端 API</span>
+<span class="badge badge-required">需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">路径参数</div>
+<div class="field-item-value"><code>id</code> — 模板的 documentId</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">请求体</div>
+<div class="field-item-value"><pre><code>{
+  "data": {
+    "name": "暑期促销海报（已更新）",
+    "canvasHeight": 1100,
+    "isActive": true
+  }
+}</code></pre></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">说明</div>
+<div class="field-item-value">只需传入要更新的字段，未传入的字段保持不变。</div>
+</div>
+</div>
+</div>
+
+<h4>删除模板</h4>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">DELETE /admin/poster-templates/:id</span>
+<span class="field-type">管理端 API</span>
+<span class="badge badge-required">需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">成功响应</div>
+<div class="field-item-value"><pre><code>{ "data": { "success": true } }</code></pre></div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">注意</div>
+<div class="field-item-value danger">删除模板不会自动删除关联的元素。建议在删除模板前先通过批量保存 API 清空元素，或直接删除模板后手动清理孤立元素。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch5-4">5.4 批量保存元素 API</h3>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">PUT /admin/poster-templates/:id/elements</span>
+<span class="field-type">管理端 API</span>
+<span class="badge badge-required">需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">用途</div>
+<div class="field-item-value">一次性保存模板的所有元素。采用<strong>先删后建</strong>策略：先删除该模板下所有现有元素，再根据传入的元素数组逐一创建。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">请求体</div>
+<div class="field-item-value"><pre><code>{
+  "elements": [
+    {
+      "elementType": "text",
+      "elementKey": "title",
+      "elementName": "课程标题",
+      "isVariable": true,
+      "variableName": "title",
+      "defaultValue": "精品课程",
+      "x": 50, "y": 60, "width": 500, "height": 50,
+      "zIndex": 10, "sortOrder": 1,
+      "fontSize": 28, "fontColor": "#1A1A1A",
+      "fontWeight": "bold", "textAlign": "center"
+    },
+    {
+      "elementType": "qrcode",
+      "elementKey": "qr_code",
+      "elementName": "分享二维码",
+      "isVariable": false,
+      "qrContentMode": "url_with_invite",
+      "qrBaseUrl": "https://v.joho.cn/share",
+      "qrInviteParam": "inviteCode",
+      "qrInviteSeparator": "?",
+      "qrFallbackMode": "base_url_only",
+      "qrErrorLevel": "M",
+      "qrSize": 120,
+      "x": 240, "y": 800, "width": 120, "height": 120,
+      "zIndex": 10, "sortOrder": 5
+    }
+  ]
+}</code></pre></div>
+</div>
+<div class="field-item">
+<div class="field-item-label">成功响应</div>
+<div class="field-item-value">返回 <code>{ "data": [ ...createdElements ] }</code>，包含所有新创建的元素（含新的 documentId）。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">先删后建策略说明</div>
+<div class="field-item-value">
+1. 查询该模板下所有现有元素 (<code>filters: { posterTemplate: templateDocumentId }</code>)<br>
+2. 逐一删除现有元素<br>
+3. 遍历传入的元素数组，为每个元素附加 <code>posterTemplate: templateDocumentId</code> 后创建<br>
+4. 返回新创建的元素数组
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">由于先删后建，如果创建过程中出错（如网络中断），已删除的元素无法恢复。建议在批量保存前确认元素数据完整。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch5-5">5.5 模板克隆 API</h3>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">POST /admin/poster-templates/:id/clone</span>
+<span class="field-type">管理端 API</span>
+<span class="badge badge-required">需认证</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">用途</div>
+<div class="field-item-value">基于现有模板创建副本，完整复制模板属性和所有关联元素。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">请求体</div>
+<div class="field-item-value">无需请求体，仅需路径参数 <code>id</code>（原模板的 documentId）。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">成功响应</div>
+<div class="field-item-value">返回 <code>{ "data": { ...clonedTemplate } }</code>，包含克隆的模板及其元素。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">克隆后的字段变化</div>
+<div class="field-item-value">
+<strong>name</strong>：追加 "(副本)" 后缀，如 "默认课程分享海报 (副本)"<br>
+<strong>code</strong>：追加 <code>_copy_{timestamp}</code> 后缀，如 <code>course_share_default_copy_1691491200000</code><br>
+<strong>isDefault</strong>：强制设为 false<br>
+<strong>其他字段</strong>：完全复制原模板的值<br>
+<strong>元素</strong>：逐一复制，新元素的 posterTemplate 指向克隆模板的 documentId
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">失败响应 (400)</div>
+<div class="field-item-value"><pre><code>{ "error": { "code": "POSTER_400", "message": "Template not found" } }</code></pre></div>
+</div>
+</div>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">克隆后操作</div>
+<p>克隆完成后，新模板的 code 包含时间戳后缀，不便于记忆和使用。建议克隆后立即调用 <code>PUT /admin/poster-templates/:id</code> 修改 name 和 code 为有意义的值。同时检查 isActive 状态，如果不需要立即可用，设为 false。</p>
+</div>
+
+<h3 id="ch5-6">5.6 元素管理 API</h3>
+
+<p>除了通过批量保存 API 管理元素外，系统还提供单个元素的 CRUD API。这些 API 所需权限为 <code>zhao-studio.poster-element.manage</code>。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>方法</th><th>路径</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>GET</td><td>/admin/poster-elements</td><td>查询元素列表（支持 filters 过滤）</td></tr>
+<tr><td>POST</td><td>/admin/poster-elements</td><td>创建单个元素</td></tr>
+<tr><td>PUT</td><td>/admin/poster-elements/:id</td><td>更新单个元素</td></tr>
+<tr><td>DELETE</td><td>/admin/poster-elements/:id</td><td>删除单个元素</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">推荐使用方式</div>
+<p>管理后台的 PosterTemplatePage 使用批量保存 API（<code>PUT /admin/poster-templates/:id/elements</code>）管理元素，而非单个元素 CRUD。批量保存的优势是原子性更好（一次性保存所有元素），且前端状态管理更简单。单个元素 CRUD API 适用于需要精确控制单个元素的场景，如通过外部脚本批量导入元素。</p>
+</div>
+
+<h3 id="ch5-7">5.7 前端集成完整示例</h3>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-title">前端 Canvas 渲染完整流程</div>
+</div>
+<div class="case-card-body">
+
+<h4>Step 1: 调用渲染 API</h4>
+<pre><code>// 调用渲染 API 获取已解析的元素配置
+const response = await fetch('/api/zhao-studio/v1/posters/render', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    templateCode: 'course_share_default',
+    variables: {
+      title: 'React 进阶实战课程',
+      description: '从入门到精通，12 周系统学习',
+      image_url: 'https://cdn.example.com/course/react.jpg',
+      qr_code: 'https://v.joho.cn/share',
+      sale_price: '299',
+      invite_code: 'USER_ABC123'
+    }
+  })
+});
+
+const { data } = await response.json();
+const { template, elements } = data;</code></pre>
+
+<h4>Step 2: Canvas 渲染</h4>
+<pre><code>// 使用 Canvas API 渲染海报
+const canvas = document.createElement('canvas');
+canvas.width = template.canvasWidth;
+canvas.height = template.canvasHeight;
+const ctx = canvas.getContext('2d');
+
+// 1. 绘制背景
+ctx.fillStyle = template.backgroundColor || '#FFFFFF';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// 2. 绘制背景图片（如有）
+if (template.backgroundImage) {
+  const bgImg = await loadImage(template.backgroundImage);
+  // 根据 backgroundMode 绘制（此处以 cover 为例）
+  drawImageCover(ctx, bgImg, 0, 0, canvas.width, canvas.height);
+}
+
+// 3. 按顺序绘制元素
+for (const el of elements) {
+  ctx.save();
+
+  // 设置透明度
+  ctx.globalAlpha = el.opacity ?? 1;
+
+  // 设置旋转
+  if (el.rotation) {
+    ctx.translate(el.x, el.y);
+    ctx.rotate(el.rotation * Math.PI / 180);
+    ctx.translate(-el.x, -el.y);
+  }
+
+  // 根据元素类型绘制
+  switch (el.elementType) {
+    case 'text':
+      ctx.font = `${el.fontWeight} ${el.fontSize}px ${el.fontFamily}`;
+      ctx.fillStyle = el.fontColor;
+      ctx.textAlign = el.textAlign;
+      ctx.fillText(el.resolvedContent, el.x, el.y + el.fontSize);
+      break;
+
+    case 'image':
+      const img = await loadImage(el.resolvedContent);
+      // 根据 imageFit 绘制
+      ctx.drawImage(img, el.x, el.y, el.width, el.height);
+      break;
+
+    case 'qrcode':
+      // 使用二维码库（如 qrcode.js）生成二维码
+      await drawQRCode(ctx, el.resolvedContent, el.x, el.y,
+        el.qrSize, el.qrColor, el.qrBgColor, el.qrErrorLevel);
+      break;
+
+    case 'shape':
+      ctx.fillStyle = el.elementBgColor || 'transparent';
+      if (el.shapeType === 'rect') {
+        drawRoundRect(ctx, el.x, el.y, el.width, el.height, el.borderRadius);
+        ctx.fill();
+      } else if (el.shapeType === 'circle') {
+        ctx.beginPath();
+        ctx.arc(el.x + el.width/2, el.y + el.height/2,
+          Math.min(el.width, el.height)/2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+  }
+
+  ctx.restore();
+}
+
+// 4. 导出图片
+const posterImage = canvas.toDataURL('image/png');</code></pre>
+
+</div>
+</div>
+
+<h3 id="ch5-8">5.8 错误码参考</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>错误码</th><th>HTTP 状态码</th><th>含义</th><th>触发条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>POSTER_001</code></td><td>404</td><td>模板不存在</td><td>GET/POST 请求中 code 对应的模板不存在或 isActive=false</td></tr>
+<tr><td><code>POSTER_002</code></td><td>400</td><td>缺失必填变量</td><td>POST /posters/render 时未提供 requiredVariables 中的变量（invite_code 除外）</td></tr>
+<tr><td><code>POSTER_400</code></td><td>400</td><td>请求参数错误</td><td>创建/更新模板或克隆时参数校验失败</td></tr>
+<tr><td><code>POSTER_500</code></td><td>500</td><td>服务器内部错误</td><td>服务端未捕获的异常</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch5-9">5.9 管理后台 API 工具类</h3>
+
+<p>管理后台前端通过 <code>posterApi.ts</code> 工具类封装了所有管理端 API 调用。该工具类的基础路径为 <code>/api/zhao-studio/v1/admin</code>，提供以下方法：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>方法</th><th>API 调用</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>posterApi.listTemplates(filters?)</code></td><td>GET /poster-templates</td><td>查询模板列表，可选 filters 参数</td></tr>
+<tr><td><code>posterApi.createTemplate(data)</code></td><td>POST /poster-templates</td><td>创建模板</td></tr>
+<tr><td><code>posterApi.findOneTemplate(id)</code></td><td>GET /poster-templates/:id</td><td>查询单个模板详情</td></tr>
+<tr><td><code>posterApi.updateTemplate(id, data)</code></td><td>PUT /poster-templates/:id</td><td>更新模板</td></tr>
+<tr><td><code>posterApi.deleteTemplate(id)</code></td><td>DELETE /poster-templates/:id</td><td>删除模板</td></tr>
+<tr><td><code>posterApi.cloneTemplate(id)</code></td><td>POST /poster-templates/:id/clone</td><td>克隆模板</td></tr>
+<tr><td><code>posterApi.batchSaveElements(templateId, elements)</code></td><td>PUT /poster-templates/:id/elements</td><td>批量保存元素</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>此外，<code>usePosterTemplates</code> Hook 在 <code>posterApi</code> 基础上封装了 React 状态管理，提供 <code>templates</code> 状态和自动刷新机制。每次 create/update/delete/clone/batchSave 操作完成后自动调用 <code>fetchTemplates()</code> 刷新列表。</p>
+
+<div class="callout callout-success">
+<div class="callout-title">最佳实践</div>
+<p>管理后台使用 <code>usePosterTemplates</code> Hook 管理模板状态，使用 <code>posterApi</code> 直接调用特定 API。前端 C 端使用公开 API（<code>GET /posters/templates/:code</code> 和 <code>POST /posters/render</code>），无需认证和权限。API 返回的元素配置可以直接用于 Canvas 渲染，无需额外处理。</p>
+</div>
+
+<!-- 章节导航 -->
+<div class="chapter-nav">
+  <div class="chapter-nav-prev" onclick="window._goDoc('poster/ch4-variables.html')">
+    <span class="chapter-nav-label">&larr; 上一章：变量与二维码</span>
+  </div>
+  <div class="chapter-nav-next" onclick="window._goDoc('poster/index.html')">
+    <span class="chapter-nav-label">返回目录 &rarr;</span>
+  </div>
+</div>

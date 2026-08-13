@@ -1,6 +1,8 @@
 <template>
   <view class="page-container">
     <PageHeader title="课程管理">
+      <button class="btn-secondary" @click="goEnrollment">报名</button>
+      <button class="btn-secondary" @click="goAccessCode">开通码</button>
       <button class="btn-secondary" @click="goCategory">分类</button>
       <button class="btn-secondary" @click="goTag">标签</button>
       <button class="btn-primary" @click="goAdd" v-if="hasPermission('course.create')">+ 新增课程</button>
@@ -204,6 +206,14 @@ function goCategory() {
 
 function goTag() {
   uni.navigateTo({ url: '/pages/course/tag/list' })
+}
+
+function goEnrollment() {
+  uni.navigateTo({ url: '/pages/course/enrollment/list' })
+}
+
+function goAccessCode() {
+  uni.navigateTo({ url: '/pages/course/access-code/list' })
 }
 
 function goDetail(id) {

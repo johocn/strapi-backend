@@ -1,4 +1,11 @@
 {
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^wx-sso-login": "@/components/wx-sso-login/wx-sso-login.vue",
+      "^page-head": "@/components/page-head/page-head.vue"
+    }
+  },
   "pages": [
     {
       "path": "pages/login/index",
@@ -239,6 +246,18 @@
       "path": "pages/course/auth/list",
       "style": {
         "navigationBarTitleText": "用户课程授权"
+      }
+    },
+    {
+      "path": "pages/course/enrollment/list",
+      "style": {
+        "navigationBarTitleText": "报名管理"
+      }
+    },
+    {
+      "path": "pages/course/access-code/list",
+      "style": {
+        "navigationBarTitleText": "开通码管理"
       }
     },
     {
@@ -525,6 +544,12 @@
     { "path": "pages/studio/browser-log/detail", "style": { "navigationBarTitleText": "日志详情" } },
     { "path": "pages/studio/ad-slot/list", "style": { "navigationBarTitleText": "广告位管理" } },
     { "path": "pages/studio/ad-slot/edit", "style": { "navigationBarTitleText": "编辑广告位" } },
+    { "path": "pages/studio/ad-zone/list", "style": { "navigationBarTitleText": "广告区域" } },
+    { "path": "pages/studio/ad-zone/edit", "style": { "navigationBarTitleText": "编辑广告区域" } },
+    { "path": "pages/studio/ad-content/list", "style": { "navigationBarTitleText": "广告内容" } },
+    { "path": "pages/studio/ad-content/edit", "style": { "navigationBarTitleText": "编辑广告内容" } },
+    { "path": "pages/studio/poster-template/list", "style": { "navigationBarTitleText": "海报模板" } },
+    { "path": "pages/studio/poster-template/edit", "style": { "navigationBarTitleText": "编辑海报模板" } },
     { "path": "pages/studio/collect-workflow/index", "style": { "navigationBarTitleText": "采集工作流" } },
     { "path": "pages/studio/publish-center/index", "style": { "navigationBarTitleText": "发布中心" } },
     { "path": "pages/studio/analytics/index", "style": { "navigationBarTitleText": "数据分析" } },
@@ -545,7 +570,16 @@
     { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } },
     { "path": "pages/sso/login", "style": { "navigationBarTitleText": "SSO 登录" } },
     { "path": "pages/sso/login-callback", "style": { "navigationBarTitleText": "登录中" } },
-    { "path": "pages/sso/register", "style": { "navigationBarTitleText": "注册账号" } }
+    { "path": "pages/sso/register", "style": { "navigationBarTitleText": "注册账号" } },
+
+    { "path": "pages/wealth/product/list", "style": { "navigationBarTitleText": "理财产品" } },
+    { "path": "pages/wealth/product/form", "style": { "navigationBarTitleText": "产品编辑" } },
+    { "path": "pages/wealth/collect/index", "style": { "navigationBarTitleText": "采集中心" } },
+    { "path": "pages/wealth/metrics/index", "style": { "navigationBarTitleText": "指标看板" } },
+    { "path": "pages/wealth/compare/index", "style": { "navigationBarTitleText": "产品对比" } },
+    { "path": "pages/wealth/holding/list", "style": { "navigationBarTitleText": "持仓追踪" } },
+    { "path": "pages/wealth/holding/detail", "style": { "navigationBarTitleText": "持仓详情" } },
+    { "path": "pages/wealth/disclosure/index", "style": { "navigationBarTitleText": "披露管理" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

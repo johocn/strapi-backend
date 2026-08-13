@@ -1,5 +1,5 @@
 <template>
-  <view v-if="visible" class="media-picker-overlay" @click="handleClose">
+  <view v-show="visible" class="media-picker-overlay" @click="handleClose">
     <view class="media-picker" @click.stop>
       <view class="picker-header">
         <text class="picker-title">媒体库</text>
@@ -292,7 +292,12 @@ async function loadMedia(append = false) {
     } else {
       mediaList.value = result.list || []
     }
-    pagination.value = result.pagination || {}
+    pagination.value = {
+      page: result.pagination?.page || pagination.value.page,
+      pageSize: result.pagination?.pageSize || pagination.value.pageSize,
+      total: result.pagination?.total || 0,
+      pageCount: result.pagination?.pageCount || 0,
+    }
   } catch (e) {
     /* ignore */
   } finally {

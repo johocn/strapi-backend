@@ -2,20 +2,28 @@
   <view class="callback-page">
     <view class="callback-title">登录中</view>
 
-    <view v-if="loading" class="status">正在兑换 token...</view>
+    <view v-if="loading" class="status">正在跳转...</view>
+    <view v-else-if="redirecting" class="status">检测到登录凭证，正在跳转到目标页面...</view>
     <view v-else-if="error" class="status error">
       <text>{{ error }}</text>
       <view class="retry-btn" @click="backToLogin">返回登录</view>
+    </view>
+    <view v-else class="status">正在处理登录信息...</view>
+
+    <!-- 调试信息（仅开发环境，可通过 URL 参数 ?debug=1 显示） -->
+    <view v-if="showDebug" class="debug-info">
+      <text class="debug-text">{{ debugInfo }}</text>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { publicPost } from '../../utils/request.js'
 
 const loading = ref(false)
+const redirecting = ref(false)
 const error = ref('')
 const code = ref('')
 const returnUrl = ref('')
@@ -23,29 +31,74 @@ const cEndUrl = ref('')
 const appCode = ref('')
 const inviteCode = ref('')
 const channelCode = ref('')
+const showDebug = ref(false)
+const debugInfo = ref('')
+
+let initCalled = false
+
+/**
+ * 从 URL hash 中解析查询参数（UniApp H5 hash 模式兜底）
+ */
+function parseHashParams() {
+  if (typeof window === 'undefined') return {}
+  try {
+    const hashQuery = window.location.hash.split('?')[1] || ''
+    if (!hashQuery) return {}
+    const urlParams = new URLSearchParams(hashQuery)
+    const result = {}
+    for (const key of ['token', 'code', 'user', 'return_url', 'c_end_url', 'app_code', 'state', 'error', 'isNew', 'invite_code', 'channel_code']) {
+      const val = urlParams.get(key)
+      if (val) result[key] = val
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * SSO 回调 URL 协议处理：
+ * - SSO 服务器自身（h.joho.cn）必须用 HTTPS（微信 OAuth 要求）
+ * - C 端域名（v.joho.cn 等）保持原样，不强制转换
+ *   （C 端可能未配置 SSL，强制 HTTPS 会导致 ERR_SSL_PROTOCOL_ERROR）
+ */
+function enforceHttps(url) {
+  if (!url) return url
+  // 只对 SSO 服务器域名强制 HTTPS
+  if (url.includes('h.joho.cn')) {
+    return url.replace(/^http:\/\//i, 'https://')
+  }
+  return url
+}
 
 async function init(options) {
+  if (initCalled) return
+  initCalled = true
+
   // 兜底：UniApp onLoad 可能因 return_url 中编码的 %23（#）导致参数解析异常
   // 当关键参数缺失时，直接从 window.location.hash 解析补充
   if (typeof window !== 'undefined') {
     try {
-      const hashQuery = window.location.hash.split('?')[1] || ''
-      if (hashQuery) {
-        const urlParams = new URLSearchParams(hashQuery)
-        const merged = { ...(options || {}) }
-        for (const key of ['token', 'code', 'user', 'return_url', 'c_end_url', 'app_code', 'state', 'error', 'isNew']) {
-          if (!merged[key] && urlParams.get(key)) {
-            merged[key] = urlParams.get(key)
-          }
+      const hashParams = parseHashParams()
+      const merged = { ...(options || {}) }
+      for (const key of Object.keys(hashParams)) {
+        if (!merged[key] && hashParams[key]) {
+          merged[key] = hashParams[key]
         }
-        options = merged
       }
+      options = merged
     } catch (e) {
       console.warn('[SSO login-callback] URL fallback parsing failed:', e)
     }
   }
 
-  console.log('[SSO login-callback] init options:', JSON.stringify({
+  // 检查是否显示调试信息
+  if (typeof window !== 'undefined') {
+    const hashParams = parseHashParams()
+    showDebug.value = hashParams.debug === '1' || new URLSearchParams(window.location.search).get('debug') === '1'
+  }
+
+  const debugData = {
     token: options?.token ? '(present)' : '(missing)',
     code: options?.code || '(missing)',
     return_url: options?.return_url || '(missing)',
@@ -53,13 +106,15 @@ async function init(options) {
     app_code: options?.app_code || '(missing)',
     state: options?.state ? '(present)' : '(missing)',
     error: options?.error || '(missing)',
-  }))
+  }
+  console.log('[SSO login-callback] init options:', JSON.stringify(debugData))
+  debugInfo.value = JSON.stringify(debugData, null, 2)
 
   // OAuth 回调失败时后端 302 携带 error 参数
   const errorMsg = options?.error
   if (errorMsg) {
     error.value = decodeURIComponent(errorMsg)
-    return // 不再调 exchangeToken
+    return
   }
 
   // 提取所有参数
@@ -70,17 +125,16 @@ async function init(options) {
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
   cEndUrl.value = options?.c_end_url ? decodeURIComponent(options.c_end_url) : ''
   appCode.value = options?.app_code || ''
+  inviteCode.value = options?.invite_code || ''
+  channelCode.value = options?.channel_code || ''
 
-  // 解码 state（Type A：base64url JSON 信封，由 SSO 后端 wechatRedirect/alipayRedirect 构造）
-  // 提取 invite_code 和 channel_code 用于失败回跳时透传
-  // 注意：state.redirect_uri 是 OAuth redirect_uri（即 login-callback 自身地址），不是 return_url
-  // 不能用它覆盖 returnUrl，否则会导致 redirect 回 login-callback 自身形成死循环
+  // 解码 state（Type A：base64url JSON 信封）
   const stateRaw = options?.state || ''
   if (stateRaw) {
     try {
       const stateData = JSON.parse(atob(stateRaw.replace(/-/g, '+').replace(/_/g, '/')))
-      inviteCode.value = stateData.invite_code || ''
-      channelCode.value = stateData.channel_code || ''
+      if (!inviteCode.value) inviteCode.value = stateData.invite_code || ''
+      if (!channelCode.value) channelCode.value = stateData.channel_code || ''
       if (stateData.app_code) appCode.value = stateData.app_code
       // 从 state.redirect_uri 的 query 参数中提取 c_end_url 作为兜底
       if (!cEndUrl.value && stateData.redirect_uri) {
@@ -100,6 +154,7 @@ async function init(options) {
   // 跳过 code 兑换，直接转发到目标地址（c_end_url 优先，return_url 兜底）
   if (tokenParam) {
     console.log('[SSO login-callback] 检测到 token 参数，跳过 code 兑换，直接转发')
+    debugInfo.value += '\n→ 检测到 token，执行 redirectToTarget'
     redirectToTarget(tokenParam, userParam, isNewParam)
     return
   }
@@ -107,6 +162,7 @@ async function init(options) {
   // 场景 2：标准 OAuth code 兑换流程
   if (!code.value) {
     error.value = '未收到授权码'
+    debugInfo.value += '\n→ 未收到 token 和 code，无法继续'
     return
   }
   if (!returnUrl.value && !cEndUrl.value) {
@@ -123,23 +179,27 @@ async function init(options) {
 
 /**
  * 直接转发 token 到目标地址（c_end_url 优先，return_url 兜底）
- * 用于 URL 已携带 token 的场景（login.vue onSuccess 跳转、重定向循环回此页等）
+ * 用于 URL 已携带 token 的场景
  */
 function redirectToTarget(token, userEncoded, isNewFlag) {
-  const targetUrl = cEndUrl.value || returnUrl.value
+  // c_end_url 优先，return_url 兜底
+  let targetUrl = cEndUrl.value || returnUrl.value
   if (!targetUrl) {
     error.value = '未收到跳转地址（c_end_url 和 return_url 均缺失）'
     return
   }
 
+  // 强制 HTTPS：所有回调地址必须使用 HTTPS
+  targetUrl = enforceHttps(targetUrl)
+
   // 安全检查：如果 targetUrl 与 SSO 服务器同域且指向 auth-callback，
-  // 说明 C 端未正确配置 return_url/c_end_url（应指向 v.joho.cn 等 C 端域名）
+  // 说明 C 端未正确配置 return_url/c_end_url
   try {
     const targetOrigin = new URL(targetUrl).origin
     const currentOrigin = window.location.origin
     if (targetOrigin === currentOrigin && targetUrl.includes('auth-callback')) {
-      console.error('[SSO login-callback] 目标地址指向 SSO 服务器自身，C 端 return_url/c_end_url 配置有误:', targetUrl)
-      error.value = '回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。请检查 C 端 authConfig 配置并重新部署。'
+      console.error('[SSO login-callback] 目标地址指向 SSO 服务器自身:', targetUrl)
+      error.value = '回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。'
       return
     }
   } catch {}
@@ -147,13 +207,24 @@ function redirectToTarget(token, userEncoded, isNewFlag) {
   const sep = targetUrl.includes('?') ? '&' : '?'
   const userPart = userEncoded ? `&user=${userEncoded}` : ''
   const isNewPart = isNewFlag ? `&isNew=${isNewFlag}` : ''
-  loading.value = true
+  redirecting.value = true
   console.log('[SSO login-callback] redirectToTarget:', targetUrl)
+  debugInfo.value += `\n→ 跳转到: ${targetUrl}`
   window.location.href = `${targetUrl}${sep}token=${token}${userPart}${isNewPart}`
 }
 
+// 主生命周期：onLoad（UniApp 标准）
 onLoad((options) => {
   init(options)
+})
+
+// 兜底：onMounted 确保即使 onLoad 未触发也能执行
+// 某些 UniApp 版本在直接 URL 导航时 onLoad 可能不触发
+onMounted(() => {
+  if (!initCalled) {
+    console.warn('[SSO login-callback] onLoad 未触发，使用 onMounted 兜底')
+    init(parseHashParams())
+  }
 })
 
 async function exchangeToken() {
@@ -171,32 +242,29 @@ async function exchangeToken() {
     }
 
     const userEncoded = btoa(encodeURIComponent(JSON.stringify(result.user || {})))
-    // 优先跳转到 C 端（c_end_url），SSO 认证完成后直接回 C 端 auth-callback 写入 token
-    // 无 c_end_url 时回退到 return_url（SSO 端 auth-callback 中转）
-    const targetUrl = cEndUrl.value || returnUrl.value
+    // c_end_url 优先，return_url 兜底
+    let targetUrl = cEndUrl.value || returnUrl.value
 
-    // 安全检查：同 redirectToTarget，防止 targetUrl 指向 SSO 服务器自身
+    // 强制 HTTPS
+    targetUrl = enforceHttps(targetUrl)
+
+    // 安全检查
     try {
       const targetOrigin = new URL(targetUrl).origin
       if (targetOrigin === window.location.origin && targetUrl.includes('auth-callback')) {
-        throw new Error('回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。请检查 C 端配置。')
+        throw new Error('回调地址配置错误：return_url 应指向 C 端域名（如 v.joho.cn），当前指向 SSO 服务器。')
       }
     } catch (urlErr) {
       if (urlErr.message.includes('回调地址配置错误')) throw urlErr
     }
 
     const sep = targetUrl.includes('?') ? '&' : '?'
-    // 透传 is_new（标识首登用户），C 端 auth-callback 会存 storage，首页据此显示欢迎提示
     const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
     const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
+    console.log('[SSO login-callback] exchangeToken redirect:', targetUrl)
     window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
   } catch (e) {
-    // 失败：跳回 sso/login 携带 error 参数，让用户用降级表单登录
-    // 透传 invite_code/channel_code，保证降级登录也能建立分销关系
-    // 透传 c_end_url，保证降级后仍能跳回 C 端
     error.value = e?.message || e?.error || 'token 兑换失败'
-    // 注意：URLSearchParams.toString() 会自动对值做 application/x-www-form-urlencoded 编码
-    // 不要再手动 encodeURIComponent，否则会导致 return_url 被双重编码
     const params = new URLSearchParams({
       app_code: appCode.value,
       return_url: returnUrl.value,
@@ -206,15 +274,14 @@ async function exchangeToken() {
     if (inviteCode.value) params.append('invite_code', inviteCode.value)
     if (channelCode.value) params.append('channel_code', channelCode.value)
     setTimeout(() => {
-      uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })
-    }, 1500) // 1.5 秒后跳转，让用户看到错误提示
+      window.location.href = window.location.origin + '/#/pages/sso/login?' + params.toString()
+    }, 1500)
   } finally {
     loading.value = false
   }
 }
 
 function backToLogin() {
-  // 同样避免双重编码：URLSearchParams 会自动编码
   const params = new URLSearchParams({
     app_code: appCode.value,
     return_url: returnUrl.value,
@@ -222,7 +289,7 @@ function backToLogin() {
   if (cEndUrl.value) params.append('c_end_url', cEndUrl.value)
   if (inviteCode.value) params.append('invite_code', inviteCode.value)
   if (channelCode.value) params.append('channel_code', channelCode.value)
-  uni.reLaunch({ url: `/pages/sso/login?${params.toString()}` })
+  window.location.href = window.location.origin + '/#/pages/sso/login?' + params.toString()
 }
 </script>
 
@@ -234,7 +301,7 @@ function backToLogin() {
   text-align: center;
 }
 .callback-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
-.status { padding: 16px; border-radius: 8px; }
+.status { padding: 16px; border-radius: 8px; color: #666; }
 .status.error { background: #fee; color: #c00; }
 .retry-btn {
   margin-top: 20px;
@@ -243,5 +310,19 @@ function backToLogin() {
   color: #fff;
   border-radius: 6px;
   display: inline-block;
+}
+.debug-info {
+  margin-top: 20px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  text-align: left;
+  overflow-x: auto;
+}
+.debug-text {
+  font-size: 12px;
+  color: #999;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>

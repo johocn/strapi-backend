@@ -66,8 +66,9 @@ onMounted(async () => {
       ])
 
       uni.showToast({ title: '登录成功', icon: 'success' })
+      // 使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
       setTimeout(() => {
-        uni.reLaunch({ url: '/pages/dashboard/index' })
+        window.location.href = window.location.origin + '/#/pages/dashboard/index'
       }, 500)
     } else {
       error.value = '登录失败：未获取到令牌'
@@ -80,7 +81,8 @@ onMounted(async () => {
 })
 
 function goLogin() {
-  uni.reLaunch({ url: '/pages/login/index' })
+  // 使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
+  window.location.href = window.location.origin + '/#/pages/login/index'
 }
 </script>
 

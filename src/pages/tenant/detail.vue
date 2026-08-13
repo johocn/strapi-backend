@@ -92,6 +92,30 @@
         </view>
       </view>
 
+      <!-- 海报兜底配置 -->
+      <view class="form-section">
+        <text class="section-title">海报兜底配置</text>
+
+        <view class="form-item">
+          <text class="form-label">海报默认用户名</text>
+          <input type="text" v-model="formData.posterDefaultUserName" placeholder="当用户未登录或未设置昵称时显示" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">海报默认用户头像</text>
+          <view class="media-select" @click="openMediaPicker('posterDefaultUserAvatar')">
+            <image v-if="formData.posterDefaultUserAvatarUrl" :src="formData.posterDefaultUserAvatarUrl" mode="aspectFill" class="media-preview" />
+            <view v-else class="media-placeholder"><text>+ 选择头像</text></view>
+            <text v-if="formData.posterDefaultUserAvatarUrl" class="media-remove" @click.stop="removeMedia('posterDefaultUserAvatar')">✕</text>
+          </view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">海报默认推荐理由</text>
+          <input type="text" v-model="formData.posterDefaultRecommendReason" placeholder="当课程/商品没有描述时显示" class="form-input" />
+        </view>
+      </view>
+
       <view class="form-section">
         <text class="section-title">功能开关</text>
         <view class="feature-grid">
@@ -114,7 +138,7 @@
 
         <view class="form-item">
           <text class="form-label">认证模式 *</text>
-          <view class="picker-value" @click="showAuthModePicker = true">
+          <view class="picker-value" @click="openAuthModePicker">
             <text>{{ currentAuthModeLabel || '请选择认证模式' }}</text>
             <text class="picker-arrow">▼</text>
           </view>
@@ -241,12 +265,10 @@
         <text class="section-title">模板样式</text>
         <view class="form-item">
           <text class="form-label">预设模板</text>
-          <picker mode="selector" :range="templateList" range-key="displayName" @change="onTemplateChange">
-            <view class="picker-value">
-              <text>{{ currentTemplate?.displayName || '请选择' }}</text>
-              <text class="picker-arrow">▼</text>
-            </view>
-          </picker>
+          <view class="picker-value" @click="openTemplatePicker">
+            <text>{{ currentTemplate?.displayName || '请选择' }}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
         </view>
         <view class="form-item">
           <text class="form-label">主题色</text>
@@ -358,7 +380,7 @@
       </view>
     </view>
 
-    <view v-if="showAuthModePicker" class="tag-picker-modal" @click="showAuthModePicker = false">
+    <view v-show="showAuthModePicker" class="tag-picker-modal" @click="showAuthModePicker = false">
       <view class="tag-picker-content" @click.stop>
         <view class="picker-header">
           <text class="picker-title">选择认证模式</text>
@@ -379,7 +401,31 @@
       </view>
     </view>
 
-    <view v-if="showPlatformPicker" class="tag-picker-modal" @click="showPlatformPicker = false">
+    <view v-show="showTemplatePicker" class="tag-picker-modal" @click="showTemplatePicker = false">
+      <view class="tag-picker-content" @click.stop>
+        <view class="picker-header">
+          <text class="picker-title">选择预设模板</text>
+          <button class="picker-confirm-btn" @click="showTemplatePicker = false">确定</button>
+        </view>
+        <scroll-view scroll-y class="tag-options">
+          <view
+            v-for="(tpl, index) in templateList"
+            :key="tpl.documentId || index"
+            class="tag-option"
+            :class="{ selected: currentTemplate?.documentId === tpl.documentId }"
+            @click="selectTemplate(tpl, index)"
+          >
+            <text>{{ tpl.displayName || tpl.name }}</text>
+            <text v-if="currentTemplate?.documentId === tpl.documentId" class="tag-check">✓</text>
+          </view>
+          <view v-if="templateList.length === 0" class="empty-channel">
+            <text class="empty-text">暂无可用模板</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <view v-show="showPlatformPicker" class="tag-picker-modal" @click="showPlatformPicker = false">
       <view class="tag-picker-content" @click.stop>
         <view class="picker-header">
           <text class="picker-title">选择平台</text>
@@ -400,7 +446,7 @@
       </view>
     </view>
 
-    <view v-if="showAppTypePicker" class="tag-picker-modal" @click="showAppTypePicker = false">
+    <view v-show="showAppTypePicker" class="tag-picker-modal" @click="showAppTypePicker = false">
       <view class="tag-picker-content" @click.stop>
         <view class="picker-header">
           <text class="picker-title">选择应用类型</text>
@@ -423,7 +469,7 @@
 
     <MediaPicker
       :visible="showMediaPicker"
-      :folder="mediaPickerTarget === 'favicon' ? '/site/favicons' : '/site/images'"
+      :folder="mediaPickerTarget === 'favicon' ? '/site/favicons' : mediaPickerTarget === 'posterDefaultUserAvatar' ? '/site/poster-avatars' : '/site/images'"
       accept="image/*"
       @select="onMediaSelected"
       @update:visible="showMediaPicker = $event"
@@ -438,12 +484,12 @@ import { getSiteConfigDetail, createSiteConfig, updateSiteConfig } from '../../a
 import { getAdminChannelList, getMyChannels } from '../../api/channel.js'
 import { useUserStore } from '../../store/user.js'
 import { getThirdPartyConfigList, createThirdPartyConfig, updateThirdPartyConfig, deleteThirdPartyConfig } from '../../api/third-party.js'
-import { getMediaUrl, extractList, extractItem } from '../../utils/format.js'
-import { BASE_API } from '../../config/env.js'
+import { getMediaUrl } from '../../utils/format.js'
 import MediaPicker from '../../components/MediaPicker.vue'
 import ColorPicker from '../../components/ColorPicker.vue'
 import { getTemplates } from '../../api/site-template.js'
 import { MODULE_LIST, DEFAULT_FEATURE_FLAGS } from '../../constants/module.js'
+import { isLoggedIn } from '../../utils/auth.js'
 
 const userStore = useUserStore()
 const documentId = ref('')
@@ -453,6 +499,7 @@ const showThirdForm = ref(false)
 const showPlatformPicker = ref(false)
 const showAppTypePicker = ref(false)
 const showAuthModePicker = ref(false)
+const showTemplatePicker = ref(false)
 const showMediaPicker = ref(false)
 const mediaPickerTarget = ref('logo')
 const editingThirdConfig = ref(null)
@@ -469,6 +516,8 @@ const SCHEMA_FIELDS = new Set([
   'shareDescription', 'shareImage', 'customerServiceUrl',
   'featureFlags', 'domain', 'template', 'themeConfig', 'channelUsage',
   'channels', 'extraConfig',
+  // 新增：海报兜底配置
+  'posterDefaultUserName', 'posterDefaultUserAvatar', 'posterDefaultRecommendReason',
   'documentId', 'id', 'createdAt', 'updatedAt', 'publishedAt',
   'createdBy', 'updatedBy', 'locale', '_meta',
 ])
@@ -595,6 +644,11 @@ const formData = reactive({
   shareDescription: '',
   shareImageId: null,
   shareImageUrl: '',
+  // 海报兜底配置
+  posterDefaultUserName: '',
+  posterDefaultUserAvatarId: null,
+  posterDefaultUserAvatarUrl: '',
+  posterDefaultRecommendReason: '',
   sharePath: '/pages/index/index',
   channels: [],
   channelUsage: 'site_cross_user',
@@ -641,6 +695,11 @@ const thirdForm = reactive({
 })
 
 onMounted(async () => {
+  if (!isLoggedIn()) {
+    uni.reLaunch({ url: '/pages/login/index' })
+    return
+  }
+
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
   const options = currentPage.options || {}
@@ -717,6 +776,13 @@ async function loadTenantDetail() {
       formData.shareImageId = data.shareImage.id
       formData.shareImageUrl = data.shareImage ? getMediaUrl(data.shareImage) : ''
     }
+    // 海报兜底配置回填
+    formData.posterDefaultUserName = data.posterDefaultUserName || ''
+    formData.posterDefaultRecommendReason = data.posterDefaultRecommendReason || ''
+    if (data.posterDefaultUserAvatar) {
+      formData.posterDefaultUserAvatarId = data.posterDefaultUserAvatar.id
+      formData.posterDefaultUserAvatarUrl = data.posterDefaultUserAvatar ? getMediaUrl(data.posterDefaultUserAvatar) : ''
+    }
     selectedChannels.value = data.channels ?? []
     // 回填主题配置
     if (data.themeConfig) {
@@ -780,13 +846,18 @@ async function loadTemplates() {
   }
 }
 
-function onTemplateChange(e) {
-  const idx = e.detail.value
-  currentTemplate.value = templateList.value[idx]
-  if (currentTemplate.value?.themeConfig) {
-    const config = typeof currentTemplate.value.themeConfig === 'string'
-      ? JSON.parse(currentTemplate.value.themeConfig)
-      : currentTemplate.value.themeConfig
+function openTemplatePicker() {
+  console.log('[tenant-detail] openTemplatePicker clicked')
+  showTemplatePicker.value = true
+}
+
+function selectTemplate(tpl, index) {
+  currentTemplate.value = tpl
+  showTemplatePicker.value = false
+  if (tpl?.themeConfig) {
+    const config = typeof tpl.themeConfig === 'string'
+      ? JSON.parse(tpl.themeConfig)
+      : tpl.themeConfig
     themeConfig.value = { ...themeConfig.value, ...config }
   }
 }
@@ -794,6 +865,10 @@ function onTemplateChange(e) {
 function toggleFeature(key) {
   if (!formData.featureFlags) formData.featureFlags = {}
   formData.featureFlags[key] = !formData.featureFlags[key]
+}
+
+function openAuthModePicker() {
+  showAuthModePicker.value = true
 }
 
 function selectAuthMode(value) {
@@ -960,6 +1035,7 @@ function onMediaSelected(file) {
   if (t === 'logo') { formData.logoId = file.id; formData.logoUrl = file.url }
   else if (t === 'favicon') { formData.faviconId = file.id; formData.faviconUrl = file.url }
   else if (t === 'shareImage') { formData.shareImageId = file.id; formData.shareImageUrl = file.url }
+  else if (t === 'posterDefaultUserAvatar') { formData.posterDefaultUserAvatarId = file.id; formData.posterDefaultUserAvatarUrl = file.url }
   showMediaPicker.value = false
 }
 
@@ -967,6 +1043,7 @@ function removeMedia(target) {
   if (target === 'logo') { formData.logoId = null; formData.logoUrl = '' }
   else if (target === 'favicon') { formData.faviconId = null; formData.faviconUrl = '' }
   else if (target === 'shareImage') { formData.shareImageId = null; formData.shareImageUrl = '' }
+  else if (target === 'posterDefaultUserAvatar') { formData.posterDefaultUserAvatarId = null; formData.posterDefaultUserAvatarUrl = '' }
 }
 
 async function saveTenant(goBack = false) {
@@ -1021,6 +1098,10 @@ async function saveTenant(goBack = false) {
     shareTitle: formData.shareTitle,
     shareDescription: formData.shareDescription,
     shareImage: formData.shareImageId ?? undefined,
+    // 海报兜底配置
+    posterDefaultUserName: formData.posterDefaultUserName,
+    posterDefaultUserAvatar: formData.posterDefaultUserAvatarId ?? undefined,
+    posterDefaultRecommendReason: formData.posterDefaultRecommendReason,
     sharePath: formData.sharePath,
     channels: selectedChannels.value.map(ch => ch.documentId || ch.id),
     featureFlags: formData.featureFlags,
@@ -1048,7 +1129,7 @@ async function saveTenant(goBack = false) {
         await userStore.setCurrentTenant(result.documentId)
       } catch (e) { /* ignore */ }
       setTimeout(() => {
-        uni.reLaunch({ url: '/pages/dashboard/index' })
+        window.location.href = window.location.origin + '/#/pages/dashboard/index'
       }, 500)
       return
     }

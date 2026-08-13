@@ -1,0 +1,504 @@
+<!-- 站内广告使用手册 — 广告区域与广告内容全链路指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  h2 { font-size: 24px; font-weight: 700; margin: 28px 0 14px; color: #0f172a; }
+  h2 .ch-num { display: inline-block; background: #1a56db; color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+  h3 { font-size: 19px; font-weight: 600; margin: 22px 0 10px; color: #1e293b; }
+  h4 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: #334155; }
+  p { font-size: 14px; line-height: 1.75; color: #475569; margin: 10px 0; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; color: #1e293b; }
+  pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0; border: 1px solid #e2e8f0; }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { font-size: 14px; line-height: 1.75; color: #475569; margin: 4px 0; }
+  strong { color: #1e293b; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  .callout { padding: 14px 18px; border-radius: 8px; margin: 18px 0; border-left: 4px solid; font-size: 14px; line-height: 1.7; }
+  .callout-info { background: #eff6ff; border-color: #3b82f6; color: #1e3a5f; }
+  .callout-success { background: #f0fdf4; border-color: #22c55e; color: #14532d; }
+  .callout-warning { background: #fffbeb; border-color: #f59e0b; color: #713f12; }
+  .callout-danger { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .callout-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .callout p { margin: 6px 0; color: inherit; }
+  .steps { list-style: none; counter-reset: step-counter; padding: 0; margin: 18px 0; }
+  .steps li { counter-increment: step-counter; padding: 10px 10px 10px 48px; position: relative; font-size: 14px; line-height: 1.7; color: #475569; border-left: 2px solid #e2e8f0; margin: 0; }
+  .steps li::before { content: counter(step-counter); position: absolute; left: -14px; top: 10px; width: 28px; height: 28px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .checklist { list-style: none; padding: 0; margin: 18px 0; }
+  .checklist li { padding: 6px 10px 6px 32px; position: relative; font-size: 13px; color: #475569; line-height: 1.6; }
+  .checklist li::before { content: '\2713'; position: absolute; left: 6px; color: #22c55e; font-weight: 700; }
+  .field-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 18px 0; overflow: hidden; }
+  .field-card-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .field-name { font-size: 15px; font-weight: 700; color: #0f172a; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-type { font-size: 12px; color: #94a3b8; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-card-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-item { background: #fafafa; padding: 10px; border-radius: 6px; }
+  .field-item-label { display: block; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-item-value { display: block; font-size: 13px; color: #334155; line-height: 1.6; }
+  .field-card-full { grid-column: 1 / -1; }
+  .field-item-value.danger { color: #dc2626; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+  .badge-required { background: #fef2f2; color: #dc2626; }
+  .badge-optional { background: #f1f5f9; color: #64748b; }
+  .badge-ad { background: #fef3c7; color: #b45309; }
+  .badge-api { background: #e0e7ff; color: #4338ca; }
+  .badge-display { background: #f3e8ff; color: #7c3aed; }
+  .flow-diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 18px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .flow-node { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 16px; font-size: 13px; color: #334155; text-align: center; min-width: 100px; }
+  .flow-arrow { color: #94a3b8; font-size: 18px; }
+  .flow-node-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .flow-node.success { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .flow-node.warning { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .case-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+  .case-card-header { padding: 16px; background: linear-gradient(135deg, #1a56db, #1e40af); color: #fff; }
+  .case-card-header .case-industry { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px; }
+  .case-card-header .case-title { font-size: 16px; font-weight: 700; }
+  .case-card-body { padding: 16px; }
+  .chapter-nav { display: flex; justify-content: space-between; padding: 24px 0 8px; border-top: 1px solid #e2e8f0; margin-top: 32px; gap: 12px; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .nav-btn.next { margin-left: auto; }
+  @media (max-width: 640px) {
+    .field-card-body { grid-template-columns: 1fr; }
+    .flow-node { min-width: 80px; font-size: 12px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 17px; }
+  }
+</style>
+
+
+<!-- ==================== 第四章 展示方式详解 ==================== -->
+<h2 id="ch4"><span class="ch-num">第四章</span>展示方式详解</h2>
+
+<h3 id="ch4-1">4.1 展示样式总览</h3>
+
+<p>广告内容的 <code>displayStyle</code> 字段定义了单条广告在页面中的视觉呈现方式。系统提供六种展示样式，覆盖从静态横幅到全屏弹窗的全部场景。展示样式与广告区域的 <code>displayMode</code> 协同工作：displayMode 决定多条内容如何排列，displayStyle 决定每条内容如何呈现。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>displayStyle</th><th>展示方式</th><th>容器特征</th><th>推荐 position</th><th>推荐 contentType</th></tr>
+</thead>
+<tbody>
+<tr><td><code>banner</code></td><td>横幅展示</td><td>全宽容器，固定高度，图片撑满</td><td>home-banner, list-top, article-top, footer</td><td>single-image, slideshow</td></tr>
+<tr><td><code>card</code></td><td>卡片展示</td><td>固定宽度卡片，带圆角和阴影</td><td>home-sidebar, article-bottom</td><td>single-image, multi-image</td></tr>
+<tr><td><code>modal</code></td><td>弹窗展示</td><td>全屏遮罩层，居中内容容器</td><td>popup</td><td>single-image, html</td></tr>
+<tr><td><code>inline</code></td><td>内嵌展示</td><td>融入内容流，无边框</td><td>article-inline</td><td>single-image, html</td></tr>
+<tr><td><code>float</code></td><td>悬浮展示</td><td>固定在视窗边缘，不随滚动移动</td><td>float</td><td>single-image, html</td></tr>
+<tr><td><code>fullscreen</code></td><td>全屏展示</td><td>覆盖整个视窗，强制展示</td><td>popup, custom</td><td>single-image, video, html</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node">前端获取广告数据</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查 displayMode</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">决定排列策略</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">遍历每条内容</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查 displayStyle</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">选择容器模板</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查 contentType</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node success">选择素材渲染器</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">渲染素材层</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">渲染文字层</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">渲染交互层</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node warning">应用样式字段</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">输出最终 DOM</span>
+</div>
+</div>
+
+<h3 id="ch4-2">4.2 Banner 横幅展示</h3>
+
+<p>Banner 是最常见的广告展示样式，以全宽横幅形式展示在页面顶部、底部或内容区之间。容器宽度通常为 100% 父容器宽度，高度由 <code>height</code> 字段或区域 <code>suggestedHeight</code> 决定。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>默认行为</th></tr>
+</thead>
+<tbody>
+<tr><td>容器宽度</td><td>100% 父容器宽度</td><td>由父容器决定</td></tr>
+<tr><td>容器高度</td><td>由 height 或区域 suggestedHeight 决定</td><td>300px（如未设置）</td></tr>
+<tr><td>图片填充</td><td>object-fit: cover，图片撑满容器</td><td>居中裁剪</td></tr>
+<tr><td>文字叠加</td><td>标题/副标题/CTA 叠加在图片之上</td><td>绝对定位居中</td></tr>
+<tr><td>圆角</td><td>由 borderRadius 控制</td><td>0（全宽横幅无圆角）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-industry">Banner 展示案例</div>
+<div class="case-title">首页顶部活动横幅</div>
+</div>
+<div class="case-card-body">
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>配置项</th><th>值</th></tr>
+</thead>
+<tbody>
+<tr><td>position</td><td>home-banner</td></tr>
+<tr><td>displayMode</td><td>rotation（轮播）</td></tr>
+<tr><td>contentType</td><td>single-image</td></tr>
+<tr><td>displayStyle</td><td>banner</td></tr>
+<tr><td>suggestedWidth / suggestedHeight</td><td>1200 x 300</td></tr>
+<tr><td>title</td><td>"限时特惠 全场五折"</td></tr>
+<tr><td>titleColor / titleFontSize</td><td>#ffffff / 28</td></tr>
+<tr><td>ctaText / ctaBgColor</td><td>"立即抢购" / #e63946</td></tr>
+<tr><td>linkType / linkUrl</td><td>internal / /products/sale</td></tr>
+</tbody>
+</table>
+</div>
+<p>效果：首页顶部展示 1200x300 的全宽横幅，背景为活动图片，白色大标题叠加在图片中央偏上，红色 CTA 按钮位于底部中央。多条广告按 5 秒间隔轮播。</p>
+</div>
+</div>
+
+<h3 id="ch4-3">4.3 Card 卡片展示</h3>
+
+<p>Card 样式以独立卡片形式展示广告，通常用于侧边栏、内容推荐区等位置。卡片有固定宽度、圆角和阴影，视觉上独立于页面内容。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>默认行为</th></tr>
+</thead>
+<tbody>
+<tr><td>容器宽度</td><td>由 width 或区域 suggestedWidth 决定</td><td>300px（侧边栏场景）</td></tr>
+<tr><td>容器高度</td><td>自适应内容或由 height 决定</td><td>auto</td></tr>
+<tr><td>圆角</td><td>由 borderRadius 控制</td><td>12px</td></tr>
+<tr><td>阴影</td><td>box-shadow 轻微投影</td><td>0 2px 8px rgba(0,0,0,0.1)</td></tr>
+<tr><td>背景色</td><td>由 backgroundColor 控制</td><td>#ffffff</td></tr>
+<tr><td>文字布局</td><td>图片在上，文字在下（垂直排列）</td><td>图片+文字垂直堆叠</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Card 样式与 Banner 样式的核心区别：Banner 是图片铺满容器、文字叠加在图片上；Card 是图片和文字垂直分区排列，文字在图片下方独立展示。Card 更适合需要展示较多文字信息的广告。</p>
+
+<h3 id="ch4-4">4.4 Modal 弹窗展示</h3>
+
+<p>Modal 样式以弹窗形式展示广告，覆盖在页面内容之上。通常用于首次访问引导、活动公告、订阅引导等场景。弹窗包含全屏半透明遮罩层和居中的内容容器。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>推荐值</th></tr>
+</thead>
+<tbody>
+<tr><td>遮罩层</td><td>全屏半透明黑色背景</td><td>rgba(0,0,0,0.6)</td></tr>
+<tr><td>内容容器</td><td>居中定位，固定宽度</td><td>宽度 480-600px</td></tr>
+<tr><td>关闭按钮</td><td>右上角 X 按钮，受 closeDelay 控制</td><td>closeDelay: 0-3000</td></tr>
+<tr><td>倒计时</td><td>showCountdown=true 时展示关闭倒计时</td><td>配合 closeDelay 使用</td></tr>
+<tr><td>频次控制</td><td>必须配合 frequencyLimit 使用</td><td>1 次/天</td></tr>
+<tr><td>动画效果</td><td>淡入+缩放进入动画</td><td>前端默认实现</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">弹窗广告使用原则</div>
+<p><strong>1. 必须设置频次限制</strong> — 弹窗广告必须配置 frequencyLimit 和 frequencyPeriod，推荐每天最多 1 次。不设频次的弹窗会导致用户严重反感。<strong>2. closeDelay 不超过 5 秒</strong> — 强制展示时间过长会激怒用户。<strong>3. 提供明确的关闭方式</strong> — 关闭按钮必须清晰可见，不应隐藏或伪装。<strong>4. 移动端适配</strong> — 弹窗在移动端应自适应屏幕宽度，避免内容溢出。</p>
+</div>
+
+<h3 id="ch4-5">4.5 Inline 内嵌展示</h3>
+
+<p>Inline 样式将广告无缝嵌入内容流中，通常用于文章段落之间、信息流中等场景。与 Banner 和 Card 不同，Inline 不使用独立容器边框，而是融入周围内容。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>默认行为</th></tr>
+</thead>
+<tbody>
+<tr><td>容器</td><td>无独立边框，融入内容流</td><td>无边框无阴影</td></tr>
+<tr><td>宽度</td><td>100% 父容器宽度</td><td>跟随内容区宽度</td></tr>
+<tr><td>间距</td><td>上下 margin 与段落间距一致</td><td>margin: 24px 0</td></tr>
+<tr><td>圆角</td><td>可设置轻微圆角</td><td>0-8px</td></tr>
+<tr><td>标识</td><td>可选"广告"标识小字</td><td>右上角灰色"广告"字样</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Inline 样式的核心价值是<strong>原生广告</strong>体验——广告看起来像是内容的一部分而非硬植入。适合文章中间的产品推荐、相关阅读引导等场景。使用时应确保广告内容与上下文章节主题相关，避免突兀。</p>
+
+<h3 id="ch4-6">4.6 Float 悬浮展示</h3>
+
+<p>Float 样式将广告固定在浏览器视窗的边缘位置，不随页面滚动而移动。通常用于客服入口、返回顶部、悬浮广告条等场景。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>推荐值</th></tr>
+</thead>
+<tbody>
+<tr><td>定位方式</td><td>position: fixed，固定在视窗边缘</td><td>bottom-right 或 bottom-left</td></tr>
+<tr><td>容器尺寸</td><td>小尺寸固定容器</td><td>60x60 ~ 120x120</td></tr>
+<tr><td>层级</td><td>z-index 较高，覆盖在内容之上</td><td>z-index: 9999</td></tr>
+<tr><td>关闭按钮</td><td>提供关闭按钮，可配合 closeDelay</td><td>closeDelay: 0</td></tr>
+<tr><td>频次控制</td><td>建议设置频次限制</td><td>3-5 次/会话</td></tr>
+<tr><td>移动端</td><td>移动端可能隐藏或缩小</td><td>视情况适配</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">Float 悬浮广告位置建议</div>
+<p>悬浮广告推荐放在右下角（bottom-right），避免遮挡页面核心内容。左下角可能遮挡移动端浏览器的返回按钮。尺寸不宜过大（不超过 120x120），否则遮挡内容面积过多。建议提供关闭按钮，关闭后当前会话不再展示。</p>
+</div>
+
+<h3 id="ch4-7">4.7 Fullscreen 全屏展示</h3>
+
+<p>Fullscreen 样式以全屏覆盖方式展示广告，通常用于开屏广告（App 启动广告的 Web 版本）或全屏引导页。广告覆盖整个浏览器视窗，用户必须等待或主动关闭后才能访问页面内容。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>属性</th><th>说明</th><th>推荐值</th></tr>
+</thead>
+<tbody>
+<tr><td>覆盖范围</td><td>100vw x 100vh，全屏覆盖</td><td>全视窗</td></tr>
+<tr><td>背景</td><td>图片或视频铺满全屏</td><td>object-fit: cover</td></tr>
+<tr><td>关闭按钮</td><td>必须提供，受 closeDelay 控制</td><td>closeDelay: 3000-5000</td></tr>
+<tr><td>跳过按钮</td><td>倒计时结束后可跳过</td><td>showCountdown: true</td></tr>
+<tr><td>频次控制</td><td>必须严格控制频次</td><td>1 次/天</td></tr>
+<tr><td>展示时长</td><td>建议 3-5 秒后自动关闭</td><td>配合 closeDelay</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-danger">
+<div class="callout-title">全屏广告使用警告</div>
+<p>全屏广告对用户体验影响最大，使用时必须极其谨慎：<strong>1. 频次严格控制</strong> — 每天最多展示 1 次。<strong>2. 展示时间限制</strong> — 不超过 5 秒，超时自动关闭。<strong>3. 明确的跳过方式</strong> — 必须提供跳过按钮，不得强制观看。<strong>4. 首次访问优先</strong> — 仅对首次访问用户展示，老用户不应频繁看到。<strong>5. 移动端慎用</strong> — 移动端全屏广告对用户干扰更大，建议仅在活动期间启用。</p>
+</div>
+
+<h3 id="ch4-8">4.8 轮播设置详解</h3>
+
+<p>当 contentType=<code>slideshow</code> 时，广告内容以幻灯片形式展示多张图片。轮播设置控制幻灯片的播放行为，包括自动播放、切换间隔、切换效果、循环模式、导航控件等。</p>
+
+<h4>轮播字段详解</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th><th>推荐值</th></tr>
+</thead>
+<tbody>
+<tr><td><code>slideshowAutoplay</code></td><td>boolean</td><td>是否自动播放。true 时页面加载后自动开始轮播</td><td>true</td></tr>
+<tr><td><code>slideshowInterval</code></td><td>integer</td><td>自动播放间隔（毫秒）。每张图片展示的时长</td><td>5000（5 秒）</td></tr>
+<tr><td><code>slideshowEffect</code></td><td>enumeration</td><td>切换动画效果</td><td>fade</td></tr>
+<tr><td><code>slideshowLoop</code></td><td>boolean</td><td>是否循环播放。false 时播完最后一张停止</td><td>true</td></tr>
+<tr><td><code>slideshowShowDots</code></td><td>boolean</td><td>是否显示底部指示点（当前页/总页数）</td><td>true</td></tr>
+<tr><td><code>slideshowShowArrows</code></td><td>boolean</td><td>是否显示左右切换箭头</td><td>true（PC）/ false（移动端）</td></tr>
+<tr><td><code>slideshowPauseOnHover</code></td><td>boolean</td><td>鼠标悬停时是否暂停自动播放</td><td>true</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>切换效果对比</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>slideshowEffect</th><th>效果描述</th><th>视觉感受</th><th>性能</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fade</code></td><td>淡入淡出：当前图片淡出，下一张淡入</td><td>柔和优雅</td><td>高（仅 opacity 变化）</td><td>品牌展示、活动合集</td></tr>
+<tr><td><code>slide</code></td><td>滑动：图片水平/垂直滑动切换</td><td>动态有节奏</td><td>中（需 transform 动画）</td><td>产品展示、多图浏览</td></tr>
+<tr><td><code>none</code></td><td>无效果：直接切换，无过渡动画</td><td>简洁直接</td><td>最高（无动画）</td><td>性能优先、简洁风格</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>轮播配置场景推荐</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>场景</th><th>autoplay</th><th>interval</th><th>effect</th><th>loop</th><th>showDots</th><th>showArrows</th><th>pauseOnHover</th></tr>
+</thead>
+<tbody>
+<tr><td>首页主横幅</td><td>true</td><td>5000</td><td>fade</td><td>true</td><td>true</td><td>true</td><td>true</td></tr>
+<tr><td>产品展示轮播</td><td>true</td><td>4000</td><td>slide</td><td>true</td><td>true</td><td>true</td><td>true</td></tr>
+<tr><td>移动端横幅</td><td>true</td><td>4000</td><td>slide</td><td>true</td><td>true</td><td>false</td><td>false</td></tr>
+<tr><td>活动专题页</td><td>false</td><td>-</td><td>slide</td><td>false</td><td>true</td><td>true</td><td>-</td></tr>
+<tr><td>简洁品牌展示</td><td>true</td><td>6000</td><td>none</td><td>true</td><td>false</td><td>false</td><td>true</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">轮播间隔设置原则</div>
+<p>轮播间隔（slideshowInterval）应确保用户有足够时间阅读每张图片上的文字内容。经验值：纯图片无文字 3000-4000ms 即可，含短标题 4000-5000ms，含标题+副标题+CTA 建议 5000-6000ms。间隔过短（&lt;3000ms）用户来不及阅读，过长（&gt;8000ms）用户可能以为广告卡住。</p>
+</div>
+
+<h3 id="ch4-9">4.9 视频设置详解</h3>
+
+<p>当 contentType=<code>video</code> 时，广告内容以视频形式展示。视频广告设置控制视频的播放行为，包括封面图、自动播放、静音、循环和控件显示。</p>
+
+<h4>视频字段详解</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th><th>推荐值</th></tr>
+</thead>
+<tbody>
+<tr><td><code>videoUrl</code></td><td>string</td><td>视频文件 URL，支持 MP4/WebM</td><td>CDN 加速的 HTTPS URL</td></tr>
+<tr><td><code>videoPoster</code></td><td>string</td><td>视频封面图 URL，视频加载前展示</td><td>与视频同比例的 JPG</td></tr>
+<tr><td><code>videoAutoplay</code></td><td>boolean</td><td>是否自动播放</td><td>true（配合 muted）</td></tr>
+<tr><td><code>videoMuted</code></td><td>boolean</td><td>是否静音播放</td><td>true（如 autoplay=true）</td></tr>
+<tr><td><code>videoLoop</code></td><td>boolean</td><td>是否循环播放</td><td>true（横幅视频）</td></tr>
+<tr><td><code>videoControls</code></td><td>boolean</td><td>是否显示播放控件</td><td>false（横幅）/ true（内容区）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>自动播放策略详解</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>videoAutoplay</th><th>videoMuted</th><th>浏览器行为</th><th>推荐场景</th></tr>
+</thead>
+<tbody>
+<tr><td>true</td><td>true</td><td>静音自动播放（大多数浏览器允许）</td><td>首页横幅视频广告</td></tr>
+<tr><td>true</td><td>false</td><td>有声自动播放（浏览器阻止，不会自动播放）</td><td>不推荐</td></tr>
+<tr><td>false</td><td>false</td><td>不自动播放，用户点击播放（有声）</td><td>文章内嵌视频广告</td></tr>
+<tr><td>false</td><td>true</td><td>不自动播放，用户点击播放（静音）</td><td>不推荐（用户困惑）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">浏览器自动播放策略</div>
+<p>Chrome（66+）、Safari（11+）、Firefox（66+）均实施了自动播放策略：<strong>静音视频可以自动播放</strong>，<strong>有声视频需要用户交互后才能播放</strong>。因此，如需视频广告自动播放，必须设置 <code>videoAutoplay=true</code> 且 <code>videoMuted=true</code>。用户可以通过点击取消静音（需前端组件实现此交互）。</p>
+</div>
+
+<h4>视频广告技术规范</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>规范项</th><th>要求</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>视频格式</td><td>MP4（H.264 编码）</td><td>浏览器兼容性最好</td></tr>
+<tr><td>视频时长</td><td>15-30 秒</td><td>广告时长适中，用户耐心有限</td></tr>
+<tr><td>文件大小</td><td>&lt;5MB</td><td>加载速度，移动端流量</td></tr>
+<tr><td>分辨率</td><td>720p（1280x720）</td><td>清晰度与文件大小平衡</td></tr>
+<tr><td>封面图</td><td>与视频同比例，JPG/WebP</td><td>视频加载前的视觉占位</td></tr>
+<tr><td>CDN</td><td>使用 CDN 分发</td><td>加速加载，减少延迟</td></tr>
+<tr><td>HTTPS</td><td>必须使用 HTTPS</td><td>浏览器安全策略要求</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch4-10">4.10 自定义 HTML</h3>
+
+<p>当 contentType=<code>html</code> 时，广告内容通过 <code>htmlContent</code> 字段渲染自定义 HTML 代码。这是最灵活的内容类型，可以实现图片和视频无法覆盖的复杂交互广告，如动画效果、表单交互、第三方组件嵌入等。</p>
+
+<h4>htmlContent 使用规范</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>规范项</th><th>要求</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>样式</td><td>使用内联 style 或 &lt;style&gt; 标签</td><td>不引用外部 CSS 文件</td></tr>
+<tr><td>脚本</td><td>使用内联 &lt;script&gt; 标签</td><td>不引用外部 JS 文件（如必须，确保 HTTPS）</td></tr>
+<tr><td>结构</td><td>自包含 HTML 片段</td><td>不含 html/head/body 标签</td></tr>
+<tr><td>代码量</td><td>控制在 5KB 以内</td><td>过大影响页面加载</td></tr>
+<tr><td>安全</td><td>内容来源可信</td><td>防止 XSS 注入</td></tr>
+<tr><td>响应式</td><td>适配不同屏幕宽度</td><td>使用相对单位或媒体查询</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>自定义 HTML 应用场景</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>场景</th><th>HTML 内容</th><th>displayStyle</th></tr>
+</thead>
+<tbody>
+<tr><td>动画广告</td><td>CSS/JS 动画效果，粒子、渐变、变形</td><td>banner</td></tr>
+<tr><td>互动表单广告</td><td>订阅表单、问卷、预约表单</td><td>modal</td></tr>
+<tr><td>第三方组件</td><td>嵌入第三方广告联盟代码</td><td>banner / inline</td></tr>
+<tr><td>倒计时广告</td><td>JS 倒计时组件，活动倒计时</td><td>banner / modal</td></tr>
+<tr><td>游戏化广告</td><td>简单互动小游戏，完成后领取优惠</td><td>modal / fullscreen</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-danger">
+<div class="callout-title">自定义 HTML 安全警告</div>
+<p><strong>1. 仅使用可信来源的 HTML 代码</strong> — htmlContent 通过 v-html/innerHTML 渲染，如果包含恶意代码会导致 XSS 攻击。确保代码来源可信，不接受外部用户提交的 HTML。<strong>2. 避免全局样式污染</strong> — HTML 中的 CSS 不应使用全局选择器（如 <code>body {}</code>），应使用 scoped 类名。<strong>3. 避免影响页面布局</strong> — HTML 中的元素不应脱离广告容器范围（如 position: fixed 可能覆盖整个页面）。<strong>4. 性能注意</strong> — 复杂的 JS 动画可能影响页面性能，在低端设备上测试。</p>
+</div>
+
+<h4>自定义 HTML 示例</h4>
+
+<p>以下是一个简单的倒计时广告 HTML 示例：</p>
+
+<pre><code>&lt;div style="position:relative;width:100%;height:300px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;"&gt;
+  &lt;h2 style="font-size:28px;margin:0 0 8px;"&gt;限时特惠&lt;/h2&gt;
+  &lt;p style="font-size:16px;margin:0 0 20px;opacity:0.9;"&gt;活动剩余时间&lt;/p&gt;
+  &lt;div id="countdown" style="font-size:36px;font-weight:700;letter-spacing:2px;"&gt;--:--:--&lt;/div&gt;
+  &lt;a href="/sale" style="margin-top:20px;padding:10px 32px;background:#fff;color:#764ba2;border-radius:24px;text-decoration:none;font-weight:600;"&gt;立即抢购&lt;/a&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  (function(){
+    var end = new Date('2026-11-11T23:59:59').getTime();
+    var el = document.getElementById('countdown');
+    function update(){
+      var now = Date.now();
+      var diff = Math.max(0, end - now);
+      var h = Math.floor(diff/3600000);
+      var m = Math.floor(diff%3600000/60000);
+      var s = Math.floor(diff%60000/1000);
+      el.textContent = [h,m,s].map(function(n){return String(n).padStart(2,'0')}).join(':');
+    }
+    update(); setInterval(update, 1000);
+  })();
+&lt;/script&gt;</code></pre>
+
+<div class="callout callout-success">
+<div class="callout-title">展示方式选择最佳实践</div>
+<p>选择展示样式时遵循"位置匹配、内容适配、体验优先"原则：<strong>位置匹配</strong>——displayStyle 与 position 对应（home-banner 用 banner，popup 用 modal）；<strong>内容适配</strong>——displayStyle 与 contentType 协调（banner 适合 single-image/slideshow，modal 适合 single-image/html）；<strong>体验优先</strong>——干扰性强的样式（modal、fullscreen）必须配合频次控制和关闭机制。正确选择展示样式是广告效果和用户体验平衡的关键。</p>
+</div>
+
+<div class="chapter-nav">
+  <span class="nav-btn" onclick="window._goDoc('ad-site/ch3-ad-content.html')">&larr; 上一章：广告内容配置</span>
+  <span class="nav-btn next" onclick="window._goDoc('ad-site/ch5-api.html')">下一章：前端API集成 &rarr;</span>
+</div>

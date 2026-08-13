@@ -76,48 +76,99 @@
 
       <view class="form-section">
         <view class="section-title">价格设置</view>
-        
-        <view class="form-row">
-          <view class="form-item half">
-            <text class="form-label">免费课程</text>
-            <switch :checked="form.isFree" @change="form.isFree = !form.isFree" />
-          </view>
-          <view class="form-item half">
-            <text class="form-label">付费课程</text>
-            <switch :checked="form.isPaid" @change="form.isPaid = !form.isPaid" />
-          </view>
-        </view>
-
-        <view class="form-row">
-          <view class="form-item half">
-            <text class="form-label">现价（分）</text>
-            <input 
-              type="number" 
-              v-model="form.price" 
-              placeholder="0"
-              class="form-input"
-            />
-          </view>
-          <view class="form-item half">
-            <text class="form-label">原价（分）</text>
-            <input 
-              type="number" 
-              v-model="form.originalPrice" 
-              placeholder="0"
-              class="form-input"
-            />
-          </view>
-        </view>
 
         <view class="form-item">
-          <text class="form-label">折扣价（分）</text>
-          <input 
-            type="number" 
-            v-model="form.discountPrice" 
-            placeholder="0"
+          <text class="form-label">课程类型</text>
+          <picker mode="selector" :range="courseTypeOptions" @change="handleCourseTypeChange">
+            <view class="picker-value">
+              <text>{{ courseTypeOptions[courseTypeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <!-- 积分兑换课程：显示积分价格 -->
+        <view v-if="form.courseType === 'points'" class="form-item">
+          <text class="form-label">积分价格（积分）</text>
+          <input
+            type="number"
+            v-model="form.pointsPrice"
+            placeholder="请输入所需积分"
             class="form-input"
           />
         </view>
+
+        <!-- 付费课程：显示价格字段 -->
+        <template v-if="form.courseType === 'paid'">
+          <view class="form-row">
+            <view class="form-item half">
+              <text class="form-label">现价（分）</text>
+              <input
+                type="number"
+                v-model="form.price"
+                placeholder="0"
+                class="form-input"
+              />
+            </view>
+            <view class="form-item half">
+              <text class="form-label">原价（分）</text>
+              <input
+                type="number"
+                v-model="form.originalPrice"
+                placeholder="0"
+                class="form-input"
+              />
+            </view>
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">折扣价（分）</text>
+            <input
+              type="number"
+              v-model="form.discountPrice"
+              placeholder="0"
+              class="form-input"
+            />
+          </view>
+        </template>
+      </view>
+
+      <view class="form-section">
+        <view class="section-title">报名设置</view>
+
+        <view class="form-item">
+          <text class="form-label">报名模式</text>
+          <picker mode="selector" :range="enrollModeOptions" @change="handleEnrollModeChange">
+            <view class="picker-value">
+              <text>{{ enrollModeOptions[enrollModeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <!-- 报名期限制：显示报名起止时间 -->
+        <template v-if="form.enrollMode === 'period'">
+          <view class="form-row">
+            <view class="form-item half">
+              <text class="form-label">报名开始时间</text>
+              <picker mode="date" :value="form.enrollStartDate" @change="e => form.enrollStartDate = e.detail.value">
+                <view class="picker-value">
+                  <text>{{ form.enrollStartDate || '请选择' }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+            <view class="form-item half">
+              <text class="form-label">报名结束时间</text>
+              <picker mode="date" :value="form.enrollEndDate" @change="e => form.enrollEndDate = e.detail.value">
+                <view class="picker-value">
+                  <text>{{ form.enrollEndDate || '请选择' }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+        </template>
       </view>
 
       <view class="form-section">
@@ -217,6 +268,64 @@
         </view>
       </view>
 
+      <!-- 顺序学习 -->
+      <view class="form-section">
+        <view class="section-title">顺序学习</view>
+
+        <view class="form-item">
+          <text class="form-label">强制顺序学习</text>
+          <switch :checked="form.enforceSequence" @change="form.enforceSequence = !form.enforceSequence" />
+          <text class="form-hint">开启后学员必须按顺序号依次学习（硬锁），关闭则为建议顺序（软锁，可跳过）</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">课程顺序号</text>
+          <input
+            type="number"
+            v-model="form.sequenceNumber"
+            placeholder="0"
+            class="form-input"
+          />
+          <text class="form-hint">0=不参与顺序排序，相同顺序标签内按序号从小到大排列</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">顺序锁定标签</text>
+          <view class="tag-list">
+            <view v-if="form.sequenceTag" class="tag-item">
+              <text>{{ form.sequenceTag.name }}</text>
+              <text class="tag-remove" @click="removeSequenceTag">×</text>
+            </view>
+            <view class="tag-add" @click="showSequenceTagPicker = true">
+              <text>{{ form.sequenceTag ? '更换标签' : '+ 选择标签' }}</text>
+            </view>
+          </view>
+          <text class="form-hint">选择相同标签的课程/课时按顺序号锁定，排除知识点标签</text>
+        </view>
+      </view>
+
+      <!-- 答题设置 -->
+      <view class="form-section">
+        <view class="section-title">答题设置</view>
+
+        <view class="form-item">
+          <text class="form-label">允许重复答题</text>
+          <switch :checked="form.allowRetakeQuiz" @change="form.allowRetakeQuiz = !form.allowRetakeQuiz" />
+          <text class="form-hint">开启后答题按钮永不置灰，学员可反复答题；关闭后答题完成即锁定</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">错题复答次数</text>
+          <picker mode="selector" :range="quizRetryCountLabels" @change="handleQuizRetryCountChange">
+            <view class="picker-value">
+              <text>{{ quizRetryCountLabels[quizRetryCountIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+          <text class="form-hint">答错后允许复答的次数，默认不允许复答</text>
+        </view>
+      </view>
+
       <view class="form-section">
         <view class="section-title">渠道设置</view>
 
@@ -290,27 +399,6 @@
 
       <view class="form-section">
         <view class="section-title">时间设置</view>
-        
-        <view class="form-row">
-          <view class="form-item half">
-            <text class="form-label">报名开始日期</text>
-            <picker mode="date" @change="(e) => form.enrollStartDate = e.detail.value">
-              <view class="picker-value">
-                <text>{{ form.enrollStartDate || '选择日期' }}</text>
-                <text class="picker-arrow">▼</text>
-              </view>
-            </picker>
-          </view>
-          <view class="form-item half">
-            <text class="form-label">报名结束日期</text>
-            <picker mode="date" @change="(e) => form.enrollEndDate = e.detail.value">
-              <view class="picker-value">
-                <text>{{ form.enrollEndDate || '选择日期' }}</text>
-                <text class="picker-arrow">▼</text>
-              </view>
-            </picker>
-          </view>
-        </view>
 
         <view class="form-row">
           <view class="form-item half">
@@ -382,6 +470,15 @@
       mode="knowledge-point"
       :selected="selectedKnowledgePoints"
       @select="onKnowledgePointSelect"
+    />
+
+    <!-- 顺序标签选择器（单选） -->
+    <TagPicker
+      v-model:visible="showSequenceTagPicker"
+      mode="tag"
+      :single-select="true"
+      :selected="form.sequenceTag ? [form.sequenceTag] : []"
+      @select="onSequenceTagSelect"
     />
 
     <view v-if="showChannelPicker" class="tag-picker-modal" @click="showChannelPicker = false">
@@ -490,7 +587,12 @@ const form = reactive({
   price: 0,
   originalPrice: 0,
   discountPrice: 0,
-  isFree: false,
+  // 课程类型与积分价格（新字段）
+  courseType: 'free',
+  pointsPrice: 0,
+  enrollMode: 'none',
+  // 兼容旧字段（软迁移，由 courseType 反推）
+  isFree: true,
   isPaid: false,
   category: null,
   tags: [],
@@ -512,7 +614,14 @@ const form = reactive({
   channelScope: 'all',
   channelIds: [],
   pointChannel: null,
-  allowCrossChannel: true
+  allowCrossChannel: true,
+  // 顺序学习
+  enforceSequence: false,
+  sequenceNumber: 0,
+  sequenceTag: null,
+  // 答题设置
+  allowRetakeQuiz: false,
+  quizRetryCount: 'no_retry'
 })
 
 const categoryOptions = ['请选择分类']
@@ -531,6 +640,24 @@ const showKnowledgePointPicker = ref(false)
 const channelList = ref([])
 const showChannelPicker = ref(false)
 const showPointChannelPicker = ref(false)
+const showSequenceTagPicker = ref(false)
+const quizRetryCountOptions = ['no_retry', 'retry_1', 'retry_2', 'retry_3', 'retry_4']
+const quizRetryCountLabels = ['不允许复答', '可复答1次', '可复答2次', '可复答3次', '可复答4次']
+const quizRetryCountIndex = ref(0)
+
+const courseTypeOptions = ['免费课程', '积分兑换', '付费课程']
+const courseTypeValues = ['free', 'points', 'paid']
+const courseTypeIndex = computed(() => {
+  const idx = courseTypeValues.indexOf(form.courseType)
+  return idx >= 0 ? idx : 0
+})
+
+const enrollModeOptions = ['免报名', '必须报名', '报名期限制']
+const enrollModeValues = ['none', 'required', 'period']
+const enrollModeIndex = computed(() => {
+  const idx = enrollModeValues.indexOf(form.enrollMode)
+  return idx >= 0 ? idx : 0
+})
 
 const difficultyOptions = ['beginner', 'intermediate', 'advanced', 'expert']
 const difficultyIndex = ref(0)
@@ -561,6 +688,25 @@ async function loadCategories() {
 
 function onTagSelect(tags) {
   selectedTags.value = tags
+}
+
+function onSequenceTagSelect(tags) {
+  // 单选模式，tags 是数组但只有一个元素
+  if (tags && tags.length > 0) {
+    form.sequenceTag = tags[0]
+  } else {
+    form.sequenceTag = null
+  }
+}
+
+function removeSequenceTag() {
+  form.sequenceTag = null
+}
+
+function handleQuizRetryCountChange(e) {
+  const idx = e.detail.value
+  quizRetryCountIndex.value = idx
+  form.quizRetryCount = quizRetryCountOptions[idx]
 }
 
 function removeTag(tag) {
@@ -665,6 +811,24 @@ function handleDifficultyChange(e) {
   form.difficulty = difficultyOptions[e.detail.value]
 }
 
+function handleCourseTypeChange(e) {
+  const idx = Number(e.detail.value)
+  form.courseType = courseTypeValues[idx]
+  // 软迁移：同步 isFree/isPaid
+  form.isFree = form.courseType === 'free'
+  form.isPaid = form.courseType === 'paid'
+}
+
+function handleEnrollModeChange(e) {
+  const idx = Number(e.detail.value)
+  form.enrollMode = enrollModeValues[idx]
+  // 非报名期模式清空报名日期
+  if (form.enrollMode !== 'period') {
+    form.enrollStartDate = ''
+    form.enrollEndDate = ''
+  }
+}
+
 function handleLevelChange(e) {
   levelIndex.value = e.detail.value
   form.level = levelOptions[e.detail.value]
@@ -743,6 +907,30 @@ async function loadCourseDetail() {
       }
     }
     if (typeof data.allowCrossChannel === 'boolean') form.allowCrossChannel = data.allowCrossChannel
+    // 顺序学习字段回显
+    if (typeof data.enforceSequence === 'boolean') form.enforceSequence = data.enforceSequence
+    if (typeof data.sequenceNumber === 'number') form.sequenceNumber = data.sequenceNumber
+    if (data.sequenceTag) {
+      form.sequenceTag = data.sequenceTag
+    } else {
+      form.sequenceTag = null
+    }
+    // 答题设置字段回显
+    if (typeof data.allowRetakeQuiz === 'boolean') form.allowRetakeQuiz = data.allowRetakeQuiz
+    if (data.quizRetryCount) {
+      form.quizRetryCount = data.quizRetryCount
+      quizRetryCountIndex.value = quizRetryCountOptions.indexOf(data.quizRetryCount)
+    }
+    // 课程类型回显（旧数据无 courseType 时从 isFree/isPaid 反推）
+    if (data.courseType) {
+      form.courseType = data.courseType
+    } else if (data.isPaid) {
+      form.courseType = 'paid'
+    } else {
+      form.courseType = 'free'
+    }
+    if (typeof data.pointsPrice === 'number') form.pointsPrice = data.pointsPrice
+    if (data.enrollMode) form.enrollMode = data.enrollMode
     difficultyIndex.value = difficultyOptions.indexOf(data.difficulty) || 0
     levelIndex.value = levelOptions.indexOf(data.level) || 0
     pointsTypeIndex.value = pointsTypeOptions.indexOf(data.pointsType) || 0
@@ -808,8 +996,13 @@ async function handleSubmit() {
     price: parseFloat(form.price) || 0,
     originalPrice: parseFloat(form.originalPrice) || 0,
     discountPrice: parseFloat(form.discountPrice) || 0,
-    isFree: form.isFree,
-    isPaid: form.isPaid,
+    // 新字段：课程类型与积分价格
+    courseType: form.courseType,
+    pointsPrice: form.courseType === 'points' ? (parseInt(form.pointsPrice) || 0) : 0,
+    enrollMode: form.enrollMode,
+    // 软迁移：由 courseType 反推 isFree/isPaid
+    isFree: form.courseType === 'free',
+    isPaid: form.courseType === 'paid',
     difficulty: form.difficulty,
     level: form.level,
     duration: form.duration,
@@ -828,7 +1021,14 @@ async function handleSubmit() {
     channelScope: form.channelScope,
     channelIds: form.channelScope === 'specific' ? form.channelIds.map(id => Number(id)) : [],
     pointChannel: form.channelScope === 'specific' && form.pointChannel ? Number(form.pointChannel) : null,
-    allowCrossChannel: form.allowCrossChannel
+    allowCrossChannel: form.allowCrossChannel,
+    // 顺序学习
+    enforceSequence: form.enforceSequence,
+    sequenceNumber: parseInt(form.sequenceNumber) || 0,
+    sequenceTag: form.sequenceTag ? { documentId: form.sequenceTag.documentId } : null,
+    // 答题设置
+    allowRetakeQuiz: form.allowRetakeQuiz,
+    quizRetryCount: form.quizRetryCount
   }
 
   if (form.category) {
@@ -924,6 +1124,14 @@ onMounted(async () => {
   border-radius: 20rpx;
   padding: 30rpx;
   margin-bottom: 30rpx;
+}
+
+.form-hint {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+  line-height: 1.4;
 }
 
 .section-title {

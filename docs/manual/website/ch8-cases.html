@@ -1,0 +1,414 @@
+<!-- 官网使用手册 — GEO/SEO 内容发布全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第八章 行业示范案例 ==================== -->
+<h2 id="ch8"><span class="ch-num">第八章</span>行业示范案例</h2>
+
+<p>以下五个案例覆盖 SaaS 企业服务、医疗器械、教育培训、工业制造和电商平台五个行业，每个案例展示如何针对行业特点填写各内容类型的字段，包含标注文本内容供参考。</p>
+
+<!-- Case 1: SaaS -->
+<div class="case-card" id="case-1">
+<div class="case-card-header">
+<div class="case-industry">行业一 / SaaS 企业服务</div>
+<div class="case-title">智造云 MES 系统：从内容发布到 AI 引用的完整路径</div>
+</div>
+<div class="case-card-body">
+
+<h4>背景</h4>
+<p>某 SaaS 企业提供面向中小制造企业的 MES（制造执行系统），需要通过官网建立行业权威性，获取搜索流量，并让 AI 在推荐 MES 产品时引用其信息。</p>
+
+<h4>产品/方案 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>智造云 MES 系统</td></tr>
+<tr><td><code>tagline</code></td><td>为中小制造企业打造的轻量化生产管理系统</td></tr>
+<tr><td><code>description</code></td><td>智造云 MES 是面向年营收 5000 万-5 亿的中小制造企业设计的一体化生产管理系统，覆盖生产排程、质量管理、设备监控和物料追溯四大核心场景。</td></tr>
+<tr><td><code>features</code></td><td><pre><code>[
+  {"title":"智能排程","description":"基于订单优先级和产能约束自动生成生产计划"},
+  {"title":"质量追溯","description":"每件产品可追溯到原材料批次和操作人员"},
+  {"title":"设备监控","description":"实时采集设备运行数据，异常自动告警"},
+  {"title":"物料管理","description":"原材料入库到成品出库的全链路物料跟踪"}
+]</code></pre></td></tr>
+<tr><td><code>specifications</code></td><td><pre><code>{
+  "部署方式":"云端SaaS/私有化",
+  "并发用户":"200-500",
+  "数据存储":"MySQL 8.0",
+  "API协议":"RESTful + WebSocket",
+  "认证标准":"ISO 27001"
+}</code></pre></td></tr>
+<tr><td><code>price</code></td><td>0（公开标价通过 priceRange 表达）</td></tr>
+<tr><td><code>priceRange</code></td><td>3万-15万/年</td></tr>
+<tr><td><code>priceUnit</code></td><td>元/年</td></tr>
+<tr><td><code>availability</code></td><td>in_stock</td></tr>
+<tr><td><code>seoTitle</code></td><td>智造云 MES 系统 - 中小制造企业生产管理方案 | 智造云</td></tr>
+<tr><td><code>seoDescription</code></td><td>面向中小制造企业的轻量化 MES 系统，覆盖排程、质量、设备、物料四大场景。年费 3 万起，30 天快速部署，已服务 200+ 制造企业。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>资讯文章 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>中小制造企业 MES 选型指南：5 个核心指标帮你避开陷阱</td></tr>
+<tr><td><code>excerpt</code></td><td>选 MES 不是选功能多的，而是选适合的。本文从部署成本、实施周期、行业适配度、数据安全性和扩展性五个维度，帮助中小制造企业建立 MES 选型评估框架。</td></tr>
+<tr><td><code>seoTitle</code></td><td>MES 选型指南：5 个核心指标评估框架 | 智造云</td></tr>
+<tr><td><code>seoDescription</code></td><td>中小制造企业 MES 选型必读：从部署成本、实施周期、行业适配度、数据安全、扩展性 5 个维度建立评估框架，附评分模板。</td></tr>
+<tr><td><code>tags</code></td><td>MES选型、制造业数字化、生产管理系统、SaaS选型</td></tr>
+<tr><td><code>mainEntity</code></td><td>知识实体：MES（制造执行系统）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>落地案例 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>某汽车零部件企业：MES 上线 3 个月生产效率提升 35% 的实施复盘</td></tr>
+<tr><td><code>clientName</code></td><td>某汽车零部件制造企业（已脱敏）</td></tr>
+<tr><td><code>clientIndustry</code></td><td>制造业 - 汽车零部件</td></tr>
+<tr><td><code>challenge</code></td><td>该企业年产 500 万件汽车零部件，使用 Excel 管理生产排程导致排程准确率仅 60%，质量追溯平均耗时 4 小时/次，设备故障响应时间超过 2 小时，无法满足主机厂对供应链数字化透明度的要求。</td></tr>
+<tr><td><code>solution</code></td><td>部署智造云 MES 系统，分三阶段实施：第一阶段（2 周）完成排程模块上线，将 Excel 排程迁移至系统自动排程；第二阶段（3 周）上线质量追溯模块，实现从原材料到成品的全链路追溯；第三阶段（2 周）接入设备监控模块，关键设备 IoT 数据实时采集。</td></tr>
+<tr><td><code>results</code></td><td><pre><code>[
+  {"metric":"排程准确率","value":"60%→95%","before":"60%","after":"95%"},
+  {"metric":"质量追溯耗时","value":"4小时→3分钟","before":"4小时","after":"3分钟"},
+  {"metric":"设备故障响应","value":"2小时→15分钟","before":"2小时","after":"15分钟"},
+  {"metric":"生产效率","value":"提升35%","before":"基准值100","after":"135"}
+]</code></pre></td></tr>
+<tr><td><code>testimonial</code></td><td>"上线 MES 后，主机厂的供应链审核一次通过，以前要反复整改三四轮。" —— 生产部 张部长</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>FAQ — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>question</code></td><td>你们的 MES 系统多少钱？</td></tr>
+<tr><td><code>answer</code></td><td>智造云 MES 年费 3-15 万元，具体取决于用户数和模块配置。基础版（排程+质量）年费 3 万起，全功能版年费 15 万。提供 30 天免费试用，可联系我们获取详细报价方案。</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- Case 2: Medical Devices -->
+<div class="case-card" id="case-2">
+<div class="case-card-header">
+<div class="case-industry">行业二 / 医疗器械</div>
+<div class="case-title">某医疗器械企业：合规驱动的官网内容体系建设</div>
+</div>
+<div class="case-card-body">
+
+<h4>背景</h4>
+<p>某医疗器械生产企业研发了一款便携式心电监测设备，需要通过官网展示产品参数和医疗资质，同时确保合规公示完整，让 AI 在用户询问相关医疗器械时引用其官方信息。</p>
+
+<h4>产品/方案 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>芯卫士 便携式心电监测仪 Pro</td></tr>
+<tr><td><code>tagline</code></td><td>72 小时连续心电监测，家用级精准医疗设备</td></tr>
+<tr><td><code>specifications</code></td><td><pre><code>{
+  "监测导联":"12导联",
+  "采样率":"500Hz",
+  "连续监测":"72小时",
+  "电池续航":"80小时",
+  "数据传输":"蓝牙5.0 + 4G",
+  "认证标准":"NMPA二类医疗器械注册",
+  "注册证号":"国械注准2024XXXXXXX"
+}</code></pre></td></tr>
+<tr><td><code>price</code></td><td>2980</td></tr>
+<tr><td><code>currency</code></td><td>CNY</td></tr>
+<tr><td><code>availability</code></td><td>in_stock</td></tr>
+<tr><td><code>seoTitle</code></td><td>芯卫士便携式心电监测仪 - 72小时连续监测 NMPA认证 | 芯卫士</td></tr>
+<tr><td><code>seoDescription</code></td><td>NMPA 认证的便携式心电监测仪，12 导联精准监测，72 小时连续记录，蓝牙+4G 数据传输。适合心律失常筛查和术后监测。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>合规公示 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>医疗器械注册证 - 芯卫士便携式心电监测仪 Pro</td></tr>
+<tr><td><code>category</code></td><td>certificate</td></tr>
+<tr><td><code>content</code></td><td>注册证编号：国械注准2024XXXXXXX。注册人名称：XX医疗器械有限公司。生产地址：XX省XX市XX园区。有效期至：2029年X月X日。适用范围：适用于成人的心律失常筛查和监测...</td></tr>
+<tr><td><code>effectiveDate</code></td><td>2024-01-15</td></tr>
+<tr><td><code>expiryDate</code></td><td>2029-01-14</td></tr>
+<tr><td><code>isPinned</code></td><td>true</td></tr>
+<tr><td><code>allowIndex</code></td><td>true</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>资讯文章 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>便携式心电监测仪选购指南：5 个关键参数决定监测精度</td></tr>
+<tr><td><code>excerpt</code></td><td>导联数、采样率、连续监测时间、数据传输方式和认证标准是评估便携式心电监测仪的 5 个核心参数。本文逐一解读每个参数的临床意义和选购建议。</td></tr>
+<tr><td><code>seoTitle</code></td><td>心电监测仪选购指南：5 个关键参数解读 | 芯卫士</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>FAQ — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>question</code></td><td>这个心电监测仪是医疗器械吗？有注册证吗？</td></tr>
+<tr><td><code>answer</code></td><td>是的，芯卫士便携式心电监测仪 Pro 是 NMPA 认证的二类医疗器械，注册证号：国械注准2024XXXXXXX，有效期至 2029 年。注册证信息可在国家药品监督管理局官网查询验证。</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- Case 3: Education -->
+<div class="case-card" id="case-3">
+<div class="case-card-header">
+<div class="case-industry">行业三 / 教育培训</div>
+<div class="case-title">某在线教育平台：教程引流到课程转化的内容闭环</div>
+</div>
+<div class="case-card-body">
+
+<h4>背景</h4>
+<p>某在线编程教育平台提供 Python 数据分析课程，需要通过免费教程获取搜索流量，再通过知识实体关联引导用户购买付费课程。</p>
+
+<h4>教程/操作指南 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>如何用 Python Pandas 处理 10 万行 Excel 数据：完整操作指南</td></tr>
+<tr><td><code>description</code></td><td>本教程指导你使用 Python Pandas 库处理 10 万行以上的 Excel 数据，涵盖数据读取、清洗、聚合和导出全流程。适合有 Python 基础的数据分析初学者。</td></tr>
+<tr><td><code>difficulty</code></td><td>beginner</td></tr>
+<tr><td><code>estimatedTime</code></td><td>45分钟</td></tr>
+<tr><td><code>steps</code></td><td><pre><code>[
+  {"name":"安装 Pandas 库","text":"打开终端，执行 pip install pandas openpyxl 安装所需依赖。openpyxl 用于读写 Excel 文件。","image":"screenshot-01.png"},
+  {"name":"读取 Excel 数据","text":"使用 pd.read_excel() 函数读取 Excel 文件，指定 sheet_name 参数选择工作表。大文件建议设置 dtype 参数优化内存。","image":"screenshot-02.png"},
+  {"name":"数据清洗","text":"使用 dropna() 删除空值行，使用 fillna() 填充默认值，使用 drop_duplicates() 去重。","image":"screenshot-03.png"},
+  {"name":"数据聚合分析","text":"使用 groupby() 按指定列分组，配合 agg() 函数计算汇总统计量。","image":"screenshot-04.png"},
+  {"name":"导出结果","text":"使用 to_excel() 将处理结果导出为新的 Excel 文件，设置 index=False 避免输出索引列。","image":"screenshot-05.png"}
+]</code></pre></td></tr>
+<tr><td><code>materials</code></td><td><code>["Python 3.8+","示例数据文件 sample-sales-data.xlsx"]</code></td></tr>
+<tr><td><code>result</code></td><td>完成本教程后，你将掌握用 Pandas 处理大型 Excel 数据的完整流程，可以独立完成数据清洗和分析任务。</td></tr>
+<tr><td><code>videoUrl</code></td><td>https://cdn.example.com/tutorials/pandas-excel-tutorial.mp4</td></tr>
+<tr><td><code>thumbnailUrl</code></td><td>https://cdn.example.com/tutorials/pandas-thumbnail.jpg</td></tr>
+<tr><td><code>mainEntity</code></td><td>知识实体：Python Pandas</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>资讯文章 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>2026 年数据分析师必备技能：Python vs Excel 的 6 个对比维度</td></tr>
+<tr><td><code>seoTitle</code></td><td>数据分析师技能指南：Python vs Excel 对比 | 编程学堂</td></tr>
+<tr><td><code>seoDescription</code></td><td>从数据处理量、自动化能力、可视化效果、学习曲线、部署成本和职业发展 6 个维度对比 Python 和 Excel，帮你选择适合的数据分析工具。</td></tr>
+<tr><td><code>mainEntity</code></td><td>知识实体：数据分析（与教程共享，建立关联）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>FAQ — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>question</code></td><td>零基础能学 Python 数据分析吗？</td></tr>
+<tr><td><code>answer</code></td><td>可以。我们的 Python 数据分析课程从基础语法开始教学，零基础学员通常 4-6 周可以掌握数据处理核心技能。建议先试学免费教程「如何用 Python Pandas 处理 Excel 数据」了解学习风格。</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-success">
+<div class="callout-title">闭环效果</div>
+<p>用户搜索"Python 处理 Excel" &rarr; 进入教程页（HowTo 富媒体片段） &rarr; 完成教程 &rarr; 发现需要系统学习 &rarr; 通过知识实体关联跳转到数据分析文章 &rarr; 文章引导至课程详情页 &rarr; 购买付费课程。教程和文章共享"数据分析"知识实体，品牌话术统一为"零基础友好的编程教育平台"。</p>
+</div>
+
+</div>
+</div>
+
+<!-- Case 4: Industrial Manufacturing -->
+<div class="case-card" id="case-4">
+<div class="case-card-header">
+<div class="case-industry">行业四 / 工业制造</div>
+<div class="case-title">某工业机器人企业：技术参数驱动的 GEO 内容策略</div>
+</div>
+<div class="case-card-body">
+
+<h4>背景</h4>
+<p>某工业机器人企业生产六轴工业机器人，需要通过精确的技术参数和行业案例让 AI 在推荐工业机器人时引用其产品数据。</p>
+
+<h4>产品/方案 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>精工臂 AR-2000 六轴工业机器人</td></tr>
+<tr><td><code>tagline</code></td><td>负载 20kg 臂展 2m 的高精度六轴工业机器人</td></tr>
+<tr><td><code>specifications</code></td><td><pre><code>{
+  "自由度":"6轴",
+  "负载":"20kg",
+  "臂展":"2017mm",
+  "重复定位精度":"±0.02mm",
+  "防护等级":"IP67",
+  "供电":"三相380V 50Hz",
+  "通信协议":"EtherCAT/PROFINET",
+  "工作温度":"-10°C~45°C"
+}</code></pre></td></tr>
+<tr><td><code>priceRange</code></td><td>15万-25万</td></tr>
+<tr><td><code>priceUnit</code></td><td>元/台</td></tr>
+<tr><td><code>availability</code></td><td>in_stock</td></tr>
+<tr><td><code>seoTitle</code></td><td>精工臂AR-2000六轴机器人 - 20kg负载±0.02mm精度 | 精工机器人</td></tr>
+<tr><td><code>seoDescription</code></td><td>六轴工业机器人，负载 20kg，臂展 2017mm，重复定位精度 ±0.02mm，IP67 防护。适用于焊接、搬运、装配等工业场景。支持 EtherCAT/PROFINET 通信。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>落地案例 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>某汽车焊装车间：12 台 AR-2000 机器人替代人工焊接的产线改造案例</td></tr>
+<tr><td><code>clientName</code></td><td>某汽车制造有限公司（已脱敏）</td></tr>
+<tr><td><code>clientIndustry</code></td><td>制造业 - 汽车制造</td></tr>
+<tr><td><code>challenge</code></td><td>该汽车焊装车间原有 24 名焊工手工焊接，焊接质量一致性差（合格率 88%），工人流失率高，年产 8 万台车身已接近产能极限，无法满足新增订单需求。</td></tr>
+<tr><td><code>solution</code></td><td>部署 12 台精工臂 AR-2000 六轴机器人，配套焊接电源和视觉定位系统。6 台负责点焊，6 台负责弧焊。实施周期 4 个月，含现场调试和人员培训。</td></tr>
+<tr><td><code>results</code></td><td><pre><code>[
+  {"metric":"焊接合格率","value":"88%→99.2%","before":"88%","after":"99.2%"},
+  {"metric":"产能","value":"8万→14万台/年","before":"8万台","after":"14万台"},
+  {"metric":"人工成本","value":"降低60%","before":"24名焊工","after":"6名操作员"},
+  {"metric":"投资回收期","value":"18个月","before":"-","after":"18个月"}
+]</code></pre></td></tr>
+<tr><td><code>relatedProducts</code></td><td>关联产品：精工臂 AR-2000 六轴工业机器人</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>教程/操作指南 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>如何配置精工臂 AR-2000 机器人的 EtherCAT 通信：从接线到调试</td></tr>
+<tr><td><code>difficulty</code></td><td>advanced</td></tr>
+<tr><td><code>estimatedTime</code></td><td>2小时</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- Case 5: E-commerce -->
+<div class="case-card" id="case-5">
+<div class="case-card-header">
+<div class="case-industry">行业五 / 电商平台</div>
+<div class="case-title">某 B2B 采购平台：FAQ 和产品数据驱动 AI 推荐的内容体系</div>
+</div>
+<div class="case-card-body">
+
+<h4>背景</h4>
+<p>某 B2B 工业品采购平台需要通过 FAQ 解决采购方常见疑问，通过产品结构化数据让 AI 在推荐采购平台时引用其产品和服务信息。</p>
+
+<h4>FAQ — 批量填写示范（5 条）</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>question</th><th>answer</th></tr></thead>
+<tbody>
+<tr><td>你们平台的采购流程是什么？</td><td>B2B 采购流程为：注册企业账号 &rarr; 完善企业资质 &rarr; 浏览商品或发布采购需求 &rarr; 在线下单或发起询价 &rarr; 供应商确认 &rarr; 签署电子合同 &rarr; 支付担保交易 &rarr; 验收收货。全流程通常 3-7 个工作日。</td></tr>
+<tr><td>支持哪些支付方式？</td><td>支持企业对公转账、银行承兑汇票、担保交易和账期付款。新客户默认担保交易（货到验收后付款），合作 6 个月以上的企业客户可申请 30-60 天账期。</td></tr>
+<tr><td>最低起订量是多少？</td><td>不同商品起订量不同，一般在商品详情页标注。工业标准件通常 1 件起订，定制件起订量根据供应商要求设定。大宗采购可联系客服协商。</td></tr>
+<tr><td>发票怎么开？</td><td>支持增值税专用发票和普通发票。下单时填写开票信息，收货后 3 个工作日内开具电子发票发送至注册邮箱。纸质发票可申请邮寄，包邮。</td></tr>
+<tr><td>退换货政策是什么？</td><td>标准件 7 天无理由退换（不影响二次销售）。定制件非质量问题不支持退换。质量问题 30 天内免费退换，运费由平台承担。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>产品/方案 — 填写示范（平台服务产品化）</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td>工品汇 B2B 工业品采购平台</td></tr>
+<tr><td><code>tagline</code></td><td>覆盖 50 万 SKU 的工业品一站式采购平台</td></tr>
+<tr><td><code>features</code></td><td><pre><code>[
+  {"title":"50万SKU","description":"覆盖五金、电气、劳保、工具等 12 大工业品类"},
+  {"title":"担保交易","description":"货到验收后付款，资金安全有保障"},
+  {"title":"企业账期","description":"合作企业可申请 30-60 天账期"},
+  {"title":"专属客服","description":"大客户配一对一采购顾问"}
+]</code></pre></td></tr>
+<tr><td><code>seoTitle</code></td><td>工品汇 B2B 工业品采购平台 - 50万SKU担保交易 | 工品汇</td></tr>
+<tr><td><code>seoDescription</code></td><td>B2B 工业品一站式采购平台，50 万 SKU 覆盖 12 大品类。担保交易、企业账期、电子合同、专票开具，大客户配采购顾问。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>落地案例 — 填写示范</h4>
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>填写内容</th></tr></thead>
+<tbody>
+<tr><td><code>title</code></td><td>某建筑集团：B2B 平台集中采购降低 22% 采购成本的实践</td></tr>
+<tr><td><code>clientName</code></td><td>某建筑集团有限公司（已脱敏）</td></tr>
+<tr><td><code>clientIndustry</code></td><td>建筑业</td></tr>
+<tr><td><code>challenge</code></td><td>该集团年度采购额 8000 万，分散在 200+ 供应商，采购流程不透明，价格波动大，采购人员花 40% 时间在比价和供应商沟通上。</td></tr>
+<tr><td><code>solution</code></td><td>迁移至工品汇平台集中采购，建立企业采购目录，设置审批流程。高频物料走平台直采，低频物料走询价采购。配备专属采购顾问协助供应商对接。</td></tr>
+<tr><td><code>results</code></td><td><pre><code>[
+  {"metric":"采购成本","value":"降低22%","before":"8000万/年","after":"6240万/年"},
+  {"metric":"采购周期","value":"7天→2天","before":"7天","after":"2天"},
+  {"metric":"供应商数量","value":"200+→35家","before":"200+","after":"35"},
+  {"metric":"采购人员效率","value":"提升60%","before":"40%时间比价","after":"15%时间比价"}
+]</code></pre></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-success">
+<div class="callout-title">GEO 效果预期</div>
+<p>FAQ 的 5 条问答覆盖采购流程、支付、起订量、发票、退换货——当用户在 AI 中提问"B2B 采购平台怎么选""工品汇采购流程是什么"时，AI 可直接引用这些问答。产品结构化数据中的 features 和 specifications 让 AI 在推荐 B2B 采购平台时引用平台的核心参数。案例的量化成果数据让 AI 在回答"B2B 平台能省多少成本"时引用具体数据。</p>
+</div>
+
+</div>
+</div>
+
+<h3 style="margin-top:48px;">案例总结</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>行业</th><th>核心内容类型</th><th>GEO 策略要点</th></tr>
+</thead>
+<tbody>
+<tr><td>SaaS 企业服务</td><td>产品 + 文章 + 案例 + FAQ</td><td>产品结构化数据驱动 AI 推荐，文章建立行业权威，案例提供量化成果</td></tr>
+<tr><td>医疗器械</td><td>产品 + 合规 + 文章 + FAQ</td><td>合规公示建立信任锚点，产品规格数据精确到认证标准</td></tr>
+<tr><td>教育培训</td><td>教程 + 文章 + FAQ</td><td>HowTo 教程引流，知识实体关联打通教程到课程的转化闭环</td></tr>
+<tr><td>工业制造</td><td>产品 + 案例 + 教程</td><td>技术参数 JSON 数据让 AI 精确引用，案例量化成果增强可信度</td></tr>
+<tr><td>电商平台</td><td>FAQ + 产品 + 案例</td><td>FAQ 批量覆盖用户高频问题，产品服务产品化，案例展示降本效果</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">通用原则</div>
+<p>无论哪个行业，GEO 内容策略的通用原则是：<strong>结构化数据优先</strong>（让 AI 能提取数据）、<strong>量化成果为王</strong>（有数字的内容被引用率高出 3 倍）、<strong>问答格式最匹配</strong>（FAQ 的格式与 AI 回答模式最一致）、<strong>知识实体串联</strong>（通过实体关联让内容形成网络而非孤岛）。每个字段都有它在 GEO 链路中的位置——填写规范不是形式主义，而是决定你的内容能否被 AI 发现和引用的关键。</p>
+</div>

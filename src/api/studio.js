@@ -23,6 +23,18 @@ export const statSummaryApi = createContentApi('stat-summaries')
 export const browserLogApi = createContentApi('browser-logs')
 export const adSlotApi = createContentApi('ad-slots')
 
+// 广告展示管理（ad-zone / ad-content）
+export const adZoneApi = createContentApi('ad-zones')
+export const adContentApi = createContentApi('ad-contents')
+
+// 海报模板管理（poster-template / poster-element）
+export const posterTemplateApi = {
+  ...createContentApi('poster-templates'),
+  clone: (documentId) => post(`${ADMIN_BASE}/poster-templates/${documentId}/clone`).then(extractItem),
+  batchSaveElements: (documentId, elements) => put(`${ADMIN_BASE}/poster-templates/${documentId}/elements`, { elements }).then(extractItem),
+}
+export const posterElementApi = createContentApi('poster-elements')
+
 // 采集工作流
 export const collectActionApi = {
   createTask: (sourceId) => post(`${ADMIN_BASE}/tasks`, { data: { sourceId } }).then(extractItem),

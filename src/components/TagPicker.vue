@@ -16,7 +16,7 @@
               placeholder="搜索分组"
             />
           </view>
-          <scroll-view scroll-y class="group-list">
+          <view class="group-list" ref="groupListRef">
             <view
               class="group-item"
               :class="{ active: selectedGroupId === null }"
@@ -40,7 +40,7 @@
             <view class="group-item add-group" @click="handleAddGroup">
               <text>+ 新建分组</text>
             </view>
-          </scroll-view>
+          </view>
         </view>
 
         <!-- 右侧：标签列表 -->
@@ -54,7 +54,7 @@
             />
             <button class="btn-add-tag" @click="handleAddTag">+ 添加</button>
           </view>
-          <scroll-view scroll-y class="tag-list" @scrolltolower="loadMoreTags">
+          <view class="tag-list" ref="tagListRef" @scroll="onTagScroll">
             <view
               v-for="tag in tagList"
               :key="tag.documentId"
@@ -77,7 +77,7 @@
             <view v-if="!loadingTags && tagList.length > 0 && tagPagination.page >= tagPagination.pageCount" class="no-more-text">
               <text>— 没有更多标签了 —</text>
             </view>
-          </scroll-view>
+          </view>
         </view>
       </view>
 
@@ -149,6 +149,8 @@ const tagList = ref([])
 const tagKeyword = ref('')
 const tagPagination = ref({ page: 1, pageSize: 20, total: 0, pageCount: 0 })
 const loadingTags = ref(false)
+const tagListRef = ref(null)
+const groupListRef = ref(null)
 
 const internalSelected = ref([])
 
@@ -312,7 +314,9 @@ async function loadTags(append = false) {
     }
     const result = await getTagList(params)
     if (append) {
-      tagList.value.push(...(result.list || []))
+      const existingIds = new Set(tagList.value.map(t => t.documentId))
+      const newTags = (result.list || []).filter(t => !existingIds.has(t.documentId))
+      tagList.value.push(...newTags)
     } else {
       tagList.value = result.list || []
     }
@@ -325,9 +329,18 @@ async function loadTags(append = false) {
 }
 
 function loadMoreTags() {
-  if (tagPagination.value.page < tagPagination.value.pageCount) {
-    tagPagination.value.page++
-    loadTags(true)
+  if (loadingTags.value) return
+  if (tagPagination.value.page >= tagPagination.value.pageCount) return
+  tagPagination.value.page++
+  loadTags(true)
+}
+
+function onTagScroll(e) {
+  const el = e.target || tagListRef.value
+  if (!el) return
+  const { scrollTop, scrollHeight, clientHeight } = el
+  if (scrollHeight - scrollTop - clientHeight < 60) {
+    loadMoreTags()
   }
 }
 
@@ -418,7 +431,7 @@ function handleClose() {
 .tag-picker {
   width: 90%;
   max-width: 800px;
-  max-height: 80vh;
+  height: 80vh;
   background: #fff;
   border-radius: 16rpx;
   display: flex;
@@ -459,6 +472,8 @@ function handleClose() {
   border-right: 1rpx solid #eee;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .group-search {
@@ -478,8 +493,10 @@ function handleClose() {
 
 .group-list {
   flex: 1;
+  height: 0;
   padding: 8rpx;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .group-item {
@@ -531,6 +548,8 @@ function handleClose() {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .tag-toolbar {
@@ -565,9 +584,10 @@ function handleClose() {
 
 .tag-list {
   flex: 1;
-  padding: 12rpx 16rpx;
-  max-height: 400px;
+  height: 0;
+  padding: 12rpx 8rpx 12rpx 16rpx;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tag-item {
@@ -745,4 +765,33 @@ function handleClose() {
 }
 .tag-badge.public { background: #fff3e0; color: #faad14; }
 .tag-badge.site { background: #e8f5e9; color: #07c160; }
+
+/* 滚动条样式（普通 div，scoped 直接生效） */
+.tag-list::-webkit-scrollbar,
+.group-list::-webkit-scrollbar {
+  width: 6px;
+  -webkit-appearance: none;
+}
+.tag-list::-webkit-scrollbar-track,
+.group-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+.tag-list::-webkit-scrollbar-thumb,
+.group-list::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+.tag-list::-webkit-scrollbar-thumb:hover,
+.group-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+.tag-list {
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 #f0f0f0;
+}
+.group-list {
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 #f0f0f0;
+}
 </style>

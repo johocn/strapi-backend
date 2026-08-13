@@ -371,8 +371,8 @@ const overview = ref({})
 const anomalies = ref([])
 
 // ===== 产品采集 =====
-const sourceOptions = ['渤银理财']
-const sourceValues = ['cbhb']
+const sourceOptions = ['渤银理财', '杭银理财']
+const sourceValues = ['cbhb', 'hzbank']
 const sourceIndex = ref(0)
 const productCodeInput = ref('')
 const collecting = ref(false)
@@ -451,9 +451,9 @@ const editForm = ref({
 
 const currentSource = computed(() => sourceValues[sourceIndex.value])
 
-/** 是否可入库：以编辑表单为准，至少需要产品名称 */
+/** 是否可入库：至少需要产品名称和登记编码（理财网名称可选） */
 const canConfirm = computed(() => {
-  return !!(editForm.value.productName && editForm.value.productNameCw && editForm.value.registerCode)
+  return !!(editForm.value.productName && editForm.value.registerCode)
 })
 
 const verifyBadgeClass = computed(() => {
@@ -477,8 +477,29 @@ const verifyBadgeText = computed(() => {
   return map[status] || '未知'
 })
 
+/** 数据源 → 发行机构（公司简称）映射 */
+const SOURCE_COMPANY_MAP = {
+  'cbhb': '渤银理财',
+  'hzbank': '杭银理财',
+}
+
 function onSourceChange(e) {
   sourceIndex.value = e.detail.value
+  // 自动匹配发行机构
+  autoSelectCompanyBySource(currentSource.value)
+}
+
+/** 根据当前数据源自动选择发行机构 */
+function autoSelectCompanyBySource(source) {
+  const companyShortName = SOURCE_COMPANY_MAP[source]
+  if (!companyShortName) return
+  // 模糊匹配公司列表中的发行机构
+  const idx = fuzzyMatchCompany(companyShortName, companyList.value)
+  if (idx >= 0) {
+    companyPickerIndex.value = idx
+    editForm.value.company = companyList.value[idx].id
+    editForm.value.companyName = companyList.value[idx].name
+  }
 }
 
 /** 采集完成后，用 mergedData 填充可编辑表单 */
@@ -508,7 +529,7 @@ function initEditForm(mergedData) {
   riskPickerIndex.value = Math.max(0, riskValues.indexOf(editForm.value.riskLevel))
   typePickerIndex.value = Math.max(0, typeValues.indexOf(editForm.value.productType))
 
-  // 尝试模糊匹配已有公司（不新增）
+  // 尝试模糊匹配已有公司：优先用采集数据中的公司名，回退到数据源对应的默认公司
   const companyName = editForm.value.companyName
   if (companyName) {
     const idx = fuzzyMatchCompany(companyName, companyList.value)
@@ -517,13 +538,12 @@ function initEditForm(mergedData) {
       editForm.value.company = companyList.value[idx].id
       editForm.value.companyName = companyList.value[idx].name
     } else {
-      // 未匹配到，保持默认选择，提示用户手动选择
-      companyPickerIndex.value = 0
-      editForm.value.company = null
-      console.warn(`[collect] 未匹配到公司: ${companyName}，请手动选择`)
+      // 采集数据中的公司名未匹配到，回退到数据源对应的默认发行机构
+      autoSelectCompanyBySource(currentSource.value)
     }
   } else {
-    companyPickerIndex.value = 0
+    // 无公司名，直接用数据源对应的默认发行机构
+    autoSelectCompanyBySource(currentSource.value)
   }
 }
 
@@ -605,6 +625,7 @@ async function handleConfirm() {
       benchmark: editForm.value.benchmark || null,
       remark: '',
       company: companyValue,
+      source: currentSource.value,
       status: true,
     }
 
@@ -627,9 +648,13 @@ async function handleCollectNav() {
   if (!confirmSuccess.value) return
   collectingNav.value = true
   try {
-    await triggerCollect({ productId: confirmSuccess.value.productId })
-    uni.showToast({ title: '净值采集已触发', icon: 'success' })
+    const result = await triggerCollect({ productId: confirmSuccess.value.productId })
+    const msg = result?.savedCount != null
+      ? `采集完成，保存${result.savedCount}条净值`
+      : '净值采集已触发'
+    uni.showToast({ title: msg, icon: 'success' })
     resetCollect()
+    loadOverview()
   } catch (e) {
     console.error('触发净值采集失败', e)
     uni.showToast({ title: e?.message || '触发失败', icon: 'none' })
@@ -686,11 +711,14 @@ async function loadAnomalies() {
 async function handleTriggerCollect() {
   batchCollecting.value = true
   try {
-    await triggerCollect({})
-    uni.showToast({ title: '批量采集已触发', icon: 'success' })
+    const result = await triggerCollect({})
+    const msg = result?.successCount != null
+      ? `批量采集完成：成功${result.successCount}，失败${result.failCount}`
+      : '批量采集已触发'
+    uni.showToast({ title: msg, icon: 'success' })
     setTimeout(() => { loadOverview(); loadAnomalies() }, 2000)
   } catch (e) {
-    uni.showToast({ title: '触发失败', icon: 'none' })
+    uni.showToast({ title: e?.message || '触发失败', icon: 'none' })
   } finally {
     batchCollecting.value = false
   }

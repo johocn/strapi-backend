@@ -1,0 +1,782 @@
+<!-- 站内广告使用手册 — 广告区域与广告内容全链路指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  h2 { font-size: 24px; font-weight: 700; margin: 28px 0 14px; color: #0f172a; }
+  h2 .ch-num { display: inline-block; background: #1a56db; color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+  h3 { font-size: 19px; font-weight: 600; margin: 22px 0 10px; color: #1e293b; }
+  h4 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: #334155; }
+  p { font-size: 14px; line-height: 1.75; color: #475569; margin: 10px 0; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; color: #1e293b; }
+  pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0; border: 1px solid #e2e8f0; }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { font-size: 14px; line-height: 1.75; color: #475569; margin: 4px 0; }
+  strong { color: #1e293b; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  .callout { padding: 14px 18px; border-radius: 8px; margin: 18px 0; border-left: 4px solid; font-size: 14px; line-height: 1.7; }
+  .callout-info { background: #eff6ff; border-color: #3b82f6; color: #1e3a5f; }
+  .callout-success { background: #f0fdf4; border-color: #22c55e; color: #14532d; }
+  .callout-warning { background: #fffbeb; border-color: #f59e0b; color: #713f12; }
+  .callout-danger { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .callout-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .callout p { margin: 6px 0; color: inherit; }
+  .steps { list-style: none; counter-reset: step-counter; padding: 0; margin: 18px 0; }
+  .steps li { counter-increment: step-counter; padding: 10px 10px 10px 48px; position: relative; font-size: 14px; line-height: 1.7; color: #475569; border-left: 2px solid #e2e8f0; margin: 0; }
+  .steps li::before { content: counter(step-counter); position: absolute; left: -14px; top: 10px; width: 28px; height: 28px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .checklist { list-style: none; padding: 0; margin: 18px 0; }
+  .checklist li { padding: 6px 10px 6px 32px; position: relative; font-size: 13px; color: #475569; line-height: 1.6; }
+  .checklist li::before { content: '\2713'; position: absolute; left: 6px; color: #22c55e; font-weight: 700; }
+  .field-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 18px 0; overflow: hidden; }
+  .field-card-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .field-name { font-size: 15px; font-weight: 700; color: #0f172a; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-type { font-size: 12px; color: #94a3b8; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-card-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-item { background: #fafafa; padding: 10px; border-radius: 6px; }
+  .field-item-label { display: block; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-item-value { display: block; font-size: 13px; color: #334155; line-height: 1.6; }
+  .field-card-full { grid-column: 1 / -1; }
+  .field-item-value.danger { color: #dc2626; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+  .badge-required { background: #fef2f2; color: #dc2626; }
+  .badge-optional { background: #f1f5f9; color: #64748b; }
+  .badge-ad { background: #fef3c7; color: #b45309; }
+  .badge-api { background: #e0e7ff; color: #4338ca; }
+  .badge-display { background: #f3e8ff; color: #7c3aed; }
+  .flow-diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 18px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .flow-node { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 16px; font-size: 13px; color: #334155; text-align: center; min-width: 100px; }
+  .flow-arrow { color: #94a3b8; font-size: 18px; }
+  .flow-node-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .flow-node.success { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .flow-node.warning { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .case-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+  .case-card-header { padding: 16px; background: linear-gradient(135deg, #1a56db, #1e40af); color: #fff; }
+  .case-card-header .case-industry { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px; }
+  .case-card-header .case-title { font-size: 16px; font-weight: 700; }
+  .case-card-body { padding: 16px; }
+  .chapter-nav { display: flex; justify-content: space-between; padding: 24px 0 8px; border-top: 1px solid #e2e8f0; margin-top: 32px; gap: 12px; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .nav-btn.next { margin-left: auto; }
+  @media (max-width: 640px) {
+    .field-card-body { grid-template-columns: 1fr; }
+    .flow-node { min-width: 80px; font-size: 12px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 17px; }
+  }
+</style>
+
+
+<!-- ==================== 第五章 前端API集成 ==================== -->
+<h2 id="ch5"><span class="ch-num">第五章</span>前端API集成</h2>
+
+<h3 id="ch5-1">5.1 公开 API 总览</h3>
+
+<p>站内广告系统提供两类 API：<strong>公开 API</strong>（无需认证，供前端页面拉取广告数据）和<strong>管理 API</strong>（需认证，供管理后台进行 CRUD 操作）。公开 API 是前端集成的主要接口，管理 API 用于后台管理系统。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>API 类型</th><th>端点</th><th>方法</th><th>认证</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>公开 API</strong></td><td><code>/api/ads/zones/:position</code></td><td>GET</td><td>无需</td><td>按位置获取广告区域及其有效内容</td></tr>
+<tr><td><strong>公开 API</strong></td><td><code>/api/ads/zones</code></td><td>GET</td><td>无需</td><td>获取当前站点的所有活跃广告区域</td></tr>
+<tr><td><strong>管理 API</strong></td><td><code>/api/ad-zones</code></td><td>GET/POST</td><td>需要</td><td>广告区域列表查询与创建</td></tr>
+<tr><td><strong>管理 API</strong></td><td><code>/api/ad-zones/:id</code></td><td>GET/PUT/DELETE</td><td>需要</td><td>广告区域详情查询、更新、删除</td></tr>
+<tr><td><strong>管理 API</strong></td><td><code>/api/ad-contents</code></td><td>GET/POST</td><td>需要</td><td>广告内容列表查询与创建</td></tr>
+<tr><td><strong>管理 API</strong></td><td><code>/api/ad-contents/:id</code></td><td>GET/PUT/DELETE</td><td>需要</td><td>广告内容详情查询、更新、删除</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>API 请求与响应通用规范</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>项目</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>基础 URL</td><td><code>https://your-domain.com/api</code></td></tr>
+<tr><td>内容类型</td><td><code>application/json</code></td></tr>
+<tr><td>字符编码</td><td>UTF-8</td></tr>
+<tr><td>站点识别</td><td>通过请求头 <code>X-Site-Code</code> 或域名自动识别当前站点</td></tr>
+<tr><td>用户标识</td><td>频次控制通过请求头 <code>X-User-Id</code> 或 cookie 识别用户</td></tr>
+<tr><td>响应格式</td><td>JSON，成功返回数据对象，失败返回 error 对象</td></tr>
+<tr><td>分页</td><td>管理 API 支持 <code>?page=1&pageSize=25</code> 分页参数</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch5-2">5.2 按位置获取广告</h3>
+
+<p><code>GET /api/ads/zones/:position</code> 是前端最常用的 API，通过 position 路径参数获取指定位置的广告区域及其有效内容。前端页面在对应位置加载时调用此接口，获取广告数据后渲染到页面。</p>
+
+<h4>请求参数</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>参数位置</th><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>路径</td><td><code>position</code></td><td>string</td><td>是</td><td>广告位置标识，如 <code>home-banner</code>、<code>article-bottom</code></td></tr>
+<tr><td>请求头</td><td><code>X-Site-Code</code></td><td>string</td><td>否</td><td>站点编码，多站点系统必传。单站点可不传</td></tr>
+<tr><td>请求头</td><td><code>X-User-Id</code></td><td>string</td><td>否</td><td>用户标识，用于频次控制。未传则不做频次限制</td></tr>
+<tr><td>查询</td><td><code>limit</code></td><td>integer</td><td>否</td><td>返回内容数量上限，默认返回全部有效内容</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>请求示例</h4>
+
+<pre><code>GET /api/ads/zones/home-banner HTTP/1.1
+Host: your-domain.com
+X-Site-Code: main
+X-User-Id: user-abc123
+Accept: application/json</code></pre>
+
+<h4>响应结构</h4>
+
+<pre><code>{
+  "id": 1,
+  "name": "首页横幅",
+  "code": "home-banner",
+  "position": "home-banner",
+  "displayMode": "rotation",
+  "suggestedWidth": 1200,
+  "suggestedHeight": 300,
+  "adSlotCode": null,
+  "isActive": true,
+  "adContents": [
+    {
+      "id": 10,
+      "name": "双十一促销-单图",
+      "contentType": "single-image",
+      "displayStyle": "banner",
+      "priority": 100,
+      "sortOrder": 0,
+      "isActive": true,
+      "title": "限时特惠 全场五折",
+      "titleColor": "#ffffff",
+      "titleFontSize": 28,
+      "titleFontWeight": "bold",
+      "titleAlign": "center",
+      "subtitle": "活动时间：11.1-11.11",
+      "subtitleColor": "#f0f0f0",
+      "subtitleFontSize": 16,
+      "ctaText": "立即抢购",
+      "ctaTextColor": "#ffffff",
+      "ctaBgColor": "#e63946",
+      "ctaFontSize": 16,
+      "ctaBorderRadius": 24,
+      "ctaPosition": "bottom",
+      "badgeText": "HOT",
+      "badgeBgColor": "#ff4444",
+      "badgeTextColor": "#ffffff",
+      "badgePosition": "top-right",
+      "images": [
+        {
+          "url": "https://cdn.example.com/ads/sale-banner.jpg",
+          "alt": "双十一促销活动",
+          "width": 1200,
+          "height": 300
+        }
+      ],
+      "linkType": "internal",
+      "linkUrl": "/products/sale",
+      "linkTarget": "_self",
+      "width": 1200,
+      "height": 300,
+      "borderRadius": 0,
+      "backgroundColor": null,
+      "startAt": "2026-11-01T00:00:00.000Z",
+      "endAt": "2026-11-11T23:59:59.000Z",
+      "frequencyLimit": 5,
+      "frequencyPeriod": "session"
+    },
+    {
+      "id": 11,
+      "name": "新品上线-单图",
+      "contentType": "single-image",
+      "displayStyle": "banner",
+      "priority": 80,
+      "sortOrder": 1,
+      "isActive": true,
+      "title": "新品首发 预约有礼",
+      "titleColor": "#ffffff",
+      "titleFontSize": 28,
+      "images": [
+        {
+          "url": "https://cdn.example.com/ads/new-product.jpg",
+          "alt": "新品上线",
+          "width": 1200,
+          "height": 300
+        }
+      ],
+      "linkType": "internal",
+      "linkUrl": "/products/new",
+      "linkTarget": "_self",
+      "startAt": null,
+      "endAt": null
+    }
+  ]
+}</code></pre>
+
+<h4>响应字段说明</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>integer</td><td>区域 ID</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>区域名称</td></tr>
+<tr><td><code>code</code></td><td>string</td><td>区域编码</td></tr>
+<tr><td><code>position</code></td><td>string</td><td>位置标识</td></tr>
+<tr><td><code>displayMode</code></td><td>string</td><td>展示模式：single/rotation/slideshow/stack</td></tr>
+<tr><td><code>suggestedWidth/Height</code></td><td>integer</td><td>建议尺寸</td></tr>
+<tr><td><code>adSlotCode</code></td><td>string|null</td><td>第三方广告位代码</td></tr>
+<tr><td><code>isActive</code></td><td>boolean</td><td>区域是否活跃</td></tr>
+<tr><td><code>adContents</code></td><td>array</td><td>有效广告内容列表（已过滤、已排序）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">adContents 数组说明</div>
+<p>API 返回的 adContents 数组已经过服务端过滤和排序：<strong>1.</strong> 只包含 isActive=true 的内容；<strong>2.</strong> 已过滤掉不在投放时间段内的内容；<strong>3.</strong> 已过滤掉达到频次上限的内容（需传入 X-User-Id）；<strong>4.</strong> 按 priority 降序、sortOrder 升序排列；<strong>5.</strong> 根据 displayMode 裁剪数量（single 返回 1 条）。前端无需再做过滤逻辑。</p>
+</div>
+
+<h4>空响应处理</h4>
+
+<p>当指定位置没有活跃区域或没有有效内容时，API 返回：</p>
+
+<pre><code>{
+  "id": null,
+  "name": null,
+  "position": "home-banner",
+  "displayMode": null,
+  "adContents": []
+}</code></pre>
+
+<p>前端组件应处理空响应情况，当 adContents 为空数组时不渲染广告区域（不展示空容器）。</p>
+
+<h3 id="ch5-3">5.3 获取所有广告区域</h3>
+
+<p><code>GET /api/ads/zones</code> 返回当前站点下所有活跃的广告区域列表，不包含广告内容。适用于前端预加载所有广告位信息、或管理面板展示广告位概览。</p>
+
+<h4>请求示例</h4>
+
+<pre><code>GET /api/ads/zones HTTP/1.1
+Host: your-domain.com
+X-Site-Code: main
+Accept: application/json</code></pre>
+
+<h4>响应结构</h4>
+
+<pre><code>{
+  "zones": [
+    {
+      "id": 1,
+      "name": "首页横幅",
+      "code": "home-banner",
+      "position": "home-banner",
+      "displayMode": "rotation",
+      "suggestedWidth": 1200,
+      "suggestedHeight": 300,
+      "isActive": true,
+      "sortOrder": 0
+    },
+    {
+      "id": 2,
+      "name": "首页侧边栏",
+      "code": "home-sidebar",
+      "position": "home-sidebar",
+      "displayMode": "stack",
+      "suggestedWidth": 300,
+      "suggestedHeight": 250,
+      "isActive": true,
+      "sortOrder": 0
+    },
+    {
+      "id": 3,
+      "name": "文章页底部",
+      "code": "article-bottom",
+      "position": "article-bottom",
+      "displayMode": "single",
+      "suggestedWidth": 728,
+      "suggestedHeight": 90,
+      "isActive": true,
+      "sortOrder": 0
+    }
+  ],
+  "total": 3
+}</code></pre>
+
+<h3 id="ch5-4">5.4 管理 API（CRUD）</h3>
+
+<p>管理 API 用于后台管理系统对广告区域和广告内容进行增删改查操作。所有管理 API 需要认证（Bearer Token），且需要对应的权限。</p>
+
+<h4>广告区域管理 API</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>操作</th><th>方法</th><th>端点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>区域列表</td><td>GET</td><td><code>/api/ad-zones?populate=*&code>&amp;page=1&amp;pageSize=25</code></td><td>分页查询区域列表，支持 populate 关联数据</td></tr>
+<tr><td>区域详情</td><td>GET</td><td><code>/api/ad-zones/:id?populate=adContents</code></td><td>查询单个区域详情，可 populate 关联的广告内容</td></tr>
+<tr><td>创建区域</td><td>POST</td><td><code>/api/ad-zones</code></td><td>创建新广告区域，请求体包含字段数据</td></tr>
+<tr><td>更新区域</td><td>PUT</td><td><code>/api/ad-zones/:id</code></td><td>更新广告区域字段</td></tr>
+<tr><td>删除区域</td><td>DELETE</td><td><code>/api/ad-zones/:id</code></td><td>删除广告区域（注意：不会自动删除关联内容）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>创建广告区域请求示例</h4>
+
+<pre><code>POST /api/ad-zones HTTP/1.1
+Host: your-domain.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "data": {
+    "name": "首页横幅",
+    "code": "home-banner",
+    "site": 1,
+    "position": "home-banner",
+    "displayMode": "rotation",
+    "suggestedWidth": 1200,
+    "suggestedHeight": 300,
+    "description": "首页顶部横幅，轮播模式，建议尺寸 1200x300",
+    "isActive": true,
+    "sortOrder": 0
+  }
+}</code></pre>
+
+<h4>广告内容管理 API</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>操作</th><th>方法</th><th>端点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>内容列表</td><td>GET</td><td><code>/api/ad-contents?populate=*&amp;filters[adZone][id][$eq]=1&amp;page=1&amp;pageSize=25</code></td><td>分页查询内容列表，支持按区域筛选</td></tr>
+<tr><td>内容详情</td><td>GET</td><td><code>/api/ad-contents/:id?populate=adZone</code></td><td>查询单个内容详情</td></tr>
+<tr><td>创建内容</td><td>POST</td><td><code>/api/ad-contents</code></td><td>创建新广告内容，需指定 adZone 关联</td></tr>
+<tr><td>更新内容</td><td>PUT</td><td><code>/api/ad-contents/:id</code></td><td>更新广告内容字段</td></tr>
+<tr><td>删除内容</td><td>DELETE</td><td><code>/api/ad-contents/:id</code></td><td>删除广告内容</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>创建广告内容请求示例</h4>
+
+<pre><code>POST /api/ad-contents HTTP/1.1
+Host: your-domain.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "data": {
+    "name": "双十一促销-单图",
+    "adZone": 1,
+    "site": 1,
+    "contentType": "single-image",
+    "displayStyle": "banner",
+    "isActive": true,
+    "sortOrder": 0,
+    "priority": 100,
+    "title": "限时特惠 全场五折",
+    "titleColor": "#ffffff",
+    "titleFontSize": 28,
+    "titleFontWeight": "bold",
+    "titleAlign": "center",
+    "titleOverflow": "ellipsis",
+    "titleMaxLines": 1,
+    "subtitle": "活动时间：11.1-11.11",
+    "subtitleColor": "#f0f0f0",
+    "subtitleFontSize": 16,
+    "ctaText": "立即抢购",
+    "ctaTextColor": "#ffffff",
+    "ctaBgColor": "#e63946",
+    "ctaFontSize": 16,
+    "ctaBorderRadius": 24,
+    "ctaPosition": "bottom",
+    "badgeText": "HOT",
+    "badgeBgColor": "#ff4444",
+    "badgeTextColor": "#ffffff",
+    "badgePosition": "top-right",
+    "images": [
+      {
+        "url": "https://cdn.example.com/ads/sale-banner.jpg",
+        "alt": "双十一促销活动",
+        "width": 1200,
+        "height": 300
+      }
+    ],
+    "linkType": "internal",
+    "linkUrl": "/products/sale",
+    "linkTarget": "_self",
+    "width": 1200,
+    "height": 300,
+    "borderRadius": 0,
+    "startAt": "2026-11-01T00:00:00.000Z",
+    "endAt": "2026-11-11T23:59:59.000Z",
+    "frequencyLimit": 5,
+    "frequencyPeriod": "session"
+  }
+}</code></pre>
+
+<h4>常用筛选查询示例</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>场景</th><th>查询参数</th></tr>
+</thead>
+<tbody>
+<tr><td>按区域筛选内容</td><td><code>?filters[adZone][id][$eq]=1</code></td></tr>
+<tr><td>按站点筛选区域</td><td><code>?filters[site][id][$eq]=1</code></td></tr>
+<tr><td>只查活跃内容</td><td><code>?filters[isActive][$eq]=true</code></td></tr>
+<tr><td>按内容类型筛选</td><td><code>?filters[contentType][$eq]=single-image</code></td></tr>
+<tr><td>按优先级排序</td><td><code>?sort[0]=priority:desc&amp;sort[1]=sortOrder:asc</code></td></tr>
+<tr><td>关联查询区域+内容</td><td><code>?populate[adContents][populate]=*</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch5-5">5.5 前端组件集成</h3>
+
+<p>前端集成广告系统的推荐方式是封装统一的 AdZone 组件，在页面中通过 position 属性引用广告区域。组件内部调用公开 API 获取数据，根据 displayMode 和 displayStyle 自动渲染对应内容。</p>
+
+<h4>AdZone 组件设计</h4>
+
+<pre><code>&lt;!-- AdZone.vue --&gt;
+&lt;template&gt;
+  &lt;div v-if="zone &amp;&amp; zone.adContents &amp;&amp; zone.adContents.length &gt; 0"
+       class="ad-zone"
+       :class="`ad-zone--${zone.position}`"
+       :style="zoneStyle"&gt;
+
+    &lt;!-- single 模式：只展示第一条 --&gt;
+    &lt;template v-if="zone.displayMode === 'single'"&gt;
+      &lt;AdContent :content="zone.adContents[0]" /&gt;
+    &lt;/template&gt;
+
+    &lt;!-- rotation 模式：轮播展示 --&gt;
+    &lt;template v-else-if="zone.displayMode === 'rotation'"&gt;
+      &lt;AdRotation :contents="zone.adContents" :interval="5000" /&gt;
+    &lt;/template&gt;
+
+    &lt;!-- slideshow 模式：幻灯片展示 --&gt;
+    &lt;template v-else-if="zone.displayMode === 'slideshow'"&gt;
+      &lt;AdSlideshow :contents="zone.adContents" /&gt;
+    &lt;/template&gt;
+
+    &lt;!-- stack 模式：堆叠展示 --&gt;
+    &lt;template v-else-if="zone.displayMode === 'stack'"&gt;
+      &lt;AdContent v-for="content in zone.adContents"
+                 :key="content.id"
+                 :content="content" /&gt;
+    &lt;/template&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, onMounted, computed } from 'vue'
+
+const props = defineProps({
+  position: { type: String, required: true }
+})
+
+const zone = ref(null)
+
+const zoneStyle = computed(() =&gt; ({
+  width: zone.value?.suggestedWidth ? zone.value.suggestedWidth + 'px' : '100%',
+  minHeight: zone.value?.suggestedHeight ? zone.value.suggestedHeight + 'px' : 'auto'
+}))
+
+onMounted(async () =&gt; {
+  try {
+    const res = await fetch(`/api/ads/zones/${props.position}`, {
+      headers: {
+        'X-Site-Code': window.__SITE_CODE__ || '',
+        'X-User-Id': getUserId()
+      }
+    })
+    zone.value = await res.json()
+  } catch (e) {
+    console.error('Failed to load ad zone:', e)
+  }
+})
+
+function getUserId() {
+  // 从 cookie 或 localStorage 获取用户标识
+  return localStorage.getItem('user_id') || generateAnonymousId()
+}
+&lt;/script&gt;</code></pre>
+
+<h4>在页面中使用 AdZone 组件</h4>
+
+<pre><code>&lt;!-- 首页 --&gt;
+&lt;template&gt;
+  &lt;div class="home-page"&gt;
+    &lt;!-- 首页横幅广告 --&gt;
+    &lt;AdZone position="home-banner" /&gt;
+
+    &lt;div class="content-area"&gt;
+      &lt;!-- 主要内容 --&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 首页侧边栏广告 --&gt;
+    &lt;aside class="sidebar"&gt;
+      &lt;AdZone position="home-sidebar" /&gt;
+    &lt;/aside&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+
+<pre><code>&lt;!-- 文章详情页 --&gt;
+&lt;template&gt;
+  &lt;article class="article-page"&gt;
+    &lt;!-- 文章顶部广告 --&gt;
+    &lt;AdZone position="article-top" /&gt;
+
+    &lt;div class="article-content" v-html="article.content"&gt;&lt;/div&gt;
+
+    &lt;!-- 文章底部广告 --&gt;
+    &lt;AdZone position="article-bottom" /&gt;
+  &lt;/article&gt;
+&lt;/template&gt;</code></pre>
+
+<h4>AdContent 渲染组件设计</h4>
+
+<pre><code>&lt;!-- AdContent.vue --&gt;
+&lt;template&gt;
+  &lt;div class="ad-content"
+       :class="`ad-content--${content.displayStyle}`"
+       :style="contentStyle"
+       @click="handleClick"&gt;
+
+    &lt;!-- 素材层 --&gt;
+    &lt;template v-if="content.contentType === 'single-image'"&gt;
+      &lt;img :src="content.images[0]?.url"
+           :alt="content.images[0]?.alt"
+           class="ad-image" /&gt;
+    &lt;/template&gt;
+
+    &lt;template v-else-if="content.contentType === 'video'"&gt;
+      &lt;video :src="content.videoUrl"
+             :poster="content.videoPoster"
+             :autoplay="content.videoAutoplay"
+             :muted="content.videoMuted"
+             :loop="content.videoLoop"
+             :controls="content.videoControls"
+             class="ad-video" /&gt;
+    &lt;/template&gt;
+
+    &lt;template v-else-if="content.contentType === 'html'"&gt;
+      &lt;div v-html="content.htmlContent" class="ad-html"&gt;&lt;/div&gt;
+    &lt;/template&gt;
+
+    &lt;!-- 文字层 --&gt;
+    &lt;div class="ad-overlay" v-if="content.title || content.subtitle"&gt;
+      &lt;h3 v-if="content.title"
+          :style="titleStyle"&gt;{{ content.title }}&lt;/h3&gt;
+      &lt;p v-if="content.subtitle"
+         :style="subtitleStyle"&gt;{{ content.subtitle }}&lt;/p&gt;
+    &lt;/div&gt;
+
+    &lt;!-- CTA 按钮 --&gt;
+    &lt;button v-if="content.ctaText"
+            class="ad-cta"
+            :style="ctaStyle"&gt;{{ content.ctaText }}&lt;/button&gt;
+
+    &lt;!-- 角标 --&gt;
+    &lt;span v-if="content.badgeText"
+          class="ad-badge"
+          :class="`ad-badge--${content.badgePosition}`"
+          :style="badgeStyle"&gt;{{ content.badgeText }}&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { computed } from 'vue'
+
+const props = defineProps({
+  content: { type: Object, required: true }
+})
+
+const contentStyle = computed(() =&gt; ({
+  width: props.content.width ? props.content.width + 'px' : '100%',
+  height: props.content.height ? props.content.height + 'px' : 'auto',
+  borderRadius: props.content.borderRadius ? props.content.borderRadius + 'px' : '0',
+  backgroundColor: props.content.backgroundColor || 'transparent'
+}))
+
+const titleStyle = computed(() =&gt; ({
+  color: props.content.titleColor,
+  fontSize: props.content.titleFontSize + 'px',
+  fontWeight: props.content.titleFontWeight,
+  textAlign: props.content.titleAlign,
+  lineHeight: props.content.titleLineHeight
+}))
+
+const ctaStyle = computed(() =&gt; ({
+  color: props.content.ctaTextColor,
+  backgroundColor: props.content.ctaBgColor,
+  fontSize: props.content.ctaFontSize + 'px',
+  borderRadius: props.content.ctaBorderRadius + 'px'
+}))
+
+function handleClick() {
+  if (props.content.linkType === 'none') return
+  if (props.content.linkTarget === '_blank') {
+    window.open(props.content.linkUrl, '_blank', 'noopener,noreferrer')
+  } else {
+    window.location.href = props.content.linkUrl
+  }
+}
+&lt;/script&gt;</code></pre>
+
+<h4>Nuxt3 SSR 集成</h4>
+
+<p>在 Nuxt3 项目中，推荐使用 <code>useFetch</code> 进行 SSR 友好的广告数据获取：</p>
+
+<pre><code>// composables/useAdZone.ts
+export function useAdZone(position: string) {
+  const config = useRuntimeConfig()
+
+  return useFetch(`/api/ads/zones/${position}`, {
+    baseURL: config.public.apiBase,
+    headers: {
+      'X-Site-Code': config.public.siteCode
+    },
+    // 缓存 5 分钟，减少重复请求
+    transform: (data) =&gt; data,
+    server: true,  // SSR 时也请求
+    lazy: false    // 不延迟加载
+  })
+}</code></pre>
+
+<pre><code>&lt;!-- 在页面中使用 --&gt;
+&lt;script setup&gt;
+const { data: bannerZone } = useAdZone('home-banner')
+const { data: sidebarZone } = useAdZone('home-sidebar')
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;AdZone v-if="bannerZone" :zone="bannerZone" /&gt;
+  &lt;AdZone v-if="sidebarZone" :zone="sidebarZone" /&gt;
+&lt;/template&gt;</code></pre>
+
+<h3 id="ch5-6">5.6 错误处理与最佳实践</h3>
+
+<h4>错误响应格式</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>HTTP 状态码</th><th>错误原因</th><th>错误信息</th><th>处理建议</th></tr>
+</thead>
+<tbody>
+<tr><td>400</td><td>请求参数错误</td><td><code>{"error":{"message":"Invalid position value"}}</code></td><td>检查 position 参数是否为有效枚举值</td></tr>
+<tr><td>401</td><td>未认证（管理 API）</td><td><code>{"error":{"message":"Unauthorized"}}</code></td><td>检查 Authorization 请求头</td></tr>
+<tr><td>403</td><td>无权限</td><td><code>{"error":{"message":"Forbidden"}}</code></td><td>检查用户角色权限</td></tr>
+<tr><td>404</td><td>区域或内容不存在</td><td><code>{"error":{"message":"Not Found"}}</code></td><td>检查 ID 是否正确</td></tr>
+<tr><td>429</td><td>请求频率超限</td><td><code>{"error":{"message":"Too Many Requests"}}</code></td><td>降低请求频率，添加缓存</td></tr>
+<tr><td>500</td><td>服务器内部错误</td><td><code>{"error":{"message":"Internal Server Error"}}</code></td><td>检查服务端日志</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>前端错误处理最佳实践</h4>
+
+<pre><code>async function loadAdZone(position) {
+  try {
+    const res = await fetch(`/api/ads/zones/${position}`, {
+      headers: getAdHeaders()
+    })
+
+    if (!res.ok) {
+      // 非 200 响应，静默失败，不影响页面展示
+      console.warn(`Ad zone "${position}" load failed:`, res.status)
+      return null
+    }
+
+    const data = await res.json()
+
+    // 空数据处理
+    if (!data.adContents || data.adContents.length === 0) {
+      return null
+    }
+
+    return data
+  } catch (e) {
+    // 网络错误，静默失败
+    console.warn(`Ad zone "${position}" network error:`, e.message)
+    return null
+  }
+}</code></pre>
+
+<h4>性能优化最佳实践</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>优化项</th><th>做法</th><th>收益</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>请求缓存</strong></td><td>前端缓存 API 响应 5 分钟，避免重复请求</td><td>减少 80%+ API 调用</td></tr>
+<tr><td><strong>懒加载</strong></td><td>视窗外的广告区域使用 Intersection Observer 懒加载</td><td>加快首屏渲染</td></tr>
+<tr><td><strong>并行请求</strong></td><td>页面有多个广告位时并行请求，不串行</td><td>总加载时间减少</td></tr>
+<tr><td><strong>骨架屏</strong></td><td>广告加载中展示骨架屏占位，避免布局偏移</td><td>改善 CLS 指标</td></tr>
+<tr><td><strong>图片懒加载</strong></td><td>广告图片使用 loading="lazy"</td><td>节省带宽</td></tr>
+<tr><td><strong>错误降级</strong></td><td>广告加载失败时静默处理，不影响页面内容</td><td>保证核心内容可用</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>安全最佳实践</h4>
+
+<div class="callout callout-warning">
+<div class="callout-title">安全注意事项</div>
+<p><strong>1. HTML 内容 XSS 防护</strong> — 渲染 htmlContent 前应进行 HTML 消毒（sanitize），移除 script 标签和事件属性。推荐使用 DOMPurify 库。<strong>2. 外部链接安全</strong> — linkTarget=_blank 的链接应自动添加 rel="noopener noreferrer"。<strong>3. API 频率限制</strong> — 服务端应对公开 API 设置频率限制（如每 IP 每分钟 60 次），防止滥用。<strong>4. 管理 API 权限</strong> — 管理 API 应校验用户角色和权限，非管理员不可访问。</p>
+</div>
+
+<h4>完整集成检查清单</h4>
+
+<ul class="checklist">
+<li>前端封装了 AdZone 组件，通过 position 属性引用广告区域</li>
+<li>AdZone 组件处理了 displayMode 的四种模式（single/rotation/slideshow/stack）</li>
+<li>AdContent 组件处理了 contentType 的五种类型（single-image/multi-image/slideshow/video/html）</li>
+<li>htmlContent 渲染前进行了 XSS 消毒</li>
+<li>广告加载失败时静默处理，不影响页面核心内容</li>
+<li>广告图片使用了懒加载（loading="lazy"）</li>
+<li>视窗外广告区域使用了 Intersection Observer 懒加载</li>
+<li>API 响应设置了前端缓存（5 分钟）</li>
+<li>频次控制通过 X-User-Id 请求头传递用户标识</li>
+<li>多站点系统通过 X-Site-Code 请求头传递站点标识</li>
+<li>外部链接自动添加了 rel="noopener noreferrer"</li>
+<li>SSR 项目中广告数据在服务端预取</li>
+</ul>
+
+<div class="callout callout-success">
+<div class="callout-title">集成总结</div>
+<p>前端广告集成的核心是<strong>AdZone 组件 + AdContent 组件</strong>的分层设计：AdZone 负责获取数据和选择排列策略（displayMode），AdContent 负责渲染单条广告的素材和样式（contentType + displayStyle）。通过 position 属性解耦页面位置与广告数据，运营人员在后台新增广告位后前端无需改动。遵循错误降级、懒加载和缓存原则，确保广告系统不影响页面核心性能和用户体验。</p>
+</div>
+
+<div class="chapter-nav">
+  <span class="nav-btn" onclick="window._goDoc('ad-site/ch4-display.html')">&larr; 上一章：展示方式详解</span>
+  <span class="nav-btn next" onclick="window._goDoc('ad-site/index.html')">返回目录 &rarr;</span>
+</div>

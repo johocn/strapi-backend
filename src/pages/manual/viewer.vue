@@ -172,7 +172,7 @@ function getIndexOrder() {
     order.push(`${dir}/${m[2]}`)
   }
   if (indexKey.endsWith('.html')) {
-    const re2 = /window\._goDoc\s*&&\s*window\._goDoc\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+    const re2 = /window\._goDoc\s*(?:&&\s*window\._goDoc\s*)?\(\s*['"]([^'"]+)['"]\s*\)/g
     let m2
     while ((m2 = re2.exec(raw)) !== null) {
       order.push(m2[1])
@@ -309,7 +309,7 @@ function resolveDocPath(href) {
   let path = href.split(/[?#]/)[0]
   if (!path.endsWith('.md') && !path.endsWith('.html')) return null
   if (path.startsWith('/')) path = path.slice(1)
-  if (/^(admin|shao-catalog|user-guide|website)\//.test(path)) return path
+  if (/^(admin|shao-catalog|user-guide|website|sso-login|ad-site|poster)\//.test(path)) return path
   const dir = currentDoc.value.split('/').slice(0, -1).join('/')
   return dir ? `${dir}/${path}` : path
 }

@@ -9,6 +9,7 @@ const DEFAULT_CONFIG = {
   mode: 'local',
   methods: ['password'],
   ssoLoginUrl: null,
+  ssoAppCode: null,
   wechatOfficialAccountEnabled: false,
   wechatMiniProgramEnabled: false,
   wechatOpenPlatformEnabled: false,

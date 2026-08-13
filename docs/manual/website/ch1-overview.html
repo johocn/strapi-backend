@@ -1,0 +1,126 @@
+<!-- 官网使用手册 — GEO/SEO 内容发布全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第一章 系统总览 ==================== -->
+<h2 id="ch1"><span class="ch-num">第一章</span>系统总览</h2>
+
+<h3 id="ch1-1">1.1 GEO 体系定位与核心逻辑</h3>
+
+<p>传统 SEO 解决的是"搜索引擎能不能找到你"的问题，GEO（Generative Engine Optimization）解决的是"AI 模型能不能正确理解你、引用你、推荐你"的问题。当用户向 ChatGPT、Perplexity、文心一言提问"XX 行业哪家公司靠谱"时，AI 的回答来自它训练和检索时抓取的网页内容。如果你的官网内容结构混乱、信息矛盾、缺乏机器可读的结构化数据，AI 就会跳过你或引用竞争对手。</p>
+
+<p>zhao-website 插件的 GEO 体系围绕三个核心能力构建：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>核心能力</th><th>技术实现</th><th>解决的问题</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>第一真值</strong></td><td><code>first-truth-policy</code> 内容类型 + <code>llms.txt</code> 输出</td><td>确保 AI 抓取到的是企业唯一权威信息，而非过时或矛盾版本</td></tr>
+<tr><td><strong>结构化数据</strong></td><td><code>schema-builder</code> 服务生成 JSON-LD</td><td>让搜索引擎和 AI 以标准格式理解页面内容类型（Article/Product/FAQ 等）</td></tr>
+<tr><td><strong>内容可达性</strong></td><td><code>sitemap.xml</code> + <code>robots.txt</code> + <code>RSS/Atom feed</code></td><td>确保所有发布内容能被搜索引擎和 AI 爬虫发现和抓取</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>不做这套体系的直接后果：官网有内容但 AI 不知道你存在，搜索结果里出现的信息可能是第三方平台的二手描述而非你的原文，用户在 AI 对话中问起你的产品时得到的是模糊甚至错误的答案。</p>
+
+<h3 id="ch1-2">1.2 内容类型矩阵</h3>
+
+<p>系统包含六种核心内容类型，每种在 GEO 体系中承担不同角色：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>内容类型</th><th>GEO 角色</th><th>结构化数据类型</th><th>Sitemap 优先级</th><th>AI 抓取策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>资讯文章</strong></td><td>行业知识权威性建设</td><td>Article</td><td>0.7</td><td>纳入 llms.txt Pages 清单</td></tr>
+<tr><td><strong>产品/方案</strong></td><td>产品事实声明与价格信号</td><td>Product + Offer</td><td>0.8</td><td>纳入 llms.txt Pages + Facts</td></tr>
+<tr><td><strong>落地案例</strong></td><td>社会证明与可信度背书</td><td>CaseStudy / Article</td><td>0.6</td><td>纳入 llms.txt Pages</td></tr>
+<tr><td><strong>教程/操作指南</strong></td><td>HowTo 知识图谱与视频搜索</td><td>HowTo + VideoObject</td><td>0.6</td><td>纳入 llms.txt Pages</td></tr>
+<tr><td><strong>常见问答</strong></td><td>直接匹配 AI 问答查询</td><td>FAQPage</td><td>0.5</td><td>纳入 llms.txt Pages（高优先匹配）</td></tr>
+<tr><td><strong>合规公示</strong></td><td>法律合规信号与信任建设</td><td>Article</td><td>0.3</td><td>纳入 llms.txt Pages</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch1-3">1.3 发布闭环机制</h3>
+
+<p>每一条内容从创建到产生流量效果，经过以下闭环链路：</p>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node">内容创建</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">填写 SEO/GEO 字段</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">发布 (status=published)</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node success">Lifecycle 触发</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">标签索引同步</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">知识图谱同步</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">搜索引擎推送</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node warning">Sitemap 更新</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">llms.txt 更新</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">RSS Feed 更新</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">缓存失效</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">搜索引擎收录</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">AI 模型抓取</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">用户搜索/提问触达</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">流量回流官网</span>
+</div>
+</div>
+
+<p>Lifecycle 钩子在内容发布（<code>afterCreate</code> / <code>afterUpdate</code>）时自动触发四个动作：<strong>标签索引同步</strong>（将文章标签写入全局标签索引，供标签页聚合展示）、<strong>知识图谱同步</strong>（将内容关联的实体写入知识图谱，构建实体关系网络）、<strong>搜索引擎推送</strong>（向百度/Google 主动推送 URL，加速收录）、<strong>缓存失效</strong>（清空 SEO 输出缓存，确保下次请求拿到最新内容）。删除时触发标签索引移除和缓存失效。</p>
+
+<h3 id="ch1-4">1.4 与官网、媒体中心、课程中心的联动逻辑</h3>
+
+<p>内容发布后会在多个子系统产生联动效果：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>联动系统</th><th>联动机制</th><th>数据流向</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>官网前端</strong></td><td>内容通过 <code>/api/v1/articles/:slug</code> 等公开 API 暴露，前端 SSR 渲染时注入 SEO meta 和结构化数据</td><td>zhao-website &rarr; 公开 API &rarr; Nuxt3 前端</td></tr>
+<tr><td><strong>媒体中心</strong></td><td>文章可关联 <code>sourceArticleDraft</code>（来自 zhao-studio 内容工作室），实现草稿到发布的跨系统流转</td><td>zhao-studio 草稿 &rarr; zhao-website 文章</td></tr>
+<tr><td><strong>课程中心</strong></td><td>教程内容可关联课程体系，教程的 <code>brandVoiceRef</code> 统一品牌话术，课程页引用相同知识实体</td><td>zhao-website 教程 &harr; zhao-course 课程</td></tr>
+<tr><td><strong>知识图谱</strong></td><td>所有内容类型通过 <code>mainEntity</code> 和 <code>mentionedEntities</code> 关联知识实体，构建跨内容类型的实体关系网</td><td>各内容类型 &rarr; knowledge-entity &rarr; 知识图谱 API</td></tr>
+<tr><td><strong>第一真值</strong></td><td>产品价格、企业资质等关键声明通过 <code>first-truth-policy</code> 统一管理，llms.txt 输出时交叉引用</td><td>内容字段 &harr; first-truth-policy &rarr; llms.txt</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>这套联动逻辑的核心价值在于：<strong>一次发布，多端触达</strong>。你在官网发布一篇产品文章，搜索引擎通过 sitemap 发现它，AI 模型通过 llms.txt 抓取它，媒体中心可以引用它，课程中心可以关联它，知识图谱会更新实体关系——所有这些不需要手动操作，由 Lifecycle 钩子自动完成。</p>
+
+<div class="callout callout-info">
+<div class="callout-title">关键理解</div>
+<p>每一个字段都有它在 GEO 链路中的位置。标题写得好不好，直接决定 AI 是否引用你；结构化数据填不填，决定搜索引擎是否展示富媒体结果；<code>allowIndex</code> 开关决定了这条内容是否进入 sitemap 和 llms.txt——这些不是可选项，而是决定流量效果的必填项。</p>
+</div>

@@ -1,0 +1,543 @@
+<!-- 自定义海报使用手册 — 海报模板设计与前端集成全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第三章 元素配置 ==================== -->
+<h2 id="ch3"><span class="ch-num">第三章</span>元素配置</h2>
+
+<h3 id="ch3-1">3.1 元素基础属性</h3>
+
+<p>每个海报元素都有一组基础属性，用于定义元素的标识、类型和排序。这些属性适用于所有元素类型。</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">elementType</span>
+<span class="field-type">enumeration / required / default: text</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义元素的渲染类型，决定前端使用何种方式绘制该元素。不同类型对应不同的样式配置字段。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">枚举值</div>
+<div class="field-item-value">
+<strong>text</strong> — 文本元素，渲染文字内容<br>
+<strong>image</strong> — 图片元素，渲染指定 URL 的图片<br>
+<strong>qrcode</strong> — 二维码元素，根据内容生成二维码图片<br>
+<strong>shape</strong> — 形状元素，渲染矩形/圆形/线条等几何图形<br>
+<strong>background</strong> — 背景元素，作为画布背景之上的额外背景层
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">根据元素用途选择对应类型。标题、描述、价格等文字内容使用 text；封面图、产品图使用 image；分享二维码使用 qrcode；装饰性图形使用 shape；遮罩层、渐变层使用 background。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">elementKey</span>
+<span class="field-type">string / required</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">元素的唯一标识符，用于在模板内区分不同元素。前端可通过此 key 查找特定元素。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">存储为字符串。管理后台编辑器中添加新元素时自动生成 <code>element_{timestamp}</code> 格式的 key，建议手动修改为有语义的值。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">使用 snake_case 命名，如 <code>title</code>、<code>cover_image</code>、<code>qr_code</code>、<code>price_label</code>、<code>footer_text</code>。同一模板内不应重复。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">key 重复不会导致数据库错误，但会导致前端通过 key 查找元素时无法区分。使用无语义的 key（如 element_123）增加维护难度。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">elementName</span>
+<span class="field-type">string</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">元素的显示名称，用于管理后台元素列表中展示，方便运营人员识别元素用途。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">使用中文名称，如"课程标题""封面图""分享二维码""底部提示"。与 elementKey 对应但使用人类可读的名称。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">sortOrder</span>
+<span class="field-type">integer / default: 0</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制元素在返回数组中的排列顺序。值越小越靠前。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">服务层在返回元素列表时按 <code>sortOrder</code> 升序排序（内存排序）。建议从 1 开始递增。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">从背景到前景依次设置：background=1, image=2, shape=3, text=4, qrcode=5。与 zIndex 保持逻辑一致。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch3-2">3.2 元素类型详解</h3>
+
+<h4>text (文本元素)</h4>
+
+<p>文本元素用于渲染文字内容。支持字体大小、颜色、粗细、对齐方式、行高、字间距等样式配置。文本内容可以来自变量绑定或固定 content。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fontSize</code></td><td>integer</td><td>14</td><td>字号（px）</td></tr>
+<tr><td><code>fontColor</code></td><td>string</td><td>#333333</td><td>字体颜色（HEX）</td></tr>
+<tr><td><code>fontWeight</code></td><td>enum</td><td>normal</td><td>字重：normal / bold</td></tr>
+<tr><td><code>fontFamily</code></td><td>string</td><td>sans-serif</td><td>字体族名称</td></tr>
+<tr><td><code>textAlign</code></td><td>enum</td><td>left</td><td>对齐：left / center / right</td></tr>
+<tr><td><code>lineHeight</code></td><td>decimal</td><td>1.5</td><td>行高倍数</td></tr>
+<tr><td><code>letterSpacing</code></td><td>integer</td><td>0</td><td>字间距（px）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">字体使用建议</div>
+<p>使用 <code>fontFamily</code> 指定字体时，需确保目标用户设备上已安装该字体。常见安全字体：<code>sans-serif</code>（默认无衬线）、<code>Microsoft YaHei</code>（微软雅黑）、<code>PingFang SC</code>（苹方）。如果使用自定义网络字体，前端需要在 Canvas 渲染前预加载字体文件。</p>
+</div>
+
+<h4>image (图片元素)</h4>
+
+<p>图片元素用于渲染指定 URL 的图片。支持图片适配模式控制。图片 URL 可以来自变量绑定或固定 content。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>imageFit</code></td><td>enum</td><td>cover</td><td>图片适配模式</td></tr>
+<tr><td><code>borderRadius</code></td><td>integer</td><td>0</td><td>圆角（px）</td></tr>
+<tr><td><code>borderWidth</code></td><td>integer</td><td>0</td><td>边框宽度（px）</td></tr>
+<tr><td><code>borderColor</code></td><td>string</td><td>#000000</td><td>边框颜色</td></tr>
+<tr><td><code>elementBgColor</code></td><td>string</td><td>-</td><td>元素背景色（图片加载前的占位色）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><code>imageFit</code> 枚举值说明：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>值</th><th>行为</th><th>等效 CSS</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cover</code></td><td>等比缩放填满元素区域，超出部分裁剪</td><td>background-size: cover</td></tr>
+<tr><td><code>contain</code></td><td>等比缩放完整显示在元素内，不足部分留白</td><td>background-size: contain</td></tr>
+<tr><td><code>stretch</code></td><td>拉伸填满元素区域，可能变形</td><td>background-size: 100% 100%</td></tr>
+<tr><td><code>tile</code></td><td>平铺重复填满元素区域</td><td>background-size: auto</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>qrcode (二维码元素)</h4>
+
+<p>二维码元素根据内容生成二维码图片。支持两种内容模式：<code>direct</code>（直接使用传入内容生成二维码）和 <code>url_with_invite</code>（将基础 URL 与邀请码拼接后生成二维码）。二维码的详细配置请参见第四章。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>qrContentMode</code></td><td>enum</td><td>direct</td><td>内容模式：direct / url_with_invite</td></tr>
+<tr><td><code>qrBaseUrl</code></td><td>string</td><td>-</td><td>基础 URL（url_with_invite 模式使用）</td></tr>
+<tr><td><code>qrInviteParam</code></td><td>string</td><td>inviteCode</td><td>邀请码参数名</td></tr>
+<tr><td><code>qrInviteSeparator</code></td><td>string</td><td>?</td><td>参数分隔符</td></tr>
+<tr><td><code>qrFallbackMode</code></td><td>enum</td><td>base_url_only</td><td>降级模式</td></tr>
+<tr><td><code>qrErrorLevel</code></td><td>enum</td><td>M</td><td>容错级别：L / M / Q / H</td></tr>
+<tr><td><code>qrSize</code></td><td>integer</td><td>120</td><td>二维码尺寸（px）</td></tr>
+<tr><td><code>qrColor</code></td><td>string</td><td>#000000</td><td>二维码颜色</td></tr>
+<tr><td><code>qrBgColor</code></td><td>string</td><td>#FFFFFF</td><td>二维码背景色</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>shape (形状元素)</h4>
+
+<p>形状元素用于渲染几何图形，作为海报的装饰性元素。支持三种形状类型。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>shapeType</code></td><td>enum</td><td>rect</td><td>形状类型</td></tr>
+<tr><td><code>elementBgColor</code></td><td>string</td><td>-</td><td>形状填充色</td></tr>
+<tr><td><code>borderRadius</code></td><td>integer</td><td>0</td><td>圆角（rect 模式下生效）</td></tr>
+<tr><td><code>borderWidth</code></td><td>integer</td><td>0</td><td>边框宽度</td></tr>
+<tr><td><code>borderColor</code></td><td>string</td><td>#000000</td><td>边框颜色</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><code>shapeType</code> 枚举值说明：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>值</th><th>形状</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>rect</code></td><td>矩形</td><td>填充元素区域的矩形，支持 borderRadius 圆角</td></tr>
+<tr><td><code>circle</code></td><td>圆形</td><td>在元素区域内绘制圆形（直径 = min(width, height)）</td></tr>
+<tr><td><code>line</code></td><td>线条</td><td>在元素区域内绘制水平线条</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>background (背景元素)</h4>
+
+<p>背景元素用于在画布背景之上、其他元素之下添加额外的背景层。典型用途包括半透明遮罩、渐变层、装饰性背景图案。背景元素通常设置较低的 zIndex（如 0 或 1），覆盖整个画布区域。</p>
+
+<div class="callout callout-info">
+<div class="callout-title">background 元素与画布背景的区别</div>
+<p>画布背景（backgroundColor/backgroundImage）是模板级配置，始终位于最底层，不可定位。background 元素是元素级配置，可以指定位置、尺寸、透明度，适合创建局部遮罩或渐变效果。例如：在封面图上叠加一个半透明黑色遮罩条，使叠加的文字更清晰——这时使用 background 元素设置 <code>elementBgColor: rgba(0,0,0,0.5)</code>，定位到文字所在区域。</p>
+</div>
+
+<h3 id="ch3-3">3.3 元素定位与尺寸</h3>
+
+<p>所有元素都通过以下字段进行定位和尺寸控制。坐标原点 (0,0) 位于画布左上角。</p>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">x / y</span>
+<span class="field-type">integer / default: 0</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义元素左上角在画布坐标系中的位置。x 为水平坐标，y 为垂直坐标。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端 Canvas 渲染时，使用 <code>ctx.translate(x, y)</code> 或 <code>drawImage(img, x, y, ...)</code> 定位元素。管理后台预览按缩放比例显示位置。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">x 范围 0 到 canvasWidth-width，y 范围 0 到 canvasHeight-height。居中放置的元素 x = (canvasWidth - width) / 2。如画布宽 600，元素宽 500，居中 x = 50。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">x 或 y 为负值会导致元素部分超出画布左/上边缘被裁剪；x + width 超过 canvasWidth 会导致元素右侧被裁剪。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">width / height</span>
+<span class="field-type">integer / default: 100</span>
+<span class="badge badge-required">必填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义元素的宽度和高度（像素）。元素内容在此外围矩形内渲染。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端 Canvas 在 (x, y, width, height) 矩形区域内绘制元素。文本元素在此区域内换行；图片元素在此区域内按 imageFit 适配；二维码在 min(width, height) 范围内绘制。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">宽度通常与画布宽度配合使用。如画布宽 600，左右各留 50px 边距，元素宽 500。高度根据内容类型调整：标题 50px，描述 60px，封面图 300px，二维码 120px。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">宽度过小导致文字被截断；高度不足导致多行文字被裁剪；二维码的 width 和 height 不一致会导致渲染变形。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">zIndex</span>
+<span class="field-type">integer / default: 0</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制元素的视觉层叠顺序。数值越大，元素越靠上层。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端 Canvas 按元素数组的顺序绘制（后绘制的覆盖先绘制的），同时参考 zIndex 进行排序。管理后台预览使用 CSS z-index 属性。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">建议分层设置：background=0, image=5, shape=5, text=10, qrcode=10。确保文字和二维码始终在图片和形状之上。同一层级内的元素按 sortOrder 排序。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">文字元素的 zIndex 低于图片元素时，文字会被图片遮挡不可见；所有元素 zIndex 相同时，渲染顺序依赖 sortOrder，可能导致层叠不符合预期。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch3-4">3.4 元素变换属性</h3>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">rotation</span>
+<span class="field-type">integer / default: 0</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制元素的旋转角度（度）。正值顺时针旋转，负值逆时针旋转。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端使用 <code>ctx.rotate(rotation * Math.PI / 180)</code> 旋转元素。旋转中心为元素的左上角 (x, y)。管理后台预览使用 CSS <code>transform: rotate()</code>。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">范围 -360 到 360。常用值：0（不旋转）、90（竖排文字）、-45（斜角装饰）、180（倒置）。大部分元素保持 0。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">旋转后元素的实际占位区域会超出原始 width/height 矩形，可能与其他元素重叠；旋转角度不是 90 的倍数时，元素边缘可能出现锯齿。</div>
+</div>
+</div>
+</div>
+
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">opacity</span>
+<span class="field-type">decimal / default: 1</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制元素的透明度。0 完全透明，1 完全不透明。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端使用 <code>ctx.globalAlpha = opacity</code> 设置全局透明度。管理后台预览使用 CSS <code>opacity</code> 属性。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">范围 0 到 1，步长 0.1。常用值：1（不透明，默认）、0.5（半透明遮罩）、0.8（轻微透明）。装饰性遮罩层使用 0.3-0.7。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">opacity 为 0 时元素完全不可见但仍占据渲染资源；过高值（如 0.95）与 1 几乎无视觉差异但增加渲染计算。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch3-5">3.5 元素样式配置</h3>
+
+<h4>文字样式</h4>
+
+<p>文字样式字段仅在 <code>elementType: text</code> 时生效。这些字段控制文本的视觉表现。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fontSize</code></td><td>integer</td><td>14</td><td>字号（px），标题建议 24-32，正文 14-16，注释 12</td></tr>
+<tr><td><code>fontColor</code></td><td>string</td><td>#333333</td><td>字体颜色（HEX 格式）</td></tr>
+<tr><td><code>fontWeight</code></td><td>enum</td><td>normal</td><td>字重：normal（常规）/ bold（粗体）</td></tr>
+<tr><td><code>fontFamily</code></td><td>string</td><td>sans-serif</td><td>字体族，如 "Microsoft YaHei", "PingFang SC"</td></tr>
+<tr><td><code>textAlign</code></td><td>enum</td><td>left</td><td>对齐方式：left / center / right</td></tr>
+<tr><td><code>lineHeight</code></td><td>decimal</td><td>1.5</td><td>行高倍数，1.5 表示 1.5 倍字号</td></tr>
+<tr><td><code>letterSpacing</code></td><td>integer</td><td>0</td><td>字间距（px），正值增加间距</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>边框与圆角</h4>
+
+<p>边框和圆角字段适用于所有元素类型，但最常用于 image 和 shape 元素。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>borderRadius</code></td><td>integer</td><td>0</td><td>圆角半径（px），图片圆角常用 8-12</td></tr>
+<tr><td><code>borderWidth</code></td><td>integer</td><td>0</td><td>边框宽度（px），0 表示无边框</td></tr>
+<tr><td><code>borderColor</code></td><td>string</td><td>#000000</td><td>边框颜色（HEX 格式）</td></tr>
+<tr><td><code>elementBgColor</code></td><td>string</td><td>-</td><td>元素背景色，作为图片加载前的占位或形状的填充色</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch3-6">3.6 元素内容配置</h3>
+
+<p>元素的内容来源由 <code>isVariable</code> 字段决定。当 <code>isVariable</code> 为 true 时，元素内容来自变量；为 false 时，使用固定 <code>content</code> 字段。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>isVariable</code></td><td>boolean</td><td>false</td><td>是否为变量驱动</td></tr>
+<tr><td><code>variableName</code></td><td>string</td><td>-</td><td>绑定的变量名（isVariable=true 时生效）</td></tr>
+<tr><td><code>defaultValue</code></td><td>text</td><td>-</td><td>变量缺失时的回退值</td></tr>
+<tr><td><code>content</code></td><td>text</td><td>-</td><td>固定内容（isVariable=false 时生效）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>内容解析规则</h4>
+
+<div class="callout callout-info">
+<div class="callout-title">解析优先级</div>
+<p>当 <code>isVariable=true</code> 且 <code>variableName</code> 已设置时：<br>
+1. 若变量名是 <code>invite_code</code> 且未传入该变量 &rarr; 使用 <code>defaultValue</code><br>
+2. 若变量已传入 &rarr; 使用变量值<br>
+3. 若变量未传入且非 invite_code &rarr; 使用 <code>defaultValue</code>（为空则使用空字符串）<br><br>
+当 <code>isVariable=false</code> 时 &rarr; 直接使用 <code>content</code> 字段值</p>
+</div>
+
+<h3 id="ch3-7">3.7 管理后台元素编辑器</h3>
+
+<p>管理后台的模板编辑器提供了基于表单的元素配置界面。编辑器分为三个区域：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>区域</th><th>位置</th><th>功能</th></tr>
+</thead>
+<tbody>
+<tr><td>模板属性 + 画布预览</td><td>左侧（占 1/3 宽度）</td><td>模板基础信息表单 + 实时画布预览</td></tr>
+<tr><td>元素列表</td><td>右侧上方（占 2/3 宽度）</td><td>元素表格列表，支持选择、添加、删除</td></tr>
+<tr><td>元素编辑表单</td><td>右侧下方</td><td>当前选中元素的详细属性编辑</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>编辑器使用流程</h4>
+
+<ol class="steps">
+<li><strong>选择元素</strong> — 在元素列表中点击某一行，该元素被选中并高亮显示，同时画布预览中对应元素以蓝色边框标识</li>
+<li><strong>编辑属性</strong> — 在元素编辑表单中修改属性值，表单使用折叠面板分组：基础信息、位置与尺寸、文字样式（仅 text 类型）、边框与背景、二维码设置（仅 qrcode 类型）、形状设置（仅 shape 类型）</li>
+<li><strong>实时预览</strong> — 表单值变更时（<code>onValuesChange</code>），画布预览实时更新元素位置和样式</li>
+<li><strong>添加元素</strong> — 点击"添加元素"按钮，创建一个默认配置的空元素，自动选中新元素</li>
+<li><strong>删除元素</strong> — 点击元素行的删除按钮，确认后移除该元素</li>
+<li><strong>保存全部</strong> — 点击"保存全部元素"按钮，通过批量保存 API 一次性写入所有元素</li>
+</ol>
+
+<div class="callout callout-warning">
+<div class="callout-title">批量保存的覆盖行为</div>
+<p>批量保存 API（<code>PUT /api/zhao-studio/v1/admin/poster-templates/:id/elements</code>）采用<strong>先删后建</strong>策略：先删除该模板下所有现有元素，再根据传入的元素数组逐一创建新元素。这意味着每次保存都会重置元素 ID。如果前端缓存了元素 ID，需要在保存后重新获取。</p>
+</div>
+
+<h4>画布预览缩放</h4>
+
+<p>预览区域根据模板画布尺寸自动缩放，确保预览宽度不超过 400px，高度不超过 500px。缩放比例计算公式：</p>
+
+<p><code>previewScale = min(400 / canvasWidth, 500 / canvasHeight, 1)</code></p>
+
+<p>例如画布尺寸 600x1000，缩放比例 = min(400/600, 500/1000, 1) = min(0.667, 0.5, 1) = 0.5，预览区域为 300x500。所有元素的坐标和尺寸在预览中按此比例缩放显示。</p>
+
+<h3 id="ch3-8">3.8 元素完整字段参考</h3>
+
+<p>以下是 poster-element 内容类型的完整字段分类列表：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>分类</th><th>字段名</th><th>类型</th><th>默认值</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="5"><strong>基础信息</strong></td><td><code>posterTemplate</code></td><td>relation (required)</td><td>-</td></tr>
+<tr><td><code>elementType</code></td><td>enum (required)</td><td>text</td></tr>
+<tr><td><code>elementKey</code></td><td>string (required)</td><td>-</td></tr>
+<tr><td><code>elementName</code></td><td>string</td><td>-</td></tr>
+<tr><td><code>sortOrder</code></td><td>integer</td><td>0</td></tr>
+<tr><td rowspan="4"><strong>内容配置</strong></td><td><code>isVariable</code></td><td>boolean</td><td>false</td></tr>
+<tr><td><code>variableName</code></td><td>string</td><td>-</td></tr>
+<tr><td><code>defaultValue</code></td><td>text</td><td>-</td></tr>
+<tr><td><code>content</code></td><td>text</td><td>-</td></tr>
+<tr><td rowspan="7"><strong>位置与变换</strong></td><td><code>x</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>y</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>width</code></td><td>integer</td><td>100</td></tr>
+<tr><td><code>height</code></td><td>integer</td><td>100</td></tr>
+<tr><td><code>zIndex</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>rotation</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>opacity</code></td><td>decimal</td><td>1</td></tr>
+<tr><td rowspan="7"><strong>文字样式</strong></td><td><code>fontSize</code></td><td>integer</td><td>14</td></tr>
+<tr><td><code>fontColor</code></td><td>string</td><td>#333333</td></tr>
+<tr><td><code>fontWeight</code></td><td>enum</td><td>normal</td></tr>
+<tr><td><code>fontFamily</code></td><td>string</td><td>sans-serif</td></tr>
+<tr><td><code>textAlign</code></td><td>enum</td><td>left</td></tr>
+<tr><td><code>lineHeight</code></td><td>decimal</td><td>1.5</td></tr>
+<tr><td><code>letterSpacing</code></td><td>integer</td><td>0</td></tr>
+<tr><td rowspan="4"><strong>边框与背景</strong></td><td><code>borderRadius</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>borderWidth</code></td><td>integer</td><td>0</td></tr>
+<tr><td><code>borderColor</code></td><td>string</td><td>#000000</td></tr>
+<tr><td><code>elementBgColor</code></td><td>string</td><td>-</td></tr>
+<tr><td><strong>图片适配</strong></td><td><code>imageFit</code></td><td>enum</td><td>cover</td></tr>
+<tr><td rowspan="10"><strong>二维码配置</strong></td><td><code>qrContentMode</code></td><td>enum</td><td>direct</td></tr>
+<tr><td><code>qrBaseUrl</code></td><td>string</td><td>-</td></tr>
+<tr><td><code>qrInviteParam</code></td><td>string</td><td>inviteCode</td></tr>
+<tr><td><code>qrInviteSeparator</code></td><td>string</td><td>?</td></tr>
+<tr><td><code>qrFallbackMode</code></td><td>enum</td><td>base_url_only</td></tr>
+<tr><td><code>qrErrorLevel</code></td><td>enum</td><td>M</td></tr>
+<tr><td><code>qrSize</code></td><td>integer</td><td>120</td></tr>
+<tr><td><code>qrColor</code></td><td>string</td><td>#000000</td></tr>
+<tr><td><code>qrBgColor</code></td><td>string</td><td>#FFFFFF</td></tr>
+<tr><td><code>shapeType</code></td><td>enum</td><td>rect</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- 章节导航 -->
+<div class="chapter-nav">
+  <div class="chapter-nav-prev" onclick="window._goDoc('poster/ch2-template.html')">
+    <span class="chapter-nav-label">&larr; 上一章：模板设计</span>
+  </div>
+  <div class="chapter-nav-next" onclick="window._goDoc('poster/ch4-variables.html')">
+    <span class="chapter-nav-label">下一章：变量与二维码 &rarr;</span>
+  </div>
+</div>

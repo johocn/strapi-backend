@@ -96,6 +96,7 @@ import {
   ssoPasswordLogin,
 } from '../../src/api/sso.js'
 
+
 const props = defineProps({
   appCode: { type: String, required: true },
   redirectUri: { type: String, default: '' },

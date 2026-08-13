@@ -1,0 +1,253 @@
+<!-- 自定义海报使用手册 — 海报模板设计与前端集成全景指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+<!-- ==================== 第一章 功能概述 ==================== -->
+<h2 id="ch1"><span class="ch-num">第一章</span>功能概述</h2>
+
+<h3 id="ch1-1">1.1 系统定位与核心能力</h3>
+
+<p>自定义海报功能是 zhao-studio 插件提供的可视化海报模板设计与动态渲染能力。它解决的核心问题是：运营人员需要在不同的推广场景（课程分享、活动裂变、商品推广）中生成带有用户专属邀请码的海报图片，传统做法是为每个场景单独开发前端页面，开发成本高且无法灵活调整布局。</p>
+
+<p>海报模板系统通过<strong>模板 + 元素 + 变量</strong>三层架构实现"一次设计，动态渲染"。运营人员在管理后台设计海报模板（定义画布尺寸、背景、元素布局），前端通过公开 API 传入变量数据（标题、图片、邀请码等），系统返回完整的元素配置供前端渲染为最终海报图片。</p>
+
+<p>系统的核心能力围绕以下四个维度构建：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>核心能力</th><th>技术实现</th><th>解决的问题</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>模板化设计</strong></td><td><code>poster-template</code> + <code>poster-element</code> 内容类型</td><td>运营人员可视化设计海报布局，无需开发介入</td></tr>
+<tr><td><strong>变量化渲染</strong></td><td>必填/选填变量 + <code>resolveTemplate</code> 服务</td><td>前端传入动态数据，系统自动替换变量并返回渲染配置</td></tr>
+<tr><td><strong>邀请码拼接</strong></td><td><code>qrContentMode: url_with_invite</code> 模式</td><td>二维码 URL 自动拼接用户邀请码参数，实现分销追踪</td></tr>
+<tr><td><strong>降级容错</strong></td><td><code>qrFallbackMode</code> 降级策略 + 变量默认值</td><td>邀请码缺失时按策略降级，保证海报始终可生成</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">关键理解</div>
+<p>海报模板系统不是图片生成服务，而是<strong>布局配置服务</strong>。系统返回的是结构化的元素配置（坐标、尺寸、样式、已解析的内容），前端 Canvas 或图片渲染库根据这些配置绘制最终海报图片。这种分离设计使前端可以使用任意渲染技术（Canvas API、html2canvas、Fabric.js 等）。</p>
+</div>
+
+<h3 id="ch1-2">1.2 系统架构</h3>
+
+<p>海报模板功能在 zhao-studio 插件中由以下组件构成：</p>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">管理后台 (Ant Design)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Admin API</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node flow-node-primary">poster-template 内容类型</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">poster-element 内容类型</span>
+  <span class="flow-arrow">&harr;</span>
+  <span class="flow-node">Strapi Document Service</span>
+  <span class="flow-arrow">&harr;</span>
+  <span class="flow-node">MySQL 数据库</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">公开 API (GET / POST)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node flow-node-primary">resolveTemplate 服务</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">变量替换 + 二维码拼接</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">返回元素配置 JSON</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node flow-node-primary">前端 Canvas 渲染</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">生成海报图片</span>
+</div>
+</div>
+
+<p>各层职责说明：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>层级</th><th>组件</th><th>职责</th></tr>
+</thead>
+<tbody>
+<tr><td>管理后台</td><td>PosterTemplatePage.tsx</td><td>模板列表、模板编辑器、元素可视化编辑、画布预览</td></tr>
+<tr><td>Admin API</td><td>content-api.ts (admin 路由)</td><td>模板 CRUD、元素 CRUD、批量保存元素、模板克隆</td></tr>
+<tr><td>内容类型</td><td>poster-template / poster-element</td><td>数据模型定义，存储模板和元素配置</td></tr>
+<tr><td>服务层</td><td>services/poster.ts</td><td>模板查询、变量解析、二维码拼接、降级处理、默认模板种子</td></tr>
+<tr><td>公开 API</td><td>content-api.ts (public 路由)</td><td>前端获取模板配置、提交变量渲染请求</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch1-3">1.3 模板与元素的关系</h3>
+
+<p>海报模板系统采用<strong>一对多</strong>的数据模型：一个模板包含多个元素，元素通过 <code>posterTemplate</code> 关联字段归属到所属模板。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>内容类型</th><th>关系</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>poster-template</code></td><td>oneToMany &rarr; poster-element</td><td>一个模板拥有多个元素，通过 <code>elements</code> 关联字段访问</td></tr>
+<tr><td><code>poster-element</code></td><td>manyToOne &rarr; poster-template</td><td>每个元素必须归属一个模板，通过 <code>posterTemplate</code> 关联字段指向</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>模板负责定义<strong>画布级</strong>的属性（尺寸、背景、变量声明），元素负责定义<strong>内容级</strong>的属性（位置、样式、内容来源）。两者的职责划分如下：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>职责维度</th><th>poster-template</th><th>poster-element</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>画布尺寸</strong></td><td>canvasWidth / canvasHeight</td><td>-</td></tr>
+<tr><td><strong>背景</strong></td><td>backgroundColor / backgroundImage / backgroundMode</td><td>-</td></tr>
+<tr><td><strong>变量声明</strong></td><td>requiredVariables / optionalVariables</td><td>isVariable / variableName / defaultValue</td></tr>
+<tr><td><strong>元素布局</strong></td><td>-</td><td>x / y / width / height / zIndex / rotation / opacity</td></tr>
+<tr><td><strong>元素样式</strong></td><td>-</td><td>fontSize / fontColor / borderRadius / borderColor 等</td></tr>
+<tr><td><strong>元素内容</strong></td><td>-</td><td>elementType / content / defaultValue</td></tr>
+<tr><td><strong>二维码配置</strong></td><td>-</td><td>qrContentMode / qrBaseUrl / qrFallbackMode 等</td></tr>
+<tr><td><strong>状态控制</strong></td><td>isActive / isDefault</td><td>sortOrder (元素排序)</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">注意事项</div>
+<p><code>poster-element</code> 内容类型在 Strapi 内容管理器中设置为 <code>visible: false</code>，即不直接在 Strapi 后台内容管理界面显示。元素的创建、编辑和管理通过海报模板编辑器（PosterTemplatePage）中的元素列表和表单完成，或通过 Admin API 进行批量操作。</p>
+</div>
+
+<h3 id="ch1-4">1.4 变量系统</h3>
+
+<p>变量系统是海报动态渲染的核心机制。每个模板声明两组变量：<strong>必填变量</strong>（requiredVariables）和<strong>选填变量</strong>（optionalVariables）。前端调用渲染 API 时必须提供所有必填变量的值，选填变量可以省略。</p>
+
+<h4>默认变量定义</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>变量类别</th><th>变量名</th><th>用途</th><th>绑定元素示例</th></tr>
+</thead>
+<tbody>
+<tr><td rowspan="4"><strong>必填变量</strong><br><span class="badge badge-required">required</span></td><td><code>title</code></td><td>海报主标题（如课程名称）</td><td>文本元素，variableName=title</td></tr>
+<tr><td><code>description</code></td><td>海报描述文字</td><td>文本元素，variableName=description</td></tr>
+<tr><td><code>image_url</code></td><td>主图/封面图 URL</td><td>图片元素，variableName=image_url</td></tr>
+<tr><td><code>qr_code</code></td><td>二维码基础 URL</td><td>二维码元素，qrBaseUrl 或变量传入</td></tr>
+<tr><td rowspan="3"><strong>选填变量</strong><br><span class="badge badge-optional">optional</span></td><td><code>market_price</code></td><td>市场价（划线价）</td><td>文本元素，variableName=market_price</td></tr>
+<tr><td><code>sale_price</code></td><td>销售价</td><td>文本元素，variableName=sale_price</td></tr>
+<tr><td><code>invite_code</code></td><td>用户邀请码</td><td>二维码元素，url_with_invite 模式自动拼接</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>变量解析流程</h4>
+
+<p>当前端调用 <code>POST /api/zhao-studio/v1/posters/render</code> 时，系统按以下流程解析变量：</p>
+
+<ol class="steps">
+<li><strong>查询模板</strong> — 根据 <code>templateCode</code> 查找 <code>isActive: true</code> 的模板，同时 populate 关联的 elements</li>
+<li><strong>校验必填变量</strong> — 遍历 <code>requiredVariables</code>，检查前端传入的 variables 是否包含所有必填变量。<code>invite_code</code> 即使在必填列表中也允许缺失（因为它是特殊的可选变量）</li>
+<li><strong>元素内容解析</strong> — 对每个元素判断 <code>isVariable</code>：若为 true，从 variables 中取 <code>variableName</code> 对应的值，缺失时使用 <code>defaultValue</code>；若为 false，直接使用 <code>content</code> 字段</li>
+<li><strong>二维码特殊处理</strong> — 若元素类型为 qrcode 且 <code>qrContentMode</code> 为 <code>url_with_invite</code>，执行邀请码拼接逻辑（详见第四章）</li>
+<li><strong>隐藏元素过滤</strong> — 降级策略为 <code>hide_element</code> 且触发降级时，该元素被标记为 hidden 并从返回结果中过滤</li>
+<li><strong>返回渲染配置</strong> — 返回模板画布配置 + 已解析的元素数组（按 sortOrder 排序）</li>
+</ol>
+
+<div class="callout callout-success">
+<div class="callout-title">设计理念</div>
+<p>变量系统的设计理念是<strong>声明式</strong>而非命令式。模板声明需要哪些变量，元素声明绑定哪个变量，系统负责将变量值注入到对应元素。前端只需传入变量键值对，无需关心元素如何布局、内容如何填充。这使得同一套 API 可以服务于任意模板，前端代码与模板设计完全解耦。</p>
+</div>
+
+<h3 id="ch1-5">1.5 画布坐标系</h3>
+
+<p>海报画布采用<strong>像素坐标系</strong>，原点 (0,0) 位于画布左上角，X 轴向右延伸，Y 轴向下延伸。所有元素的定位基于此坐标系。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>坐标属性</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>x</code></td><td>integer</td><td>0</td><td>元素左上角的水平坐标（px）</td></tr>
+<tr><td><code>y</code></td><td>integer</td><td>0</td><td>元素左上角的垂直坐标（px）</td></tr>
+<tr><td><code>width</code></td><td>integer</td><td>100</td><td>元素宽度（px）</td></tr>
+<tr><td><code>height</code></td><td>integer</td><td>100</td><td>元素高度（px）</td></tr>
+<tr><td><code>zIndex</code></td><td>integer</td><td>0</td><td>元素层级，数值越大越靠上</td></tr>
+<tr><td><code>rotation</code></td><td>integer</td><td>0</td><td>旋转角度（度），正值顺时针</td></tr>
+<tr><td><code>opacity</code></td><td>decimal</td><td>1</td><td>透明度，0 完全透明，1 完全不透明</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>默认画布尺寸</h4>
+
+<p>模板的默认画布尺寸为 <strong>600 x 1000</strong> 像素（宽 x 高），这是一个适合手机端竖屏浏览的海报比例（3:5）。管理后台编辑器中的画布预览会根据实际画布尺寸自动缩放，预览区域最大宽度为 400px，缩放比例 = min(400/canvasWidth, 500/canvasHeight, 1)。</p>
+
+<h4>坐标系示意</h4>
+
+<div class="callout callout-info">
+<div class="callout-title">坐标系示例</div>
+<p>假设画布尺寸为 600x1000，一个元素配置为 <code>x=50, y=60, width=500, height=50</code>，表示该元素左上角位于画布坐标 (50, 60) 处，宽度 500px（几乎占满画布宽度），高度 50px。若 <code>zIndex=10</code>，则该元素显示在 <code>zIndex</code> 小于 10 的元素之上。</p>
+</div>
+
+<h4>元素排序规则</h4>
+
+<p>元素在返回结果中按 <code>sortOrder</code> 字段升序排列。虽然 <code>zIndex</code> 决定了视觉上的层叠顺序，但 <code>sortOrder</code> 决定了元素在数组中的位置顺序。建议 <code>sortOrder</code> 与 <code>zIndex</code> 保持一致的逻辑：从背景到前景依次递增。</p>
+
+<h3 id="ch1-6">1.6 默认模板种子机制</h3>
+
+<p>系统在 zhao-studio 插件启动时（<code>bootstrap.ts</code>）自动执行 <code>seedDefaultTemplate()</code> 方法。该方法检查数据库中是否已存在 <code>isDefault: true</code> 的模板，若不存在则创建一个名为 <code>course_share_default</code> 的默认课程分享海报模板，并附带 6 个预设元素：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>元素 Key</th><th>类型</th><th>名称</th><th>变量绑定</th><th>位置 (x, y)</th><th>尺寸 (w x h)</th></tr>
+</thead>
+<tbody>
+<tr><td><code>title</code></td><td>text</td><td>课程标题</td><td>variableName=title</td><td>(50, 60)</td><td>500 x 50</td></tr>
+<tr><td><code>cover_image</code></td><td>image</td><td>封面图</td><td>variableName=image_url</td><td>(50, 130)</td><td>500 x 300</td></tr>
+<tr><td><code>description</code></td><td>text</td><td>课程描述</td><td>variableName=description</td><td>(50, 460)</td><td>500 x 60</td></tr>
+<tr><td><code>price_label</code></td><td>text</td><td>销售价</td><td>variableName=sale_price</td><td>(50, 550)</td><td>200 x 30</td></tr>
+<tr><td><code>qr_code</code></td><td>qrcode</td><td>分享二维码</td><td>qrContentMode=url_with_invite</td><td>(240, 800)</td><td>120 x 120</td></tr>
+<tr><td><code>footer_text</code></td><td>text</td><td>底部提示</td><td>固定内容: "扫码分享赚积分"</td><td>(50, 940)</td><td>500 x 30</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-info">
+<div class="callout-title">种子条件</div>
+<p>默认模板种子需要满足两个前提条件：(1) 数据库中不存在 <code>isDefault: true</code> 的模板；(2) 系统中至少存在一个 <code>site-config</code> 站点配置。如果无站点配置，种子过程会跳过并输出警告日志。种子创建成功后输出 <code>[zhao-studio] Default poster template seeded successfully</code> 日志。</p>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">使用建议</div>
+<p>默认模板 <code>course_share_default</code> 可以直接用于课程分享场景。如果需要自定义布局，建议使用模板克隆功能复制一份默认模板后修改，而非直接修改默认模板。克隆的模板 <code>isDefault</code> 为 false，不会影响种子逻辑。</p>
+</div>
+
+<!-- 章节导航 -->
+<div class="chapter-nav">
+  <div class="chapter-nav-prev" onclick="window._goDoc('poster/index.html')">
+    <span class="chapter-nav-label">&larr; 返回目录</span>
+  </div>
+  <div class="chapter-nav-next" onclick="window._goDoc('poster/ch2-template.html')">
+    <span class="chapter-nav-label">下一章：模板设计 &rarr;</span>
+  </div>
+</div>

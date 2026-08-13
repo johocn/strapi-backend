@@ -1,0 +1,354 @@
+<!-- 站内广告使用手册 — 广告区域与广告内容全链路指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  h2 { font-size: 24px; font-weight: 700; margin: 28px 0 14px; color: #0f172a; }
+  h2 .ch-num { display: inline-block; background: #1a56db; color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+  h3 { font-size: 19px; font-weight: 600; margin: 22px 0 10px; color: #1e293b; }
+  h4 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: #334155; }
+  p { font-size: 14px; line-height: 1.75; color: #475569; margin: 10px 0; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; color: #1e293b; }
+  pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0; border: 1px solid #e2e8f0; }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { font-size: 14px; line-height: 1.75; color: #475569; margin: 4px 0; }
+  strong { color: #1e293b; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  .callout { padding: 14px 18px; border-radius: 8px; margin: 18px 0; border-left: 4px solid; font-size: 14px; line-height: 1.7; }
+  .callout-info { background: #eff6ff; border-color: #3b82f6; color: #1e3a5f; }
+  .callout-success { background: #f0fdf4; border-color: #22c55e; color: #14532d; }
+  .callout-warning { background: #fffbeb; border-color: #f59e0b; color: #713f12; }
+  .callout-danger { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .callout-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .callout p { margin: 6px 0; color: inherit; }
+  .steps { list-style: none; counter-reset: step-counter; padding: 0; margin: 18px 0; }
+  .steps li { counter-increment: step-counter; padding: 10px 10px 10px 48px; position: relative; font-size: 14px; line-height: 1.7; color: #475569; border-left: 2px solid #e2e8f0; margin: 0; }
+  .steps li::before { content: counter(step-counter); position: absolute; left: -14px; top: 10px; width: 28px; height: 28px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .checklist { list-style: none; padding: 0; margin: 18px 0; }
+  .checklist li { padding: 6px 10px 6px 32px; position: relative; font-size: 13px; color: #475569; line-height: 1.6; }
+  .checklist li::before { content: '\2713'; position: absolute; left: 6px; color: #22c55e; font-weight: 700; }
+  .field-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 18px 0; overflow: hidden; }
+  .field-card-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .field-name { font-size: 15px; font-weight: 700; color: #0f172a; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-type { font-size: 12px; color: #94a3b8; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-card-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-item { background: #fafafa; padding: 10px; border-radius: 6px; }
+  .field-item-label { display: block; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-item-value { display: block; font-size: 13px; color: #334155; line-height: 1.6; }
+  .field-card-full { grid-column: 1 / -1; }
+  .field-item-value.danger { color: #dc2626; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+  .badge-required { background: #fef2f2; color: #dc2626; }
+  .badge-optional { background: #f1f5f9; color: #64748b; }
+  .badge-ad { background: #fef3c7; color: #b45309; }
+  .badge-api { background: #e0e7ff; color: #4338ca; }
+  .badge-display { background: #f3e8ff; color: #7c3aed; }
+  .flow-diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 18px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .flow-node { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 16px; font-size: 13px; color: #334155; text-align: center; min-width: 100px; }
+  .flow-arrow { color: #94a3b8; font-size: 18px; }
+  .flow-node-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .flow-node.success { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .flow-node.warning { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .case-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+  .case-card-header { padding: 16px; background: linear-gradient(135deg, #1a56db, #1e40af); color: #fff; }
+  .case-card-header .case-industry { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px; }
+  .case-card-header .case-title { font-size: 16px; font-weight: 700; }
+  .case-card-body { padding: 16px; }
+  .chapter-nav { display: flex; justify-content: space-between; padding: 24px 0 8px; border-top: 1px solid #e2e8f0; margin-top: 32px; gap: 12px; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .nav-btn.next { margin-left: auto; }
+  @media (max-width: 640px) {
+    .field-card-body { grid-template-columns: 1fr; }
+    .flow-node { min-width: 80px; font-size: 12px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 17px; }
+  }
+</style>
+
+
+<!-- ==================== 第一章 功能概述 ==================== -->
+<h2 id="ch1"><span class="ch-num">第一章</span>功能概述</h2>
+
+<h3 id="ch1-1">1.1 系统架构概述</h3>
+
+<p>站内广告系统是 zhao-studio Strapi 插件的核心功能模块，旨在为多站点内容平台提供灵活、可配置的广告管理能力。系统采用<strong>广告区域（ad-zone）+ 广告内容（ad-content）</strong>两层模型，将"广告展示在哪里"和"广告展示什么"解耦，使运营人员可以独立管理广告位和广告素材，实现一次配置、多端复用。</p>
+
+<p>整个广告系统由三层构成：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>架构层</th><th>职责</th><th>核心组件</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>数据层</strong></td><td>存储广告区域和广告内容数据，维护两者的一对多关系</td><td><code>ad-zone</code> 内容类型、<code>ad-content</code> 内容类型、Strapi 数据库</td></tr>
+<tr><td><strong>服务层</strong></td><td>处理广告查询逻辑，包括位置匹配、内容过滤、定时投放、频次控制</td><td>广告服务（AdService）、公开 API 控制器、管理 API 控制器</td></tr>
+<tr><td><strong>展示层</strong></td><td>前端组件根据 API 返回数据渲染广告，支持多种展示样式和交互效果</td><td>前端 AdZone 组件、AdContent 渲染器、轮播/视频/弹窗组件</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>系统的设计理念是<strong>声明式配置，响应式展示</strong>：运营人员在管理后台声明广告区域的位置和展示模式，为每个区域配置一条或多条广告内容，设置内容类型、样式、定时规则和频次策略；前端通过公开 API 按位置拉取广告数据，根据返回的内容类型和展示样式动态渲染对应组件。整个链路无需前端硬编码广告位，新增广告位只需在后台创建区域记录。</p>
+
+<div class="callout callout-info">
+<div class="callout-title">核心设计原则</div>
+<p><strong>位置驱动</strong>：前端通过位置标识（position）获取广告，而非硬编码广告 ID。<strong>内容与区域解耦</strong>：一个区域可承载多条内容，内容可在不同区域间复用。<strong>多租户隔离</strong>：每个站点（site）拥有独立的广告区域和内容，互不干扰。</p>
+</div>
+
+<h3 id="ch1-2">1.2 广告区域与广告内容的关系</h3>
+
+<p>广告区域和广告内容是系统中最核心的两个实体，它们之间是一对多（oneToMany）关系：一个广告区域可以包含多条广告内容，每条广告内容必须归属于一个广告区域。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>维度</th><th>广告区域（ad-zone）</th><th>广告内容（ad-content）</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>核心职责</strong></td><td>定义"广告展示在哪里"以及"以什么模式展示"</td><td>定义"广告展示什么内容"以及"内容如何呈现"</td></tr>
+<tr><td><strong>关键字段</strong></td><td>position（位置）、displayMode（展示模式）、suggestedWidth/Height（建议尺寸）</td><td>contentType（内容类型）、images/videoUrl/htmlContent（素材）、displayStyle（展示样式）</td></tr>
+<tr><td><strong>数量关系</strong></td><td>1 个区域 &rarr; N 条内容</td><td>N 条内容 &rarr; 1 个区域</td></tr>
+<tr><td><strong>生命周期</strong></td><td>长期存在，一般创建后不频繁变更</td><td>频繁创建、更新、过期、替换</td></tr>
+<tr><td><strong>管理频率</strong></td><td>低频操作（站点搭建阶段集中创建）</td><td>高频操作（日常运营持续更新）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>两层模型的协作流程</h4>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">创建广告区域</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">配置位置与展示模式</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">设置建议尺寸</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">创建广告内容</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">关联到广告区域</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">配置素材与样式</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">设置定时与频次</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node success">前端请求 API</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">按位置匹配区域</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">过滤有效内容</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">返回广告数据</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node warning">前端组件渲染</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">根据 displayMode 展示</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">根据 displayStyle 渲染</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">用户看到广告</span>
+</div>
+</div>
+
+<p>广告区域的 <code>displayMode</code>（展示模式）决定了多条内容如何被展示：<strong>single</strong>（单条）只展示优先级最高的一条；<strong>rotation</strong>（轮播）按时间间隔轮换展示多条；<strong>slideshow</strong>（幻灯片）以幻灯片形式展示多条；<strong>stack</strong>（堆叠）同时展示所有内容。广告内容的 <code>displayStyle</code>（展示样式）决定了单条内容的视觉呈现方式（横幅、卡片、弹窗等）。两者协同工作：区域决定"怎么排"，内容决定"怎么画"。</p>
+
+<h4>关系图示</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>广告区域 ad-zone</th><th>关系</th><th>广告内容 ad-content</th></tr>
+</thead>
+<tbody>
+<tr><td>name: 首页横幅</td><td rowspan="3">oneToMany &rarr;</td><td>内容 A: 双十一促销活动（single-image）</td></tr>
+<tr><td>position: home-banner</td><td>内容 B: 新品上线公告（single-image）</td></tr>
+<tr><td>displayMode: rotation</td><td>内容 C: 品牌形象展示（slideshow）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>上表中，"首页横幅"区域包含三条广告内容，由于区域设置为 <code>rotation</code>（轮播）模式，三条内容会按时间间隔轮换展示。运营人员可以随时新增、下线或调整内容的优先级，无需修改区域配置。</p>
+
+<h3 id="ch1-3">1.3 多租户支持</h3>
+
+<p>广告系统原生支持多租户（多站点）架构。广告区域和广告内容均包含 <code>site</code> 关联字段，指向 <code>site</code> 内容类型。这意味着每个站点拥有完全独立的广告区域和广告内容集合，互不干扰。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>多租户特性</th><th>实现机制</th><th>使用场景</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>数据隔离</strong></td><td>每个 ad-zone 和 ad-content 记录关联一个 site，API 查询时按 site 过滤</td><td>站点 A 的首页横幅广告不会出现在站点 B</td></tr>
+<tr><td><strong>位置复用</strong></td><td>不同站点可以使用相同的 position 值（如 home-banner），但各自拥有独立的内容</td><td>所有站点都有"首页横幅"位，但展示各自的活动广告</td></tr>
+<tr><td><strong>独立管理</strong></td><td>各站点运营人员只管理自己站点的广告，权限可按站点分配</td><td>站点 A 的运营不需要关心站点 B 的广告配置</td></tr>
+<tr><td><strong>统一 API</strong></td><td>公开 API 通过请求参数或域名识别当前站点，自动返回对应站点的广告</td><td>前端无需为每个站点写不同的 API 调用逻辑</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>多站点广告配置示例</h4>
+
+<div class="case-card">
+<div class="case-card-header">
+<div class="case-industry">多租户场景</div>
+<div class="case-title">企业集团多品牌站点广告管理</div>
+</div>
+<div class="case-card-body">
+<p>某企业集团拥有三个品牌站点：主品牌站（main）、子品牌 A 站（brand-a）、子品牌 B 站（brand-b）。每个站点都有首页横幅、文章页底部、侧边栏等广告位。</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>站点</th><th>区域 position</th><th>区域名称</th><th>展示模式</th><th>内容数量</th></tr>
+</thead>
+<tbody>
+<tr><td>main</td><td>home-banner</td><td>主站首页横幅</td><td>rotation</td><td>5 条</td></tr>
+<tr><td>main</td><td>article-bottom</td><td>主站文章底部</td><td>single</td><td>2 条</td></tr>
+<tr><td>brand-a</td><td>home-banner</td><td>品牌A首页横幅</td><td>slideshow</td><td>3 条</td></tr>
+<tr><td>brand-a</td><td>home-sidebar</td><td>品牌A首页侧边栏</td><td>stack</td><td>4 条</td></tr>
+<tr><td>brand-b</td><td>home-banner</td><td>品牌B首页横幅</td><td>single</td><td>1 条</td></tr>
+<tr><td>brand-b</td><td>popup</td><td>品牌B弹窗广告</td><td>single</td><td>2 条</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>三个站点使用相同的 position 值（如 <code>home-banner</code>），但各自拥有独立的内容。前端请求 <code>GET /ads/zones/home-banner</code> 时，API 根据当前站点上下文返回对应的广告数据。</p>
+</div>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">多租户注意事项</div>
+<p>创建广告区域和广告内容时，<strong>必须</strong>关联正确的 site。如果忘记关联 site，该记录可能无法被任何站点的 API 查询到，或出现在非预期的站点上。建议在管理后台列表页使用 site 筛选器确认数据归属。</p>
+</div>
+
+<h3 id="ch1-4">1.4 数据流转与生命周期</h3>
+
+<p>一条广告从创建到展示给用户，经历以下完整生命周期：</p>
+
+<h4>广告创建与投放流程</h4>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">规划广告位</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">创建广告区域</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">设置位置与模式</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">关联站点</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node flow-node-primary">准备广告素材</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">创建广告内容</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">关联到区域</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">配置素材样式</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node success">设置定时规则</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">设置频次控制</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">激活内容 (isActive=true)</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">广告上线</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node warning">前端请求广告 API</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">服务端过滤有效内容</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">按优先级排序</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node warning">返回广告数据</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&darr;</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node">前端渲染广告组件</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">用户看到广告</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">用户点击/关闭</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node success">行为数据回收</span>
+</div>
+</div>
+
+<h4>服务端内容过滤逻辑</h4>
+
+<p>当前端请求广告 API 时，服务端按以下条件过滤有效广告内容：</p>
+
+<ol class="steps">
+<li><strong>区域匹配</strong> — 根据 position 和 site 查找对应的 ad-zone 记录，确认区域 <code>isActive</code> 为 true</li>
+<li><strong>内容过滤</strong> — 查找该区域下所有 <code>isActive</code> 为 true 的 ad-content 记录</li>
+<li><strong>定时检查</strong> — 过滤掉不在投放时间段内的内容：当前时间需在 <code>startAt</code> 和 <code>endAt</code> 之间（未设置则不限制）</li>
+<li><strong>频次检查</strong> — 根据前端传入的用户标识和 <code>frequencyLimit</code>/<code>frequencyPeriod</code> 判断是否已达到频次上限</li>
+<li><strong>优先级排序</strong> — 按 <code>priority</code> 降序排列，同优先级按 <code>sortOrder</code> 升序排列</li>
+<li><strong>模式裁剪</strong> — 根据区域的 <code>displayMode</code> 决定返回内容数量：single 返回第一条，rotation/slideshow/stack 返回全部</li>
+</ol>
+
+<h4>广告下线与替换</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>下线方式</th><th>操作</th><th>适用场景</th><th>数据保留</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>停用</strong></td><td>将 <code>isActive</code> 设为 false</td><td>临时下线，后续可能恢复</td><td>保留所有数据</td></tr>
+<tr><td><strong>定时过期</strong></td><td>设置 <code>endAt</code>，到期自动停止展示</td><td>活动广告自然过期</td><td>保留所有数据</td></tr>
+<tr><td><strong>替换</strong></td><td>新建内容，将旧内容 isActive 设为 false</td><td>广告素材更新换代</td><td>旧内容保留可追溯</td></tr>
+<tr><td><strong>删除</strong></td><td>在管理后台删除记录</td><td>彻底清除错误数据</td><td>数据不可恢复</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-success">
+<div class="callout-title">最佳实践</div>
+<p>推荐使用<strong>停用</strong>或<strong>定时过期</strong>方式下线广告，而非直接删除。保留历史广告数据有助于后续分析投放效果、复用素材配置、追溯投放记录。仅在数据创建错误时使用删除操作。</p>
+</div>
+
+<h4>广告系统的价值闭环</h4>
+
+<p>站内广告系统在业务中的价值闭环：<strong>广告位规划</strong>（确定展示位置）&rarr; <strong>素材制作</strong>（准备广告内容）&rarr; <strong>配置投放</strong>（设置定时、频次、样式）&rarr; <strong>前端展示</strong>（用户看到广告）&rarr; <strong>用户互动</strong>（点击/转化/关闭）&rarr; <strong>效果分析</strong>（根据互动数据优化后续投放）。广告系统覆盖了前四个环节，为效果分析提供数据基础。</p>
+
+<div class="callout callout-info">
+<div class="callout-title">关键理解</div>
+<p>广告区域是<strong>基础设施</strong>，在站点搭建阶段一次性规划好，后续很少变更；广告内容是<strong>运营资产</strong>，在日常运营中持续创建、更新和替换。理解这一区别，才能正确规划工作流程：先建区域（一次性），再配内容（持续迭代）。</p>
+</div>
+
+<div class="chapter-nav">
+  <span class="nav-btn" onclick="window._goDoc('ad-site/index.html')">&larr; 返回目录</span>
+  <span class="nav-btn next" onclick="window._goDoc('ad-site/ch2-ad-zone.html')">下一章：广告区域管理 &rarr;</span>
+</div>

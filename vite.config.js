@@ -5,6 +5,11 @@ export default defineConfig({
   plugins: [
     uni()
   ],
+  server: {
+    host: '0.0.0.0',
+    port: 5174,
+    strictPort: false
+  },
   build: {
     outDir: 'dist/build/h5',
     emptyOutDir: false

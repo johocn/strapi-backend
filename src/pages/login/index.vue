@@ -241,21 +241,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useUserStore } from '../../store/user.js'
 import { post } from '../../utils/request.js'
 import { adminLogin } from '../../api/auth.js'
 import { fetchAuthConfig, getStoredAuthConfig } from '../../utils/auth-config.js'
 import { loadSiteConfig, isFeatureEnabled } from '../../utils/config-helper.js'
+import { guardSsoRedirect, isSsoRedirectBlocked, clearSsoRedirectAttempts } from '../../utils/sso-guard.js'
 
 const userStore = useUserStore()
 const loading = ref(false)
 const mode = ref('login')
 
 // 认证配置
-const authConfig = ref({ mode: 'local', ssoLoginUrl: '' })
+const authConfig = ref({ mode: 'local', ssoLoginUrl: '', ssoAppCode: '' })
 const authMode = computed(() => authConfig.value?.mode ?? 'local')
 const ssoLoginUrl = computed(() => authConfig.value?.ssoLoginUrl ?? '')
+const ssoAppCode = computed(() => authConfig.value?.ssoAppCode ?? 'admin')
 
 // 渠道邀请码
 const channelInviteCode = ref('')
@@ -313,14 +315,33 @@ function redirectToSso() {
     return
   }
 
-  // 保存当前页面路径
-  const currentPage = '/pages/dashboard/index'
-  uni.setStorageSync('ssoRedirectUrl', currentPage)
+  // SSO 跳转守卫：连续 3 次未完成登录则阻断，引导本地登录
+  if (isSsoRedirectBlocked()) {
+    console.warn('[login] SSO 跳转已被阻断，停留在本地登录页')
+    clearSsoRedirectAttempts()
+    uni.showToast({ title: 'SSO 登录多次未完成，已切换为本地登录', icon: 'none', duration: 3000 })
+    return
+  }
+  if (!guardSsoRedirect()) {
+    uni.showToast({ title: 'SSO 登录多次未完成，已切换为本地登录', icon: 'none', duration: 3000 })
+    return
+  }
 
-  // 跳转到SSO登录页
+  // 管理后台 SSO 回调地址：登录回调页接收 code 并兑换 token
+  const callbackUrl = window.location.origin + '/#/pages/login/callback'
+
+  // 跳转到 SSO 登录页，携带标准参数（与 strapi-course redirectToSso 保持一致）
   // #ifdef H5
-  const separator = ssoLoginUrl.value.includes('?') ? '&' : '?'
-  window.location.href = ssoLoginUrl.value + separator + 'redirect=' + encodeURIComponent(currentPage)
+  const params = new URLSearchParams({
+    app_code: ssoAppCode.value || 'admin',
+    return_url: callbackUrl,
+    c_end_url: callbackUrl,
+  })
+  // 透传渠道邀请码（如存在）
+  const channelInvite = uni.getStorageSync('webChannelInviteCode') || ''
+  if (channelInvite) params.append('channel_code', channelInvite)
+  const sep = ssoLoginUrl.value.includes('?') ? '&' : '?'
+  window.location.href = `${ssoLoginUrl.value}${sep}${params.toString()}`
   // #endif
 
   // #ifndef H5
@@ -374,9 +395,8 @@ async function handleLogin() {
 
     uni.showToast({ title: '登录成功', icon: 'success' })
 
-    setTimeout(() => {
-      uni.reLaunch({ url: '/pages/dashboard/index' })
-    }, 500)
+    // 直接使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
+    window.location.href = window.location.origin + '/#/pages/dashboard/index'
   } catch (error) {
     // adminRequest 已通过 uni.showToast 显示后端返回的中文错误（如"密码错误"/"账号不存在或已注销"）
     // 这里只在 console 留痕便于排查，不再覆盖toast
@@ -444,8 +464,9 @@ async function handleRegister() {
     userStore.setUserData(res)
     uni.showToast({ title: '注册成功', icon: 'success' })
 
+    // 使用 window.location.href 强制跳转，绕过 UniApp 路由系统的 KeepAlive bug
     setTimeout(() => {
-      uni.reLaunch({ url: '/pages/dashboard/index' })
+      window.location.href = window.location.origin + '/#/pages/dashboard/index'
     }, 500)
   } catch (error) {
     console.warn('[Login] register failed:', error)

@@ -24,6 +24,8 @@ const manuals = [
   { key: 'user', title: '课程学习答题管理用户手册', desc: '面向运营/内容管理员，覆盖课程、课时、题库、积分规则配置', indexDoc: 'user-guide/index.md' },
   { key: 'website', title: '官网使用手册', desc: '面向内容运营，覆盖 GEO/SEO 内容发布全流程，含字段规范、行业案例', indexDoc: 'website/index.html' },
   { key: 'sso-login', title: 'SSO 登录配置手册', desc: '面向运营/管理员，从零配置 SSO 单点登录，以 h.joho.cn + v.joho.cn 为例', indexDoc: 'sso-login/index.md' },
+  { key: 'ad-site', title: '站内广告使用手册', desc: '面向运营/管理员，覆盖广告区域创建、内容配置、展示方式与前端集成', indexDoc: 'ad-site/index.html' },
+  { key: 'poster', title: '自定义海报使用手册', desc: '面向运营/设计师，覆盖海报模板设计、元素配置、变量绑定与二维码生成', indexDoc: 'poster/index.html' },
 ]
 
 function goViewer(doc) {

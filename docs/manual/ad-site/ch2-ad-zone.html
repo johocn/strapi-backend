@@ -1,0 +1,593 @@
+<!-- 站内广告使用手册 — 广告区域与广告内容全链路指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  h2 { font-size: 24px; font-weight: 700; margin: 28px 0 14px; color: #0f172a; }
+  h2 .ch-num { display: inline-block; background: #1a56db; color: #fff; font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+  h3 { font-size: 19px; font-weight: 600; margin: 22px 0 10px; color: #1e293b; }
+  h4 { font-size: 16px; font-weight: 600; margin: 18px 0 8px; color: #334155; }
+  p { font-size: 14px; line-height: 1.75; color: #475569; margin: 10px 0; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; color: #1e293b; }
+  pre { background: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 16px 0; border: 1px solid #e2e8f0; }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { font-size: 14px; line-height: 1.75; color: #475569; margin: 4px 0; }
+  strong { color: #1e293b; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  .callout { padding: 14px 18px; border-radius: 8px; margin: 18px 0; border-left: 4px solid; font-size: 14px; line-height: 1.7; }
+  .callout-info { background: #eff6ff; border-color: #3b82f6; color: #1e3a5f; }
+  .callout-success { background: #f0fdf4; border-color: #22c55e; color: #14532d; }
+  .callout-warning { background: #fffbeb; border-color: #f59e0b; color: #713f12; }
+  .callout-danger { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .callout-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .callout p { margin: 6px 0; color: inherit; }
+  .steps { list-style: none; counter-reset: step-counter; padding: 0; margin: 18px 0; }
+  .steps li { counter-increment: step-counter; padding: 10px 10px 10px 48px; position: relative; font-size: 14px; line-height: 1.7; color: #475569; border-left: 2px solid #e2e8f0; margin: 0; }
+  .steps li::before { content: counter(step-counter); position: absolute; left: -14px; top: 10px; width: 28px; height: 28px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .checklist { list-style: none; padding: 0; margin: 18px 0; }
+  .checklist li { padding: 6px 10px 6px 32px; position: relative; font-size: 13px; color: #475569; line-height: 1.6; }
+  .checklist li::before { content: '\2713'; position: absolute; left: 6px; color: #22c55e; font-weight: 700; }
+  .field-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 18px 0; overflow: hidden; }
+  .field-card-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+  .field-name { font-size: 15px; font-weight: 700; color: #0f172a; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-type { font-size: 12px; color: #94a3b8; font-family: 'SF Mono', Monaco, Consolas, monospace; }
+  .field-card-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-item { background: #fafafa; padding: 10px; border-radius: 6px; }
+  .field-item-label { display: block; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-item-value { display: block; font-size: 13px; color: #334155; line-height: 1.6; }
+  .field-card-full { grid-column: 1 / -1; }
+  .field-item-value.danger { color: #dc2626; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; line-height: 1.6; }
+  .badge-required { background: #fef2f2; color: #dc2626; }
+  .badge-optional { background: #f1f5f9; color: #64748b; }
+  .badge-ad { background: #fef3c7; color: #b45309; }
+  .badge-api { background: #e0e7ff; color: #4338ca; }
+  .badge-display { background: #f3e8ff; color: #7c3aed; }
+  .flow-diagram { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 18px 0; }
+  .flow-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .flow-node { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 16px; font-size: 13px; color: #334155; text-align: center; min-width: 100px; }
+  .flow-arrow { color: #94a3b8; font-size: 18px; }
+  .flow-node-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .flow-node.success { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .flow-node.warning { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .case-card { border: 1px solid #e2e8f0; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+  .case-card-header { padding: 16px; background: linear-gradient(135deg, #1a56db, #1e40af); color: #fff; }
+  .case-card-header .case-industry { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px; }
+  .case-card-header .case-title { font-size: 16px; font-weight: 700; }
+  .case-card-body { padding: 16px; }
+  .chapter-nav { display: flex; justify-content: space-between; padding: 24px 0 8px; border-top: 1px solid #e2e8f0; margin-top: 32px; gap: 12px; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .nav-btn.next { margin-left: auto; }
+  @media (max-width: 640px) {
+    .field-card-body { grid-template-columns: 1fr; }
+    .flow-node { min-width: 80px; font-size: 12px; }
+    h2 { font-size: 20px; }
+    h3 { font-size: 17px; }
+  }
+</style>
+
+
+<!-- ==================== 第二章 广告区域管理 ==================== -->
+<h2 id="ch2"><span class="ch-num">第二章</span>广告区域管理</h2>
+
+<h3 id="ch2-1">2.1 设计目的与核心概念</h3>
+
+<p>广告区域（ad-zone）是站内广告系统的基础设施层。它的设计目的是将"广告展示位置"抽象为可配置的数据实体，使前端无需硬编码广告位，运营人员通过管理后台即可完成广告位的规划、创建和调整。</p>
+
+<p>在广告系统中，广告区域承担三个角色：<strong>位置锚点</strong>（通过 position 枚举标识页面上的展示位置，前端按位置拉取广告）、<strong>展示模式控制</strong>（通过 displayMode 决定多条广告内容如何排列展示）、<strong>尺寸约束</strong>（通过 suggestedWidth/suggestedHeight 向前端传达建议尺寸，确保广告素材比例一致）。</p>
+
+<p>不规划广告区域的后果：前端代码中散布硬编码的广告位逻辑，新增广告位需要前端发版；广告素材尺寸混乱，不同广告在同一位置展示效果参差不齐；无法统一管理广告的上下线，每条广告需要单独处理。正确使用的效果：广告位集中管理，新增/下线广告位无需前端改动；素材尺寸统一，展示效果一致；广告内容与展示位置解耦，运营自主度高。</p>
+
+<h3 id="ch2-2">2.2 页面运作原理</h3>
+
+<h4>数据上下游流转</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>环节</th><th>数据流向</th><th>触发机制</th></tr>
+</thead>
+<tbody>
+<tr><td>上游输入</td><td>运营规划广告位 &rarr; 创建 ad-zone 记录 &rarr; 关联 site</td><td>管理后台手动创建</td></tr>
+<tr><td>创建/更新</td><td>填写字段 &rarr; 保存 &rarr; ad-zone 记录入库</td><td>Strapi 内容管理器保存操作</td></tr>
+<tr><td>下游关联</td><td>ad-zone &rarr; adContents 关联 &rarr; ad-content 记录挂载到区域</td><td>创建 ad-content 时选择所属区域</td></tr>
+<tr><td>前端查询</td><td>前端请求 <code>GET /ads/zones/:position</code> &rarr; 服务端按 position + site 查找区域 &rarr; 返回区域及其有效内容</td><td>前端页面加载时自动请求</td></tr>
+<tr><td>展示渲染</td><td>前端组件根据 displayMode 渲染 &rarr; 根据 suggestedWidth/Height 约束尺寸</td><td>前端组件逻辑</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>区域查询与内容聚合机制</h4>
+
+<p>当前端请求 <code>GET /ads/zones/home-banner</code> 时，服务端按以下步骤处理：</p>
+
+<ol class="steps">
+<li><strong>位置匹配</strong> — 根据 position=<code>home-banner</code> 和当前站点上下文查找 ad-zone 记录</li>
+<li><strong>区域校验</strong> — 检查区域是否存在且 <code>isActive</code> 为 true，不满足则返回空</li>
+<li><strong>内容查询</strong> — 查找该区域下所有 <code>isActive</code> 为 true 的 ad-content 记录</li>
+<li><strong>内容过滤</strong> — 过滤掉不在投放时间段内、已达到频次上限的内容</li>
+<li><strong>排序裁剪</strong> — 按 priority 降序、sortOrder 升序排列，根据 displayMode 决定返回数量</li>
+<li><strong>返回数据</strong> — 返回区域信息（含 displayMode、suggestedWidth/Height）和有效内容列表</li>
+</ol>
+
+<h3 id="ch2-3">2.3 适用人群与禁止操作人群</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>类别</th><th>角色</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>适用人群</strong></td><td>站点运营负责人</td><td>负责站点广告位整体规划，确定每个页面位置需要哪些广告区域</td></tr>
+<tr><td></td><td>前端开发工程师</td><td>需要了解 position 枚举值，在页面对应位置嵌入广告组件</td></tr>
+<tr><td></td><td>广告运营专员</td><td>在已建区域下创建和管理广告内容</td></tr>
+<tr><td><strong>禁止操作人群</strong></td><td>未经培训的实习生</td><td>不了解 position 和 displayMode 的含义，可能创建无效区域</td></tr>
+<tr><td></td><td>内容编辑人员</td><td>广告区域属于站点基础设施，应由运营或技术角色管理</td></tr>
+<tr><td></td><td>外部外包人员</td><td>无系统权限上下文，无法正确关联 site 和规划 position</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>区域配置最终用途：</strong>广告区域一旦创建，将长期存在于系统中，作为广告内容的容器。前端组件依赖区域的 position 值进行广告查询，依赖 displayMode 决定渲染方式，依赖 suggestedWidth/suggestedHeight 约束展示尺寸。因此区域配置需在站点搭建阶段一次规划到位，后续尽量避免修改 position 和 displayMode（修改可能导致前端组件展示异常）。</p>
+
+<h3 id="ch2-4">2.4 字段详解</h3>
+
+<h4>区域分区概览</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>区域</th><th>设计初衷</th><th>功能价值</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>基础信息区</strong></td><td>定义区域的核心标识</td><td>名称、代码、描述构成区域的身份信息</td></tr>
+<tr><td><strong>位置配置区</strong></td><td>定义区域在页面中的展示位置</td><td>position 枚举值与前端组件一一对应</td></tr>
+<tr><td><strong>展示模式区</strong></td><td>定义多条内容的排列方式</td><td>displayMode 决定单条/轮播/幻灯片/堆叠</td></tr>
+<tr><td><strong>尺寸约束区</strong></td><td>向素材制作和前端传达建议尺寸</td><td>suggestedWidth/Height 统一广告比例</td></tr>
+<tr><td><strong>关联配置区</strong></td><td>建立区域与站点、内容的关联</td><td>site 关联实现多租户，adContents 承载广告内容</td></tr>
+<tr><td><strong>状态控制区</strong></td><td>管理区域的上下线状态和排序</td><td>isActive 控制是否生效，sortOrder 控制同位置多区域的排序</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- name -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">name</span>
+<span class="field-type">string</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-ad">广告核心</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">广告区域的显示名称，用于管理后台列表展示和运营人员识别。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">仅在管理后台展示，不出现在公开 API 返回数据中。运营人员通过名称区分不同区域。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">使用"页面+位置"的命名格式，如"首页横幅""文章页底部""列表页顶部"。名称应直观反映区域在页面中的位置，便于运营人员快速定位。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">名称含糊（如"广告1""区域A"）时，运营人员无法快速识别区域用途，导致广告内容配置到错误区域。</div>
+</div>
+</div>
+</div>
+
+<!-- code -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">code</span>
+<span class="field-type">string / unique</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-api">API</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">广告区域的唯一编码，作为区域的业务标识符，用于 API 查询和前端引用。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">在同一 site 下必须唯一。前端组件通过 code 引用特定区域，管理 API 通过 code 进行 CRUD 操作。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">全小写英文，连字符分隔，格式建议"page-position"，如 <code>home-banner</code>、<code>article-bottom</code>、<code>list-sidebar</code>。与 position 枚举值保持一致或派生自 position。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">code 不唯一时系统报错无法保存；code 与前端引用不一致时广告无法展示；使用中文或特殊字符可能导致 API 编码问题。</div>
+</div>
+</div>
+</div>
+
+<!-- site -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">site</span>
+<span class="field-type">relation &rarr; site</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-ad">多租户</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">关联到 site 内容类型，实现多租户数据隔离。每个广告区域必须归属一个站点。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">公开 API 查询时按当前站点上下文 + position 过滤区域；管理后台列表页可按 site 筛选。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">创建区域时必须选择正确的 site。单站点系统选择默认站点即可；多站点系统需确认区域归属的站点。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">未关联 site 的区域无法被公开 API 查询到；关联错误 site 的区域会出现在非预期站点上。</div>
+</div>
+</div>
+</div>
+
+<!-- position -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">position</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-ad">广告核心</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">标识广告区域在页面中的展示位置。前端组件通过 position 值决定在页面的哪个位置渲染广告。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">枚举值，公开 API <code>GET /ads/zones/:position</code> 使用此值作为路径参数查询区域。前端在对应页面位置使用相同的 position 值请求广告。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">position 枚举值详解</div>
+<div class="field-item-value">
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>枚举值</th><th>展示位置</th><th>典型用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>home-banner</code></td><td>首页顶部横幅</td><td>主推活动、品牌展示、重大公告</td></tr>
+<tr><td><code>home-sidebar</code></td><td>首页侧边栏</td><td>推荐内容、合作伙伴、快捷入口</td></tr>
+<tr><td><code>list-top</code></td><td>列表页顶部</td><td>分类推广、筛选引导</td></tr>
+<tr><td><code>article-top</code></td><td>文章页顶部</td><td>文章关联产品推荐、活动入口</td></tr>
+<tr><td><code>article-bottom</code></td><td>文章页底部</td><td>延伸阅读、行动号召、转化引导</td></tr>
+<tr><td><code>article-inline</code></td><td>文章正文内嵌</td><td>段落间广告、原生广告</td></tr>
+<tr><td><code>footer</code></td><td>页面底部</td><td>友情链接、合作伙伴、备案信息</td></tr>
+<tr><td><code>popup</code></td><td>弹窗覆盖层</td><td>首次访问引导、活动弹窗、订阅引导</td></tr>
+<tr><td><code>float</code></td><td>悬浮固定位置</td><td>客服入口、返回顶部、悬浮广告</td></tr>
+<tr><td><code>custom</code></td><td>自定义位置</td><td>特殊场景广告位，前端通过 code 引用</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">position 与前端组件不匹配时广告不会展示；同一站点同一 position 创建多个区域时，API 只返回排序最靠前的一个。</div>
+</div>
+</div>
+</div>
+
+<!-- displayMode -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">displayMode</span>
+<span class="field-type">enumeration</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-display">展示</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">定义多条广告内容在同一区域中的排列展示方式。决定前端组件的渲染逻辑。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">公开 API 返回此字段，前端组件根据值选择渲染策略：返回一条或多条内容，以何种方式排列。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">displayMode 枚举值详解</div>
+<div class="field-item-value">
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>枚举值</th><th>展示方式</th><th>返回内容数</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td><code>single</code></td><td>单条展示</td><td>1 条（优先级最高）</td><td>只需展示一条广告的位置，如首页横幅</td></tr>
+<tr><td><code>rotation</code></td><td>轮播展示</td><td>全部有效内容</td><td>多条广告按时间间隔轮换展示</td></tr>
+<tr><td><code>slideshow</code></td><td>幻灯片展示</td><td>全部有效内容</td><td>多条广告以幻灯片形式展示，支持滑动切换</td></tr>
+<tr><td><code>stack</code></td><td>堆叠展示</td><td>全部有效内容</td><td>多条广告同时垂直排列展示</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">displayMode 与内容数量不匹配时展示效果差：single 模式下配置多条内容只有第一条会展示；stack 模式下内容过多导致页面过长。</div>
+</div>
+</div>
+</div>
+
+<!-- suggestedWidth / suggestedHeight -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">suggestedWidth / suggestedHeight</span>
+<span class="field-type">integer</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-display">展示</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">向素材制作团队和前端组件传达广告区域的建议尺寸（像素），确保广告素材比例一致。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">公开 API 返回此字段，前端组件可据此设置容器尺寸；素材制作团队参考此值裁剪图片。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">填写像素值，如 <code>1200</code>x<code>300</code>（首页横幅）、<code>300</code>x<code>250</code>（侧边栏）、<code>728</code>x<code>90</code>（底部横幅）。建议参考 IAB 标准广告尺寸。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">不设置时素材尺寸无统一约束，不同广告在同一区域展示比例不一致，视觉混乱。</div>
+</div>
+</div>
+</div>
+
+<!-- adSlotCode -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">adSlotCode</span>
+<span class="field-type">string</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-ad">广告核心</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">第三方广告联盟的广告位代码（如 Google AdSense 的 data-ad-slot），用于在区域中嵌入联盟广告。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">前端组件检测到此字段时，渲染第三方广告联盟的代码而非自管理广告内容。当区域有自管理内容时，此字段作为备选方案。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">填写第三方广告平台提供的广告位标识符。仅在需要接入外部广告联盟时填写。不使用第三方广告时留空。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">填写错误的广告位代码会导致第三方广告无法展示或展示错误广告；与自管理内容同时存在时可能导致展示冲突。</div>
+</div>
+</div>
+</div>
+
+<!-- description -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">description</span>
+<span class="field-type">text</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">广告区域的描述说明，帮助运营人员理解区域的用途、位置和展示规则。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">仅在管理后台展示，不出现在公开 API 中。作为内部文档记录区域的规划意图。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">简要描述区域的页面位置、展示规则和注意事项。如"首页顶部横幅，轮播模式，建议尺寸 1200x300，每次展示 5 秒"。</div>
+</div>
+</div>
+</div>
+
+<!-- isActive -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">isActive</span>
+<span class="field-type">boolean / default:true</span>
+<span class="badge badge-required">必填</span>
+<span class="badge badge-ad">广告核心</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">控制广告区域是否生效。设为 false 时，该区域不会被公开 API 返回，前端不会展示该位置的广告。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">公开 API 查询时过滤掉 <code>isActive=false</code> 的区域。设为 false 后，该区域下所有广告内容都不会展示，无论内容自身的 isActive 状态。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">正常使用的区域设为 true。临时下线某个广告位时设为 false（如活动结束后下线弹窗广告位），无需删除区域记录。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">误将重要区域设为 false 会导致该位置广告完全消失；误将应下线的区域保持 true 会导致过期广告继续展示。</div>
+</div>
+</div>
+</div>
+
+<!-- sortOrder -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">sortOrder</span>
+<span class="field-type">integer / default:0</span>
+<span class="badge badge-optional">选填</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">同一 position 下多个区域的排序权重。当同一站点同一 position 存在多个区域时，sortOrder 决定查询优先级。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">API 查询按 sortOrder 升序排列，返回排序最靠前的区域。默认值为 0。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">正常情况下同一 position 只创建一个区域，sortOrder 保持默认 0。仅在特殊场景（如 A/B 测试、临时替换区域）下创建多个区域并设置不同 sortOrder。</div>
+</div>
+</div>
+</div>
+
+<!-- adContents -->
+<div class="field-card">
+<div class="field-card-header">
+<span class="field-name">adContents</span>
+<span class="field-type">relation &rarr; ad-content (oneToMany)</span>
+<span class="badge badge-optional">选填</span>
+<span class="badge badge-ad">广告核心</span>
+</div>
+<div class="field-card-body">
+<div class="field-item">
+<div class="field-item-label">设计初衷</div>
+<div class="field-item-value">区域与广告内容的一对多关联。一个区域可承载多条广告内容，内容通过此关联挂载到区域。</div>
+</div>
+<div class="field-item">
+<div class="field-item-label">作用原理</div>
+<div class="field-item-value">在 ad-content 内容类型中设置 <code>adZone</code> 关联时，系统自动在区域的 adContents 列表中添加该内容。API 查询区域时一并返回关联的有效内容。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">标准填写规范</div>
+<div class="field-item-value">无需在区域端手动管理此关联。创建广告内容时选择所属区域即可自动建立关联。在区域列表页可查看该区域下的内容数量。</div>
+</div>
+<div class="field-card-full">
+<div class="field-item-label">错误后果</div>
+<div class="field-item-value danger">内容未关联到任何区域时无法被 API 返回（孤立内容）；关联到错误区域时广告出现在错误位置。</div>
+</div>
+</div>
+</div>
+
+<h3 id="ch2-5">2.5 标准创建全流程</h3>
+
+<h4>广告位规划清单</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>规划项</th><th>要求</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>页面位置清单</td><td>列出所有需要广告位的页面和位置</td><td>确定要创建哪些 position 的区域</td></tr>
+<tr><td>展示模式决策</td><td>每个位置选择合适的 displayMode</td><td>决定广告的排列方式</td></tr>
+<tr><td>建议尺寸规格</td><td>每个位置的建议宽高（像素）</td><td>填入 suggestedWidth/suggestedHeight</td></tr>
+<tr><td>站点归属确认</td><td>确认区域归属的 site</td><td>多站点系统必须明确</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>填写顺序</h4>
+
+<ol class="steps">
+<li><strong>基础信息</strong> — 填写 <code>name</code>（如"首页横幅"）、<code>code</code>（如 <code>home-banner</code>）</li>
+<li><strong>站点关联</strong> — 选择 <code>site</code>，确认归属站点正确</li>
+<li><strong>位置配置</strong> — 选择 <code>position</code> 枚举值，与前端组件对应</li>
+<li><strong>展示模式</strong> — 选择 <code>displayMode</code>，根据位置特点选择 single/rotation/slideshow/stack</li>
+<li><strong>尺寸约束</strong> — 填写 <code>suggestedWidth</code> 和 <code>suggestedHeight</code></li>
+<li><strong>第三方广告</strong>（可选） — 如需接入广告联盟，填写 <code>adSlotCode</code></li>
+<li><strong>描述说明</strong> — 填写 <code>description</code>，记录区域规划意图</li>
+<li><strong>状态控制</strong> — 确认 <code>isActive</code>=true，设置 <code>sortOrder</code>（默认 0）</li>
+<li><strong>自检</strong> — 对照自检清单逐项检查</li>
+<li><strong>保存</strong> — 保存区域记录</li>
+</ol>
+
+<h4>创建前自检清单</h4>
+
+<ul class="checklist">
+<li>name 使用"页面+位置"格式，直观可识别</li>
+<li>code 为全小写英文，与 position 一致或派生自 position</li>
+<li>site 已正确关联</li>
+<li>position 枚举值与前端组件预期一致</li>
+<li>displayMode 与广告内容数量规划匹配</li>
+<li>suggestedWidth/suggestedHeight 已设置，符合页面布局</li>
+<li>description 简要说明了区域用途和注意事项</li>
+<li>isActive 设为 true</li>
+<li>同一 site 下同一 position 没有已存在的活跃区域</li>
+</ul>
+
+<h3 id="ch2-6">2.6 发布后闭环运作与禁忌</h3>
+
+<h4>前端展示效果</h4>
+
+<p>广告区域创建后，前端组件通过 <code>GET /ads/zones/:position</code> 获取区域数据和关联的广告内容。组件根据 <code>displayMode</code> 选择渲染策略：single 模式渲染一条内容；rotation 模式渲染轮播组件；slideshow 模式渲染幻灯片组件；stack 模式垂直堆叠渲染所有内容。容器尺寸根据 <code>suggestedWidth/suggestedHeight</code> 约束。</p>
+
+<h4>区域管理最佳实践</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>实践项</th><th>推荐做法</th><th>避免做法</th></tr>
+</thead>
+<tbody>
+<tr><td>命名规范</td><td>name 使用"页面+位置"格式</td><td>使用"广告1""区域A"等无意义名称</td></tr>
+<tr><td>position 规划</td><td>站点搭建阶段一次性规划所有 position</td><td>运营过程中频繁新增 position</td></tr>
+<tr><td>displayMode 选择</td><td>根据内容数量和位置特点选择</td><td>所有区域统一使用 rotation</td></tr>
+<tr><td>尺寸统一</td><td>同类型区域使用统一建议尺寸</td><td>每个区域随意设置尺寸</td></tr>
+<tr><td>下线方式</td><td>使用 isActive=false 临时下线</td><td>直接删除区域记录</td></tr>
+<tr><td>修改约束</td><td>position 和 displayMode 创建后尽量不修改</td><td>频繁修改 position 导致前端展示异常</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>字段禁忌写法</h4>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>字段</th><th>禁忌写法</th><th>后果</th></tr>
+</thead>
+<tbody>
+<tr><td>name</td><td>纯编号（如"广告区域 01"）</td><td>运营人员无法快速识别区域用途</td></tr>
+<tr><td>code</td><td>中文或含空格（如"首页横幅 1"）</td><td>API 编码问题，前端引用困难</td></tr>
+<tr><td>position</td><td>选择 custom 但未与前端约定 code</td><td>前端无法通过 position 查询到区域</td></tr>
+<tr><td>displayMode</td><td>single 模式下配置 5 条内容</td><td>4 条内容永远不会展示，浪费配置</td></tr>
+<tr><td>suggestedWidth/Height</td><td>填写非标准尺寸（如 999x333）</td><td>素材制作困难，展示比例不协调</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-danger">
+<div class="callout-title">禁止操作</div>
+<p><strong>1. 频繁修改 position</strong> — position 是前端组件与区域的核心关联纽带，修改后前端组件无法匹配，广告消失。如需变更位置，建议新建区域并下线旧区域。</p>
+<p><strong>2. 频繁修改 displayMode</strong> — displayMode 变更后前端渲染方式改变，可能导致已配置的内容展示异常。如需变更，需同步检查所有关联内容的配置。</p>
+<p><strong>3. 删除有内容的区域</strong> — 删除区域后，关联的 ad-content 记录变为孤立数据，无法被 API 查询。应先将内容迁移到其他区域或下线，再停用区域。</p>
+<p><strong>4. 同一 position 创建多个活跃区域</strong> — API 只返回 sortOrder 最小的区域，其他区域的内容不会展示，造成配置浪费。</p>
+</div>
+
+<div class="callout callout-success">
+<div class="callout-title">最佳实践总结</div>
+<p>广告区域是<strong>一次规划、长期使用</strong>的基础设施。在站点搭建阶段集中规划所有广告位，创建区域时仔细核对 position 和 displayMode，创建后尽量避免修改。日常运营中只管理广告内容的创建和更新，区域配置保持稳定。如需调整广告位策略，通过停用旧区域、创建新区域的方式实现，保留历史配置可追溯。</p>
+</div>
+
+<div class="chapter-nav">
+  <span class="nav-btn" onclick="window._goDoc('ad-site/ch1-overview.html')">&larr; 上一章：功能概述</span>
+  <span class="nav-btn next" onclick="window._goDoc('ad-site/ch3-ad-content.html')">下一章：广告内容配置 &rarr;</span>
+</div>
