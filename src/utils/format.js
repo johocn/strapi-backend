@@ -59,6 +59,15 @@ export function flattenAttributes(data) {
 export function extractList(response) {
   if (!response) return { list: [], pagination: {} }
   
+  // 后端包装格式：{ code, msg, data: { records, total, page, pageSize } }
+  if (response.data && response.data.records !== undefined) {
+    return {
+      list: flattenAttributes(response.data.records),
+      pagination: { total: response.data.total, page: response.data.page, pageSize: response.data.pageSize }
+    }
+  }
+  
+  // 直接分页格式：{ records, total }
   if (response.records && response.total !== undefined) {
     return {
       list: flattenAttributes(response.records),
@@ -73,7 +82,8 @@ export function extractList(response) {
     }
   }
 
-  if (response.data) {
+  // data 是数组的情况
+  if (response.data && Array.isArray(response.data)) {
     return {
       list: flattenAttributes(response.data),
       pagination: response.meta?.pagination ?? {}
