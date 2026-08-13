@@ -121,10 +121,6 @@
                 </view>
               </picker>
             </view>
-            <view v-if="isManualCompany" class="edit-item">
-              <text class="edit-label">公司名称</text>
-              <input v-model="manualCompanyName" class="edit-input" placeholder="输入新公司名称" />
-            </view>
             <view class="edit-item">
               <text class="edit-label">产品状态</text>
               <input v-model="editForm.productStatus" class="edit-input" placeholder="产品状态" />
@@ -387,15 +383,13 @@ const collectingNav = ref(false)
 
 // ===== 公司列表（Picker） =====
 const companyList = ref([])
-const companyPickerOptions = ref(['新增公司...'])
+const companyPickerOptions = ref(['请选择发行机构...'])
 const companyPickerIndex = ref(0)
-const isManualCompany = ref(false)
-const manualCompanyName = ref('')
 
 /** 重建公司 Picker 选项 */
 function rebuildCompanyOptions() {
   const names = (companyList.value || []).map(c => c.name)
-  companyPickerOptions.value = [...names, '新增公司...']
+  companyPickerOptions.value = names.length ? names : ['请先在系统中录入公司']
 }
 
 /** 模糊匹配公司名称：去除"有限公司/股份有限公司/有限责任公司"等后缀后比较 */
@@ -514,23 +508,22 @@ function initEditForm(mergedData) {
   riskPickerIndex.value = Math.max(0, riskValues.indexOf(editForm.value.riskLevel))
   typePickerIndex.value = Math.max(0, typeValues.indexOf(editForm.value.productType))
 
-  // 尝试模糊匹配已有公司
+  // 尝试模糊匹配已有公司（不新增）
   const companyName = editForm.value.companyName
   if (companyName) {
     const idx = fuzzyMatchCompany(companyName, companyList.value)
     if (idx >= 0) {
       companyPickerIndex.value = idx
-      isManualCompany.value = false
       editForm.value.company = companyList.value[idx].id
       editForm.value.companyName = companyList.value[idx].name
     } else {
-      companyPickerIndex.value = companyPickerOptions.value.length - 1
-      isManualCompany.value = true
-      manualCompanyName.value = companyName
+      // 未匹配到，保持默认选择，提示用户手动选择
+      companyPickerIndex.value = 0
+      editForm.value.company = null
+      console.warn(`[collect] 未匹配到公司: ${companyName}，请手动选择`)
     }
   } else {
     companyPickerIndex.value = 0
-    isManualCompany.value = false
   }
 }
 
@@ -546,16 +539,9 @@ function onTypeChange(e) {
 
 function onCompanyChange(e) {
   companyPickerIndex.value = e.detail.value
-  const lastIdx = companyPickerOptions.value.length - 1
-  if (Number(e.detail.value) === lastIdx) {
-    isManualCompany.value = true
-    editForm.value.company = null
-  } else {
-    isManualCompany.value = false
-    const company = companyList.value[e.detail.value]
-    editForm.value.company = company?.id || null
-    editForm.value.companyName = company?.name || ''
-  }
+  const company = companyList.value[e.detail.value]
+  editForm.value.company = company?.id || null
+  editForm.value.companyName = company?.name || ''
 }
 
 async function loadCompanies() {
@@ -600,11 +586,8 @@ async function handleConfirm() {
 
   confirming.value = true
   try {
-    // 公司值：Picker 选了已有公司则用 ID，手动输入则用名称字符串（后端自动创建）
-    let companyValue = editForm.value.company
-    if (!companyValue && isManualCompany.value && manualCompanyName.value.trim()) {
-      companyValue = manualCompanyName.value.trim()
-    }
+    // 公司值：从已有公司 Picker 选择，用 ID
+    const companyValue = editForm.value.company
 
     const payload = {
       productCode: editForm.value.productCode || editForm.value.saleCode || '',
@@ -659,8 +642,6 @@ function resetCollect() {
   collectResult.value = null
   confirmSuccess.value = null
   productCodeInput.value = ''
-  isManualCompany.value = false
-  manualCompanyName.value = ''
   companyPickerIndex.value = 0
 }
 
