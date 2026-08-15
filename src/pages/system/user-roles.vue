@@ -84,7 +84,7 @@
       >下一页</button>
     </view>
 
-    <view class="modal-mask" v-if="showAssignDialog || showRevokeDialog || showBatchAssign || showDetailDialog" @click="closeDialogs"></view>
+    <view class="modal-mask" v-if="showAssignDialog || showRevokeDialog || showBatchAssign || showDetailDialog || showGrantPointsDialog" @click="closeDialogs"></view>
 
     <!-- 用户详情弹窗 -->
     <view class="modal modal-detail" v-if="showDetailDialog">
@@ -688,6 +688,7 @@ function closeDialogs() {
   showRevokeDialog.value = false
   showBatchAssign.value = false
   showDetailDialog.value = false
+  showGrantPointsDialog.value = false
   currentUser.value = null
   detailData.value = null
 }
@@ -1225,5 +1226,31 @@ onMounted(() => {
   color: #999;
   font-size: 26rpx;
   padding: 32rpx 0;
+}
+
+.form-field {
+  margin-bottom: 24rpx;
+}
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+.form-picker {
+  width: 100%;
+  height: 80rpx;
+  background: white;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+}
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
 }
 </style>
