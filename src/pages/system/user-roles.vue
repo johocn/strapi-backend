@@ -66,6 +66,7 @@
         <view class="item-actions">
           <button class="action-btn" @click.stop="openAssignDialog(item)" v-if="hasPermission('menu.user-roles')">分配角色</button>
           <button class="action-btn action-btn-danger" @click.stop="openRevokeDialog(item)" v-if="hasPermission('menu.user-roles')">撤销角色</button>
+          <button class="action-btn" @click.stop="openGrantPointsDialog(item)" v-if="hasPermission('point.grant')">发放积分</button>
         </view>
       </view>
     </view>
@@ -275,6 +276,49 @@
       </view>
     </view>
 
+    <view class="modal" v-if="showGrantPointsDialog">
+      <view class="modal-header">
+        <text class="modal-title">为用户 {{ currentUser?.username }} 发放积分</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-field">
+          <text class="form-label">归属渠道</text>
+          <picker
+            mode="selector"
+            :range="channelOptions"
+            range-key="label"
+            @change="handleChannelChange"
+            class="form-picker"
+          >
+            <view class="picker-display">
+              {{ selectedChannelLabel || '请选择渠道' }}
+            </view>
+          </picker>
+        </view>
+        <view class="form-field">
+          <text class="form-label">积分数量</text>
+          <input
+            v-model="grantPointsForm.points"
+            class="form-input"
+            type="text"
+            placeholder="正数发放 / 负数扣减"
+          />
+        </view>
+        <view class="form-field">
+          <text class="form-label">备注（可选）</text>
+          <textarea
+            v-model="grantPointsForm.remark"
+            class="reason-input"
+            placeholder="操作原因"
+          ></textarea>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn modal-btn-cancel" @click="closeDialogs">取消</button>
+        <button class="modal-btn" @click="handleGrantPoints">确认发放</button>
+      </view>
+    </view>
+
   </view>
 </template>
 
@@ -293,6 +337,8 @@ import { DEFAULT_PAGE_SIZE } from '../../config/constant.js'
 import { useUserStore } from '../../store/user.js'
 import { formatDate } from '../../utils/format.js'
 import PageHeader from '../../components/PageHeader.vue'
+import { adminAdjust } from '../../api/points.js'
+import { getMyAccessibleChannels } from '../../api/channel.js'
 
 const list = ref([])
 const userStore = useUserStore()
@@ -328,6 +374,11 @@ const selectedRevokeRoles = ref([])
 const revokeReason = ref('')
 const selectedBatchRoles = ref([])
 const batchAssignReason = ref('')
+
+const showGrantPointsDialog = ref(false)
+const channelOptions = ref([])
+const grantChannelId = ref('')
+const grantPointsForm = ref({ points: '', remark: '' })
 
 // 角色筛选 picker 选项（全部角色，用 getAllRoles 加载）
 const roleOptions = ref([
@@ -375,6 +426,66 @@ const selectedRoleLabel = computed(() => {
   const option = roleOptions.value.find(o => o.value === selectedRole.value)
   return option ? option.label : ''
 })
+
+const selectedChannelLabel = computed(() => {
+  const opt = channelOptions.value.find(o => o.value === grantChannelId.value)
+  return opt ? opt.label : ''
+})
+
+function openGrantPointsDialog(item) {
+  currentUser.value = item
+  grantPointsForm.value = { points: '', remark: '' }
+  grantChannelId.value = ''
+  loadGrantChannels()
+  showDetailDialog.value = false
+  showGrantPointsDialog.value = true
+}
+
+async function loadGrantChannels() {
+  try {
+    const res = await getMyAccessibleChannels()
+    const channels = res?.channels || res || []
+    channelOptions.value = channels.map(c => ({
+      value: c.documentId || c.id,
+      label: c.name || c.title || `渠道${c.id}`
+    }))
+  } catch (e) {
+    channelOptions.value = []
+  }
+}
+
+function handleChannelChange(e) {
+  const opt = channelOptions.value[e.detail.value]
+  grantChannelId.value = opt ? opt.value : ''
+}
+
+async function handleGrantPoints() {
+  const points = Number(grantPointsForm.value.points)
+  if (!grantChannelId.value) {
+    uni.showToast({ title: '请选择归属渠道', icon: 'none' })
+    return
+  }
+  if (!points || isNaN(points)) {
+    uni.showToast({ title: '请输入有效积分数量', icon: 'none' })
+    return
+  }
+  uni.showLoading({ title: '发放中...' })
+  try {
+    await adminAdjust({
+      userId: currentUser.value.id,
+      points,
+      channelId: grantChannelId.value,
+      remark: grantPointsForm.value.remark
+    })
+    uni.hideLoading()
+    uni.showToast({ title: points > 0 ? '积分已发放' : '积分已扣减', icon: 'success' })
+    closeDialogs()
+    loadData()
+  } catch (error) {
+    uni.hideLoading()
+    uni.showToast({ title: error.message || '发放失败', icon: 'none' })
+  }
+}
 
 const revocableRoles = computed(() => {
   const all = currentUser.value?.roleSources || []
