@@ -149,26 +149,15 @@
       <view class="form-section">
         <view class="section-title">学习设置</view>
 
-        <view class="form-row">
-          <view class="form-item half">
-            <text class="form-label">时长（秒）</text>
-            <input
-              type="number"
-              v-model="form.duration"
-              placeholder="0"
-              class="form-input"
-              :disabled="form.type === 'video' || form.type === 'audio'"
-            />
-          </view>
-          <view class="form-item half">
-            <text class="form-label">序号</text>
-            <input
-              type="number"
-              v-model="form.sequenceNumber"
-              placeholder="0"
-              class="form-input"
-            />
-          </view>
+        <view class="form-item">
+          <text class="form-label">时长（秒）</text>
+          <input
+            type="number"
+            v-model="form.duration"
+            placeholder="0"
+            class="form-input"
+            :disabled="form.type === 'video' || form.type === 'audio'"
+          />
         </view>
 
         <view class="form-row">
@@ -245,6 +234,17 @@
       <!-- 顺序学习 -->
       <view class="form-section">
         <view class="section-title">顺序学习</view>
+
+        <view class="form-item">
+          <text class="form-label">课时顺序号</text>
+          <input
+            type="number"
+            v-model="form.sequenceNumber"
+            placeholder="0"
+            class="form-input"
+          />
+          <text class="form-hint">0=不参与顺序排序，相同顺序标签内按序号从小到大排列</text>
+        </view>
 
         <view class="form-item">
           <text class="form-label">强制顺序学习</text>

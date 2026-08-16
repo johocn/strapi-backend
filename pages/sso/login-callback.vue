@@ -105,7 +105,9 @@ async function init(options) {
   // 跳过 code 兑换，直接转发到目标地址（c_end_url 优先，return_url 兜底）
   if (tokenParam) {
     console.log('[SSO login-callback] 检测到 token 参数，跳过 code 兑换，直接转发')
-    redirectToTarget(tokenParam, userParam, isNewParam)
+    const refreshTokenFromUrl = options?.refresh_token || ''
+    const expiresInFromUrl = options?.expires_in || '900'
+    redirectToTarget(tokenParam, userParam, isNewParam, refreshTokenFromUrl, expiresInFromUrl)
     return
   }
 
@@ -130,7 +132,7 @@ async function init(options) {
  * 直接转发 token 到目标地址（c_end_url 优先，return_url 兜底）
  * 用于 URL 已携带 token 的场景（login.vue onSuccess 跳转、重定向循环回此页等）
  */
-function redirectToTarget(token, userEncoded, isNewFlag) {
+function redirectToTarget(token, userEncoded, isNewFlag, refreshTokenVal, expiresInVal) {
   const targetUrl = cEndUrl.value || returnUrl.value
   if (!targetUrl) {
     error.value = '未收到跳转地址（c_end_url 和 return_url 均缺失）'
@@ -153,9 +155,11 @@ function redirectToTarget(token, userEncoded, isNewFlag) {
   const sep = targetUrl.includes('?') ? '&' : '?'
   const userPart = userEncoded ? `&user=${userEncoded}` : ''
   const isNewPart = isNewFlag ? `&isNew=${isNewFlag}` : ''
+  const refreshTokenPart = refreshTokenVal ? `&refresh_token=${refreshTokenVal}` : ''
+  const expiresInPart = `&expires_in=${expiresInVal || 900}`
   loading.value = true
   console.log('[SSO login-callback] redirectToTarget:', targetUrl)
-  window.location.href = `${targetUrl}${sep}token=${token}${userPart}${isNewPart}`
+  window.location.href = `${targetUrl}${sep}token=${token}${userPart}${isNewPart}${refreshTokenPart}${expiresInPart}`
 }
 
 onLoad((options) => {
@@ -195,7 +199,12 @@ async function exchangeToken() {
     // 透传 is_new（标识首登用户），C 端 auth-callback 会存 storage，首页据此显示欢迎提示
     const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
     const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
-    window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
+    // 透传 refresh_token 和 expires_in，C 端 auth-callback 需要存储以支持 token 刷新
+    const refreshTokenVal = result.refresh_token || ''
+    const expiresInVal = result.expires_in || 900
+    const refreshTokenParam = refreshTokenVal ? `&refresh_token=${refreshTokenVal}` : ''
+    const expiresInParam = `&expires_in=${expiresInVal}`
+    window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}${refreshTokenParam}${expiresInParam}`
   } catch (e) {
     // 失败：跳回 sso/login 携带 error 参数，让用户用降级表单登录
     // 透传 invite_code/channel_code，保证降级登录也能建立分销关系

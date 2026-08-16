@@ -103,7 +103,7 @@ const redirectUri = computed(() => {
 })
 
 function onSuccess(result) {
-  // result: { access_token, refresh_token, user, is_new }
+  // result: { access_token, refresh_token, user, is_new, expires_in }
   const token = result.access_token || result.jwt || result.token
   // 优先跳转到 C 端（c_end_url），无 c_end_url 时回退到 return_url
   const targetUrl = cEndUrl.value || returnUrl.value
@@ -127,7 +127,12 @@ function onSuccess(result) {
   const sep = targetUrl.includes('?') ? '&' : '?'
   const isNewFlag = result.is_new === true || result.isNew === true ? '1' : ''
   const isNewParam = isNewFlag ? `&isNew=${isNewFlag}` : ''
-  window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}`
+  // 透传 refresh_token 和 expires_in，C 端 auth-callback 需要存储以支持 token 刷新
+  const refreshTokenVal = result.refresh_token || ''
+  const expiresInVal = result.expires_in || 900
+  const refreshTokenParam = refreshTokenVal ? `&refresh_token=${refreshTokenVal}` : ''
+  const expiresInParam = `&expires_in=${expiresInVal}`
+  window.location.href = `${targetUrl}${sep}token=${token}&user=${userEncoded}${isNewParam}${refreshTokenParam}${expiresInParam}`
 }
 
 function onError(err) {

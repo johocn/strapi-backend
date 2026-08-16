@@ -283,17 +283,37 @@
       <view class="modal-body">
         <view class="form-field">
           <text class="form-label">归属渠道</text>
-          <picker
-            mode="selector"
-            :range="channelOptions"
-            range-key="label"
-            @change="handleChannelChange"
-            class="form-picker"
-          >
-            <view class="picker-display">
+          <view class="custom-select" @click="grantChannelDropdownOpen = !grantChannelDropdownOpen">
+            <text :class="['custom-select-value', { placeholder: !selectedChannelLabel }]">
               {{ selectedChannelLabel || '请选择渠道' }}
+            </text>
+            <text class="custom-select-arrow">▾</text>
+          </view>
+          <view class="custom-select-dropdown" v-if="grantChannelDropdownOpen">
+            <view class="select-search-wrap">
+              <input
+                v-model="channelSearch"
+                class="select-search-input"
+                type="text"
+                placeholder="搜索渠道名称"
+                @tap.stop
+              />
             </view>
-          </picker>
+            <view class="select-options">
+              <view
+                v-for="opt in filteredChannelOptions"
+                :key="opt.value"
+                :class="['select-option', { active: opt.value === grantChannelId }]"
+                @click="selectGrantChannel(opt.value)"
+              >
+                <text class="select-option-label">{{ opt.label }}</text>
+                <text v-if="opt.value === grantChannelId" class="select-option-check">✓</text>
+              </view>
+              <view v-if="filteredChannelOptions.length === 0" class="select-option-empty">
+                {{ channelOptions.length === 0 ? '无可用渠道' : '无匹配渠道' }}
+              </view>
+            </view>
+          </view>
         </view>
         <view class="form-field">
           <text class="form-label">积分数量</text>
@@ -338,7 +358,7 @@ import { useUserStore } from '../../store/user.js'
 import { formatDate } from '../../utils/format.js'
 import PageHeader from '../../components/PageHeader.vue'
 import { adminAdjust } from '../../api/points.js'
-import { getMyAccessibleChannels } from '../../api/channel.js'
+import { getChannelList } from '../../api/channel.js'
 
 const list = ref([])
 const userStore = useUserStore()
@@ -378,6 +398,8 @@ const batchAssignReason = ref('')
 const showGrantPointsDialog = ref(false)
 const channelOptions = ref([])
 const grantChannelId = ref('')
+const grantChannelDropdownOpen = ref(false)
+const channelSearch = ref('')
 const grantPointsForm = ref({ points: '', remark: '' })
 
 // 角色筛选 picker 选项（全部角色，用 getAllRoles 加载）
@@ -432,10 +454,19 @@ const selectedChannelLabel = computed(() => {
   return opt ? opt.label : ''
 })
 
+// 按关键字实时过滤渠道（名称匹配，忽略大小写）
+const filteredChannelOptions = computed(() => {
+  const kw = (channelSearch.value || '').trim().toLowerCase()
+  if (!kw) return channelOptions.value
+  return channelOptions.value.filter(o => (o.label || '').toLowerCase().includes(kw))
+})
+
 function openGrantPointsDialog(item) {
   currentUser.value = item
   grantPointsForm.value = { points: '', remark: '' }
   grantChannelId.value = ''
+  grantChannelDropdownOpen.value = false
+  channelSearch.value = ''
   loadGrantChannels()
   showDetailDialog.value = false
   showGrantPointsDialog.value = true
@@ -443,9 +474,9 @@ function openGrantPointsDialog(item) {
 
 async function loadGrantChannels() {
   try {
-    const res = await getMyAccessibleChannels()
-    const channels = res?.channels || res || []
-    channelOptions.value = channels.map(c => ({
+    // 复用课程页已验证的渠道加载方式：/my/channels 自动按角色范围返回渠道，admin 返回全部
+    const { list } = await getChannelList({ pageSize: 200 })
+    channelOptions.value = (list || []).map(c => ({
       value: c.documentId || c.id,
       label: c.name || c.title || `渠道${c.id}`
     }))
@@ -454,9 +485,9 @@ async function loadGrantChannels() {
   }
 }
 
-function handleChannelChange(e) {
-  const opt = channelOptions.value[e.detail.value]
-  grantChannelId.value = opt ? opt.value : ''
+function selectGrantChannel(value) {
+  grantChannelId.value = value
+  grantChannelDropdownOpen.value = false
 }
 
 async function handleGrantPoints() {
@@ -1348,12 +1379,85 @@ onMounted(() => {
   color: #666;
   margin-bottom: 12rpx;
 }
-.form-picker {
+.custom-select {
+  position: relative;
   width: 100%;
   height: 80rpx;
   background: white;
   border: 1rpx solid #ddd;
   border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.custom-select-value {
+  font-size: 28rpx;
+  color: #333;
+}
+.custom-select-value.placeholder {
+  color: #999;
+}
+.custom-select-arrow {
+  font-size: 24rpx;
+  color: #999;
+}
+.custom-select-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 88rpx;
+  z-index: 1001;
+  background: white;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.12);
+}
+.select-search-wrap {
+  padding: 16rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.select-search-input {
+  width: 100%;
+  height: 64rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+  background: #fafafa;
+}
+.select-options {
+  max-height: 360rpx;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  cursor: pointer;
+}
+.select-option.active {
+  background: #e6f7ff;
+}
+.select-option-label {
+  font-size: 28rpx;
+  color: #333;
+}
+.select-option-check {
+  color: #1890ff;
+  font-size: 28rpx;
+}
+.select-option-empty {
+  padding: 32rpx 24rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
 }
 .form-input {
   width: 100%;
