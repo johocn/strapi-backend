@@ -1,0 +1,1 @@
+{"version":3,"file":"global-config.BpssvgBm.js","sources":["../../../../../src/api/global-config.js"],"names":["ADMIN","getGlobalConfig","get","then","extractItem","updateGlobalConfig","data","put"],"mappings":"0FAGA,MAAMA,EAAQ,sCAEP,SAASC,IACd,OAAOC,EAAIF,GAAOG,KAAKC,EACzB,CAEO,SAASC,EAAmBC,GACjC,OAAOC,EAAIP,EAAOM,GAAMH,KAAKC,EAC/B"}

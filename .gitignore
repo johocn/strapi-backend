@@ -5,3 +5,5 @@ unpackage/
 *.log
 .trae/
 uni_modules/
+# 测试截图，无需提交
+tests/**/*.png
