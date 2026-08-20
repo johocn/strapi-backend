@@ -1163,6 +1163,8 @@ async function loadCourseDetail() {
       console.log('[DEBUG] data.channelIds exists:', 'channelIds' in data)
       console.log('[DEBUG] data.channelIds value:', data?.channelIds)
       Object.assign(form, data)
+      // 接口可能返回 featureFlags=null，assign 会覆盖响应式对象，这里强制补回完整结构
+      ensureFeatureFlags()
       if (data.cover) {
         coverFile.value = data.cover.documentId || data.cover.id
         coverFileId.value = data.cover.id
