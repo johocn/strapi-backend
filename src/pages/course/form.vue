@@ -339,7 +339,15 @@
         <view class="form-item">
           <text class="form-label">VIP特权倍速</text>
           <switch :checked="form.featureFlags.vipSpeedOverride" @change="form.featureFlags.vipSpeedOverride = !form.featureFlags.vipSpeedOverride" />
-          <text class="form-hint">开启后仅站点特权角色可使用倍速（需配合站点 speedPrivilegedRoles 配置）</text>
+          <text class="form-hint">开启后可破倍速限制，仅特权角色可用</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">特权倍速角色</text>
+          <view class="channel-picker-trigger" @click="openVipRolesPicker">
+            <text class="form-hint" style="margin:0;">{{ vipRolesNames() }}</text>
+          </view>
+          <text class="form-hint">仅这些角色可无限倍速；留空则沿用站点级倍速特权角色配置</text>
         </view>
 
         <view class="form-item">
@@ -575,6 +583,27 @@
         </view>
       </view>
 
+      <!-- 特权倍速角色弹层 -->
+      <view v-if="showVipRolesPicker" class="modal-overlay" @click="showVipRolesPicker = false">
+        <view class="modal-card" @click.stop>
+          <view class="modal-header">
+            <text class="modal-title">选择特权倍速角色</text>
+            <text class="btn-close" @click="showVipRolesPicker = false">×</text>
+          </view>
+          <scroll-view scroll-y class="modal-body">
+            <view v-for="r in roleOptions" :key="r.name" class="modal-option"
+              :class="{ selected: vipRolesSelected.includes(r.name) }"
+              @click="toggleVipRoles(r.name)">
+              <text>{{ r.displayName || r.name }}</text>
+            </view>
+            <view v-if="roleOptions.length === 0" class="modal-empty">未获取到角色</view>
+          </scroll-view>
+          <view class="modal-footer">
+            <button class="btn-confirm" @click="confirmVipRoles">确定</button>
+          </view>
+        </view>
+      </view>
+
     <!-- 标签选择器 -->
     <TagPicker
       v-model:visible="showTagPicker"
@@ -752,6 +781,7 @@ const form = reactive({
     pictureInPicture: false,
     seekMode: 'played_only',
     learnRoles: [],
+    vipRoles: [],
     quiz: {
       practice: false,
       lessonQuiz: false,
@@ -787,8 +817,10 @@ const quizRetryCountIndex = ref(0)
 const roleOptions = ref([])
 const showLearnRolesPicker = ref(false)
 const showExamRolesPicker = ref(false)
+const showVipRolesPicker = ref(false)
 const learnRolesSelected = ref([])
 const examRolesSelected = ref([])
+const vipRolesSelected = ref([])
 const seekModeOptions = [
   { value: 'free', label: '不锁定（可任意拖动）' },
   { value: 'played_only', label: '已看可拖（进度锁）' },
@@ -978,6 +1010,18 @@ function toggleExamRoles(roleName) {
   else examRolesSelected.value.push(roleName)
 }
 
+function toggleVipRoles(roleName) {
+  const idx = vipRolesSelected.value.indexOf(roleName)
+  if (idx > -1) vipRolesSelected.value.splice(idx, 1)
+  else vipRolesSelected.value.push(roleName)
+}
+
+function confirmVipRoles() {
+  ensureFeatureFlags()
+  form.featureFlags.vipRoles = [...vipRolesSelected.value]
+  showVipRolesPicker.value = false
+}
+
 function confirmLearnRoles() {
   form.featureFlags.learnRoles = [...learnRolesSelected.value]
   showLearnRolesPicker.value = false
@@ -988,33 +1032,63 @@ function confirmExamRoles() {
   showExamRolesPicker.value = false
 }
 
+// 确保 featureFlags 始终为对象（防御旧数据/接口异常导致 null）
+function ensureFeatureFlags() {
+  if (!form.featureFlags || typeof form.featureFlags !== 'object') {
+    form.featureFlags = { configured: true, playbackSpeed: false, vipSpeedOverride: false, allowLandscape: false, screenLock: false, autoNext: false, pictureInPicture: false, seekMode: 'played_only', learnRoles: [], quiz: { practice: false, lessonQuiz: false, exam: false, freeAnswer: false, random: false, examRoles: [], vipRoles: [] } }
+  }
+  if (!form.featureFlags.quiz || typeof form.featureFlags.quiz !== 'object') {
+    form.featureFlags.quiz = { practice: false, lessonQuiz: false, exam: false, freeAnswer: false, random: false, examRoles: [], vipRoles: [] }
+  }
+  if (!Array.isArray(form.featureFlags.learnRoles)) form.featureFlags.learnRoles = []
+  if (!Array.isArray(form.featureFlags.quiz.examRoles)) form.featureFlags.quiz.examRoles = []
+  if (!Array.isArray(form.featureFlags.quiz.vipRoles)) form.featureFlags.quiz.vipRoles = []
+  if (!Array.isArray(form.featureFlags.vipRoles)) form.featureFlags.vipRoles = []
+}
+
 function openLearnRolesPicker() {
+  ensureFeatureFlags()
   learnRolesSelected.value = [...(form.featureFlags.learnRoles || [])]
   showLearnRolesPicker.value = true
 }
 
 function openExamRolesPicker() {
+  ensureFeatureFlags()
   examRolesSelected.value = [...(form.featureFlags.quiz.examRoles || [])]
   showExamRolesPicker.value = true
 }
 
+function openVipRolesPicker() {
+  ensureFeatureFlags()
+  vipRolesSelected.value = [...(form.featureFlags.vipRoles || [])]
+  showVipRolesPicker.value = true
+}
+
 function toggleQuizFlag(key) {
+  ensureFeatureFlags()
   form.featureFlags.quiz[key] = !form.featureFlags.quiz[key]
 }
 
 function handleSeekModeChange(e) {
+  ensureFeatureFlags()
   seekModeIndex.value = Number(e.detail.value)
   form.featureFlags.seekMode = seekModeOptions[seekModeIndex.value].value
 }
 
 function learnRolesNames() {
-  if (!form.featureFlags.learnRoles.length) return '未配置（所有角色可见）'
+  if (!form.featureFlags?.learnRoles?.length) return '未配置（所有角色可见）'
   return form.featureFlags.learnRoles.join('、')
 }
 
 function examRolesNames() {
-  if (!form.featureFlags.quiz.examRoles.length) return '未配置'
+  if (!form.featureFlags?.quiz?.examRoles?.length) return '未配置'
   return form.featureFlags.quiz.examRoles.join('、')
+}
+
+function vipRolesNames() {
+  ensureFeatureFlags()
+  if (!form.featureFlags.vipRoles.length) return '未配置（沿用站点倍速特权角色）'
+  return form.featureFlags.vipRoles.join('、')
 }
 
 function handleCategoryChange(e) {
@@ -1154,6 +1228,7 @@ async function loadCourseDetail() {
         pictureInPicture: ff.pictureInPicture === true,
         seekMode: (ff.seekMode === 'locked' || ff.seekMode === 'free' || ff.seekMode === 'played_only') ? ff.seekMode : 'played_only',
         learnRoles: Array.isArray(ff.learnRoles) ? ff.learnRoles : [],
+        vipRoles: Array.isArray(ff.vipRoles) ? ff.vipRoles : [],
         quiz: {
           practice: ff.quiz?.practice === true,
           lessonQuiz: ff.quiz?.lessonQuiz === true,
@@ -1285,6 +1360,7 @@ async function handleSubmit() {
       pictureInPicture: form.featureFlags.pictureInPicture,
       seekMode: form.featureFlags.seekMode,
       learnRoles: Array.isArray(form.featureFlags.learnRoles) ? form.featureFlags.learnRoles : [],
+      vipRoles: Array.isArray(form.featureFlags.vipRoles) ? form.featureFlags.vipRoles : [],
       quiz: {
         practice: form.featureFlags.quiz.practice,
         lessonQuiz: form.featureFlags.quiz.lessonQuiz,
