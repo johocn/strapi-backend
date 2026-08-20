@@ -1165,6 +1165,16 @@ async function loadCourseDetail() {
       Object.assign(form, data)
       // 接口可能返回 featureFlags=null，assign 会覆盖响应式对象，这里强制补回完整结构
       ensureFeatureFlags()
+      // 布尔/枚举字段接口可能返回 null（存量数据），assign 会污染默认值，null 时回退默认
+      if (data.enforceSequence == null || typeof data.enforceSequence !== 'boolean') form.enforceSequence = false
+      if (data.allowRetakeQuiz == null || typeof data.allowRetakeQuiz !== 'boolean') form.allowRetakeQuiz = false
+      if (data.quizRetryCount == null || typeof data.quizRetryCount !== 'string') form.quizRetryCount = 'no_retry'
+      // 日期字段接口返回 ISO datetime（含时间/UTC），picker mode=date 需裁剪为 YYYY-MM-DD
+      const fmtDate = (v) => (typeof v === 'string' && v ? v.slice(0, 10) : '')
+      form.enrollStartDate = fmtDate(data.enrollStartDate)
+      form.enrollEndDate = fmtDate(data.enrollEndDate)
+      form.courseStartDate = fmtDate(data.courseStartDate)
+      form.courseEndDate = fmtDate(data.courseEndDate)
       if (data.cover) {
         coverFile.value = data.cover.documentId || data.cover.id
         coverFileId.value = data.cover.id
