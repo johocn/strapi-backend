@@ -615,6 +615,18 @@
           <view class="module-icon">💬</view>
           <view class="module-name">短信验证码</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/msg-template/list')">
+          <view class="module-icon">📨</view>
+          <view class="module-name">消息模板</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/msg-job/list')">
+          <view class="module-icon">📤</view>
+          <view class="module-name">消息任务</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/sop-rule/list')">
+          <view class="module-icon">⚙️</view>
+          <view class="module-name">SOP规则</view>
+        </view>
       </view>
     </view>
 

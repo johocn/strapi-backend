@@ -145,6 +145,31 @@ export const ssoSmsCodeApi = {
   delete: (id) => del(`${ADMIN}/sms-codes/${id}`).then(extractItem),
 }
 
+// ==================== SSO 消息中心（模板/任务/SOP规则） ====================
+
+export const ssoMsgTemplateApi = {
+  list: (params = {}) => get(`${ADMIN}/msg-templates`, params).then(extractList),
+  detail: (id) => get(`${ADMIN}/msg-templates/${id}`).then(extractItem),
+  create: (data) => post(`${ADMIN}/msg-templates`, data).then(extractItem),
+  update: (id, data) => put(`${ADMIN}/msg-templates/${id}`, data).then(extractItem),
+  delete: (id) => del(`${ADMIN}/msg-templates/${id}`).then(extractItem),
+}
+
+export const ssoMsgJobApi = {
+  list: (params = {}) => get(`${ADMIN}/msg-jobs`, params).then(extractList),
+  detail: (id) => get(`${ADMIN}/msg-jobs/${id}`).then(extractItem),
+  sendNow: (data) => post(`${ADMIN}/msg-jobs/anonymous`, data).then(extractItem),
+  sendBatch: (data) => post(`${ADMIN}/msg-jobs/batch`, data).then(extractItem),
+  retry: (id) => post(`${ADMIN}/msg-jobs/${id}/retry`).then(extractItem),
+}
+
+export const ssoSopRuleApi = {
+  list: (params = {}) => get(`${ADMIN}/sop-rules`, params).then(extractList),
+  create: (data) => post(`${ADMIN}/sop-rules`, data).then(extractItem),
+  update: (id, data) => put(`${ADMIN}/sop-rules/${id}`, data).then(extractItem),
+  delete: (id) => del(`${ADMIN}/sop-rules/${id}`).then(extractItem),
+}
+
 // ==================== SSO 公开认证接口（auth:false，路径 /zhao-sso/v1/auth/xxx） ====================
 
 const AUTH = '/zhao-sso/v1/auth'
