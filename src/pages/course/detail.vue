@@ -163,7 +163,7 @@ const course = ref({})
 
 const knowledgePointTags = computed(() => {
   if (!course.value?.tags) return []
-  return course.value.tags.filter(t => t.tagGroup?.slug === 'knowledge-point')
+  return course.value.tags.filter(t => t.tagGroup?.slug === 'knowledge-points')
 })
 
 const statusMap = {
