@@ -1701,4 +1701,93 @@ onMounted(async () => {
   color: #999;
   flex: 1;
 }
+
+/* 角色白名单弹层 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card {
+  width: 80%;
+  max-width: 700rpx;
+  max-height: 70vh;
+  background: #fff;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 30rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.btn-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16rpx 24rpx;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-option {
+  padding: 22rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.modal-option.selected {
+  color: #667eea;
+  background: #f0ebff;
+}
+
+.modal-empty {
+  padding: 40rpx 0;
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+}
+
+.modal-footer {
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #eee;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-confirm {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  padding: 0 40rpx;
+  height: 64rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  line-height: 64rpx;
+}
 </style>
