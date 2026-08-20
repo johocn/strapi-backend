@@ -2,7 +2,7 @@ import { get, post, put, del } from '../utils/request.js'
 import { extractList, extractItem } from '../utils/format.js'
 
 const V1 = '/zhao-point/v1'
-const ADMIN = `${V1}/adm`
+const ADMIN = `${V1}/admin`
 
 // 活动管理（list/create 走 /adm/activities；获取单项复用列表接口）
 

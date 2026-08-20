@@ -38,11 +38,27 @@ import jzH5ScanCode from 'jz-h5-scancode'
 import { scanCheckin } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
-const activityId = ref('')
+let activityId = ref('')
 const userId = ref('')
 const result = ref(null) // { type: 'success'|'already'|'nosignup'|'error', title, desc }
 const resultType = ref('')
 const resultIcon = ref('')
+
+// 预加载本地 jsQR 库（jz-h5-scancode 检测到 window.jsQR 存在则不再请求缺失的本地/CDN 资源）
+function ensureJsQR() {
+  return new Promise((resolve) => {
+    if (window.jsQR) return resolve()
+    const script = document.createElement('script')
+    script.src = '/static/jsQR.js'
+    script.onload = () => resolve()
+    script.onerror = () => resolve() // 加载失败不阻塞，插件有备用解码器
+    document.head.appendChild(script)
+  })
+}
+onLoad((opts) => {
+  ensureJsQR()
+  if (opts && opts.id) activityId.value = opts.id
+})
 
 async function startScan() {
   try {
