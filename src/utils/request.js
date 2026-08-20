@@ -242,6 +242,80 @@ export function get(url, params = {}) {
   return request({ url: appendQuery(url, params), method: 'GET' })
 }
 
+/**
+ * 二进制文件下载（H5 用 Blob + <a download> 触发浏览器真实下载到下载目录）
+ * @param {string} url 接口地址（不含 BASE_API）
+ * @param {object} params 查询参数
+ * @param {string} filename 下载保存的文件名
+ */
+export function downloadFile(url, params = {}, filename = 'download') {
+  const dest = appendQuery(url, params)
+
+  const doRequest = (retried) => new Promise((resolve, reject) => {
+    const header = { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const token = getToken()
+    if (token) header['Authorization'] = `Bearer ${token}`
+    const tenantId = uni.getStorageSync('tadmin_current_tenant_id')
+    if (tenantId) header['x-site-id'] = String(tenantId)
+
+    uni.request({
+      url: `${BASE_API}${dest}`,
+      method: 'GET',
+      header,
+      responseType: 'arraybuffer',
+      timeout: TIMEOUT,
+      success: async (res) => {
+        if (res.statusCode === 200) {
+          try {
+            const saved = triggerBrowserDownload(res.data, filename)
+            resolve(saved)
+          } catch (e) {
+            reject(e)
+          }
+        } else if (res.statusCode === 401 && !retried) {
+          try {
+            await refreshToken()
+            resolve(doRequest(true))
+          } catch (e) {
+            logout()
+            uni.showToast({ title: '登录已过期', icon: 'none' })
+            reject(new Error('Unauthorized'))
+          }
+        } else {
+          const msg = extractErrorMessage(res.data)
+          uni.showToast({ title: msg || '下载失败', icon: 'none' })
+          reject(new Error(msg))
+        }
+      },
+      fail: (err) => {
+        uni.showToast({ title: '网络请求失败', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
+
+  return doRequest(false)
+}
+
+function triggerBrowserDownload(arrayBuffer, filename) {
+  // 仅 H5 端支持 Blob + <a download>；非 H5 环境直接抛错由调用方提示
+  if (typeof document === 'undefined' || typeof Blob === 'undefined') {
+    throw new Error('当前平台不支持文件下载')
+  }
+  const blob = new Blob([arrayBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return filename
+}
+
 export function post(url, data = {}) {
   return request({ url, method: 'POST', data })
 }

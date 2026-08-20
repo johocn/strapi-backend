@@ -2,6 +2,7 @@
   <view class="page-container">
     <PageHeader title="题库管理">
       <button class="btn-secondary" @click="goBatchUpload">批量导入</button>
+        <button class="btn-secondary" @click="enterSelectMode">批量关联</button>
         <button class="btn-primary" @click="goAdd" v-if="hasPermission('quiz.create')">+ 新增题目</button>
     </PageHeader>
 
@@ -30,6 +31,38 @@
           </view>
         </picker>
       </view>
+      <!-- 课程/课时筛选（作为批量关联的范围限定，同时保留列表查询） -->
+      <view class="filter-row filter-row-2">
+        <picker mode="selector" :range="filterCourseNames" @change="handleFilterCourseChange">
+          <view class="filter-item">
+            <text>{{ filterCourseNames[filterCourseIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="selector" :range="filterLessonNames" @change="handleFilterLessonChange">
+          <view class="filter-item">
+            <text>{{ filterLessonNames[filterLessonIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+      </view>
+      <!-- 知识点筛选 -->
+      <view class="filter-row filter-row-2">
+        <view class="filter-item" @click="showKpFilterPicker = true">
+          <text :class="{ 'placeholder': !filterKp }">{{ filterKp ? filterKp.name : '全部知识点' }}</text>
+          <text class="arrow">▼</text>
+        </view>
+        <view class="filter-item filter-clear" @click="handleKpClear" v-if="filterKp">清除</view>
+      </view>
+    </view>
+
+    <!-- 选择模式工具栏 -->
+    <view class="select-toolbar" v-if="selectMode">
+      <text class="select-count">已选 {{ selectedDocs.length }} 题</text>
+      <view class="select-actions">
+        <button class="btn-secondary" @click="openAssociatePanel">批量关联</button>
+        <button class="btn-secondary" @click="cancelSelectMode">取消选择</button>
+      </view>
     </view>
 
     <view class="question-list">
@@ -37,7 +70,12 @@
         v-for="item in questionList" 
         :key="item.documentId" 
         class="question-card"
+        :class="{ selecting: selectMode, selected: isSelected(item) }"
+        @click="selectMode && toggleSelect(item)"
       >
+        <view v-if="selectMode" class="select-checkbox" :class="{ checked: isSelected(item) }">
+          <text v-if="isSelected(item)" class="check-mark">✓</text>
+        </view>
         <view class="question-info">
           <view class="question-title">
             <view class="question-type" :style="{ background: getTypeColor(item.type) }">
@@ -79,13 +117,132 @@
     <view class="fab-btn" @click="goAdd" v-if="hasPermission('quiz.create')">
       <text class="fab-icon">+</text>
     </view>
+
+    <!-- 批量关联面板 -->
+    <view class="picker-modal" v-if="showAssociatePanel" @click="showAssociatePanel = false">
+      <view class="picker-content" @click.stop>
+        <view class="picker-header">
+          <text class="picker-title">批量关联题目</text>
+          <text class="picker-close" @click="showAssociatePanel = false">×</text>
+        </view>
+
+        <!-- Tab 切换 -->
+        <view class="assoc-tabs">
+          <view class="assoc-tab" :class="{ active: associateTab === 'set' }" @click="associateTab = 'set'">设置关联</view>
+          <view class="assoc-tab" :class="{ active: associateTab === 'clear' }" @click="associateTab = 'clear'">清除关联</view>
+        </view>
+
+        <!-- 设置关联 -->
+        <scroll-view v-if="associateTab === 'set'" scroll-y class="picker-scroll assoc-scroll">
+          <view class="assoc-item">
+            <text class="assoc-label">关联课程（留空不改）</text>
+            <view class="picker-value" @click="panelShowCoursePicker = true">
+              <text class="assoc-value" :class="{ empty: !panelCourse }">{{ panelCourse?.title || '请选择课程' }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </view>
+          <view class="assoc-item">
+            <text class="assoc-label">关联课时（留空不改）</text>
+            <view class="picker-value" @click="panelShowLessonPicker = true">
+              <text class="assoc-value" :class="{ empty: !panelLesson }">{{ panelLesson?.title || '请选择课时' }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </view>
+          <view class="assoc-item">
+            <text class="assoc-label">关联知识点（留空不改）</text>
+            <view class="multi-select-container">
+              <view v-if="selectedKp.length === 0" class="picker-value empty" @click="showTagPicker = true">
+                <text>请选择知识点</text>
+                <text class="picker-arrow">▼</text>
+              </view>
+              <view v-else class="selected-tags">
+                <view v-for="kp in selectedKp" :key="kp.documentId" class="tag-item">
+                  <text>{{ kp.name }}</text>
+                  <text class="tag-close" @click="removeSelectedKp(kp)">×</text>
+                </view>
+                <view class="add-tag" @click="showTagPicker = true">+ 添加</view>
+              </view>
+            </view>
+          </view>
+          <view class="range-tip">未勾选题目时，将按当前筛选条件（搜索词/题型/难度/课程/课时/知识点）应用到全部符合条件的结果</view>
+        </scroll-view>
+
+        <!-- 清除关联 -->
+        <scroll-view v-else scroll-y class="picker-scroll assoc-scroll">
+          <view class="clear-item" @click="clearCourse = !clearCourse">
+            <text>清除课程关联</text>
+            <view class="switch-box" :class="{ checked: clearCourse }">
+              <text v-if="clearCourse">✓</text>
+            </view>
+          </view>
+          <view class="clear-item" @click="clearLesson = !clearLesson">
+            <text>清除课时关联</text>
+            <view class="switch-box" :class="{ checked: clearLesson }">
+              <text v-if="clearLesson">✓</text>
+            </view>
+          </view>
+          <view class="clear-item" @click="clearKp = !clearKp">
+            <text>清除知识点关联</text>
+            <view class="switch-box" :class="{ checked: clearKp }">
+              <text v-if="clearKp">✓</text>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view class="picker-footer">
+          <button class="btn-primary assoc-confirm" @click="handleAssociate" :disabled="associating">
+            {{ associating ? '处理中...' : '确认' }}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 面板内课程选择 -->
+    <view class="picker-modal" v-if="panelShowCoursePicker" @click="panelShowCoursePicker = false">
+      <view class="picker-content" @click.stop>
+        <view class="picker-header">
+          <text class="picker-title">选择课程</text>
+          <text class="picker-close" @click="panelShowCoursePicker = false">×</text>
+        </view>
+        <scroll-view scroll-y class="picker-scroll">
+          <view v-for="c in assocCourseList" :key="c.documentId" class="picker-item"
+            :class="{ selected: panelCourse?.documentId === c.documentId }" @click="selectPanelCourse(c)">
+            <text>{{ c.title }}</text>
+            <text v-if="panelCourse?.documentId === c.documentId" class="check-icon">✓</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <!-- 面板内课时选择 -->
+    <view class="picker-modal" v-if="panelShowLessonPicker" @click="panelShowLessonPicker = false">
+      <view class="picker-content" @click.stop>
+        <view class="picker-header">
+          <text class="picker-title">选择课时</text>
+          <text class="picker-close" @click="panelShowLessonPicker = false">×</text>
+        </view>
+        <scroll-view scroll-y class="picker-scroll">
+          <view v-for="l in panelLessonList" :key="l.documentId" class="picker-item"
+            :class="{ selected: panelLesson?.documentId === l.documentId }" @click="selectPanelLesson(l)">
+            <text>{{ l.title }}</text>
+            <text v-if="panelLesson?.documentId === l.documentId" class="check-icon">✓</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <!-- 知识点选择器 -->
+    <TagPicker v-model:visible="showTagPicker" mode="knowledge-point" :selected="selectedKp" @select="kps => selectedKp = kps" />
+    <TagPicker v-model:visible="showKpFilterPicker" mode="knowledge-point" single-select :selected="filterKp ? [filterKp] : []" @select="handleKpFilter" />
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
-import { getQuestionList, deleteQuestion } from '../../api/quiz.js'
+import TagPicker from '../../components/TagPicker.vue'
+import { getQuestionList, deleteQuestion, batchAssociateQuestions } from '../../api/quiz.js'
+import { getCourseList, getLessonList } from '../../api/course.js'
 import { useUserStore } from '../../store/user.js'
 
 const userStore = useUserStore()
@@ -103,6 +260,38 @@ const questionList = ref([])
 const pagination = ref({ page: 1, pageSize: 10, total: 0 })
 const currentPage = ref(1)
 const loading = ref(false)
+
+// 课程/课时列表筛选（同时作为批量关联范围限定）
+const filterCourseList = ref([])
+const filterLessonList = ref([])
+const filterCourseIndex = ref(0)
+const filterLessonIndex = ref(0)
+const filterCourseNames = computed(() => ['全部课程', ...filterCourseList.value.map(c => c.title)])
+const filterLessonNames = computed(() => ['全部课时', ...filterLessonList.value.map(l => l.title)])
+
+// 知识点筛选
+const filterKp = ref(null)
+const showKpFilterPicker = ref(false)
+
+// 批量关联选择模式
+const selectMode = ref(false)
+const selectedDocs = ref([])
+
+// 批量关联面板
+const showAssociatePanel = ref(false)
+const associateTab = ref('set') // 'set' 设置关联 | 'clear' 清除关联
+const assocCourseList = ref([])
+const panelLessonList = ref([])
+const panelCourse = ref(null)
+const panelLesson = ref(null)
+const selectedKp = ref([])
+const panelShowCoursePicker = ref(false)
+const panelShowLessonPicker = ref(false)
+const showTagPicker = ref(false)
+const clearCourse = ref(false)
+const clearLesson = ref(false)
+const clearKp = ref(false)
+const associating = ref(false)
 
 const totalPages = computed(() => Math.ceil(pagination.value.total / pagination.value.pageSize))
 
@@ -157,6 +346,15 @@ async function loadData(page = 1) {
     if (difficultyValues[difficultyIndex.value]) {
       params['filters[difficulty][$eq]'] = difficultyValues[difficultyIndex.value]
     }
+    if (filterCourseIndex.value > 0) {
+      params['filters[course][documentId][$eq]'] = filterCourseList.value[filterCourseIndex.value - 1].documentId
+    }
+    if (filterLessonIndex.value > 0) {
+      params['filters[lesson][documentId][$eq]'] = filterLessonList.value[filterLessonIndex.value - 1].documentId
+    }
+    if (filterKp.value) {
+      params['filters[tags][documentId][$eq]'] = filterKp.value.documentId
+    }
     const { list, pagination: pg } = await getQuestionList(params)
     questionList.value = list
     pagination.value = pg
@@ -176,6 +374,155 @@ function handleTypeChange(e) {
 function handleDifficultyChange(e) {
   difficultyIndex.value = e.detail.value
   loadData(1)
+}
+
+// 课程筛选联动课时
+async function handleFilterCourseChange(e) {
+  const idx = Number(e.detail.value)
+  filterCourseIndex.value = idx
+  filterLessonIndex.value = 0
+  filterLessonList.value = []
+  if (idx > 0) {
+    try {
+      const { list } = await getLessonList({ 'filters[course][documentId][$eq]': filterCourseList.value[idx - 1].documentId })
+      filterLessonList.value = list
+    } catch (e) {
+      uni.showToast({ title: '加载失败', icon: 'none' })
+    }
+  }
+  loadData(1)
+}
+
+function handleFilterLessonChange(e) {
+  filterLessonIndex.value = Number(e.detail.value)
+  loadData(1)
+}
+
+function handleKpFilter(kps) {
+  if (kps && kps.length > 0) {
+    filterKp.value = kps[0]
+  }
+  loadData(1)
+}
+
+function handleKpClear() {
+  filterKp.value = null
+  loadData(1)
+}
+
+// ---- 批量关联选择模式 ----
+function isSelected(item) {
+  return selectedDocs.value.includes(item.documentId)
+}
+
+function toggleSelect(item) {
+  const idx = selectedDocs.value.indexOf(item.documentId)
+  if (idx > -1) {
+    selectedDocs.value.splice(idx, 1)
+  } else {
+    selectedDocs.value.push(item.documentId)
+  }
+}
+
+function enterSelectMode() {
+  selectedDocs.value = []
+  selectMode.value = true
+}
+
+function cancelSelectMode() {
+  selectMode.value = false
+  selectedDocs.value = []
+}
+
+// ---- 批量关联面板 ----
+function openAssociatePanel() {
+  panelCourse.value = null
+  panelLesson.value = null
+  panelLessonList.value = []
+  selectedKp.value = []
+  clearCourse.value = false
+  clearLesson.value = false
+  clearKp.value = false
+  associateTab.value = 'set'
+  showAssociatePanel.value = true
+}
+
+function selectPanelCourse(c) {
+  panelCourse.value = c
+  panelShowCoursePicker.value = false
+  panelLesson.value = null
+  panelLessonList.value = []
+  if (c) loadPanelLessons(c.documentId)
+}
+
+async function loadPanelLessons(courseId) {
+  try {
+    const { list } = await getLessonList({ 'filters[course][documentId][$eq]': courseId })
+    panelLessonList.value = list
+  } catch (e) {
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  }
+}
+
+function selectPanelLesson(l) {
+  panelLesson.value = l
+  panelShowLessonPicker.value = false
+}
+
+function removeSelectedKp(kp) {
+  const i = selectedKp.value.findIndex(x => x.documentId === kp.documentId)
+  if (i > -1) selectedKp.value.splice(i, 1)
+}
+
+// 组装批量关联的范围筛选（仅用页面顶部筛选限定范围，目标字段独立）
+function buildRangeFilters() {
+  const filters = {}
+  if (searchKeyword.value) filters.keyword = searchKeyword.value
+  if (typeValues[typeIndex.value]) filters.type = typeValues[typeIndex.value]
+  if (difficultyValues[difficultyIndex.value]) filters.difficulty = difficultyValues[difficultyIndex.value]
+  if (filterCourseIndex.value > 0) filters.course = filterCourseList.value[filterCourseIndex.value - 1].documentId
+  if (filterLessonIndex.value > 0) filters.lesson = filterLessonList.value[filterLessonIndex.value - 1].documentId
+  if (filterKp.value) filters.knowledgePoints = [filterKp.value.documentId]
+  return filters
+}
+
+async function handleAssociate() {
+  const filters = buildRangeFilters()
+  const target = {}
+  if (associateTab.value === 'set') {
+    if (panelCourse.value) target.course = { action: 'set', value: panelCourse.value.documentId }
+    if (panelLesson.value) target.lesson = { action: 'set', value: panelLesson.value.documentId }
+    if (selectedKp.value.length > 0) target.knowledgePoints = { action: 'set', value: selectedKp.value.map(k => k.documentId) }
+    if (Object.keys(target).length === 0) {
+      uni.showToast({ title: '请至少选择一项要设置的内容', icon: 'none' })
+      return
+    }
+  } else {
+    if (clearCourse.value) target.course = { action: 'clear' }
+    if (clearLesson.value) target.lesson = { action: 'clear' }
+    if (clearKp.value) target.knowledgePoints = { action: 'clear' }
+    if (Object.keys(target).length === 0) {
+      uni.showToast({ title: '请至少勾选一项要清除的内容', icon: 'none' })
+      return
+    }
+  }
+  associating.value = true
+  try {
+    const res = await batchAssociateQuestions({
+      documentIds: selectedDocs.value.length ? [...selectedDocs.value] : [],
+      filters,
+      target
+    })
+    const failed = Array.isArray(res?.errors) ? res.errors.length : (res?.errors ?? 0)
+    uni.showToast({ title: `成功 ${res?.success ?? 0}，失败 ${failed}`, icon: 'none' })
+    showAssociatePanel.value = false
+    cancelSelectMode()
+    loadData(1)
+  } catch (e) {
+    uni.showToast({ title: '批量关联失败', icon: 'none' })
+  } finally {
+    associating.value = false
+  }
 }
 
 function goAdd() {
@@ -222,6 +569,11 @@ function nextPage() {
 
 onMounted(() => {
   loadData(1)
+  // 加载课程列表，用于列表筛选与批量关联面板
+  getCourseList({}).then(res => {
+    filterCourseList.value = res.list || []
+    assocCourseList.value = res.list || []
+  }).catch(() => {})
 })
 </script>
 
@@ -294,8 +646,321 @@ onMounted(() => {
   font-size: 26rpx;
 }
 
+.filter-item .placeholder {
+  color: #bbb;
+}
+
+.filter-item.filter-clear {
+  flex: none;
+  color: #e64340;
+  margin-left: 16rpx;
+}
+
 .arrow {
   font-size: 20rpx;
+  color: #999;
+}
+
+.filter-row-2 {
+  margin-top: 20rpx;
+}
+
+/* 选择模式工具栏 */
+.select-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.select-count {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.select-actions {
+  display: flex;
+  gap: 15rpx;
+}
+
+.select-actions .btn-secondary {
+  padding: 12rpx 24rpx;
+}
+
+/* 卡片选择模式 */
+.question-card.selecting {
+  cursor: pointer;
+}
+
+.question-card.selected {
+  border: 3rpx solid #667eea;
+}
+
+.select-checkbox {
+  width: 44rpx;
+  height: 44rpx;
+  border: 3rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.select-checkbox.checked {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.check-mark {
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+/* 批量关联面板 */
+.assoc-tabs {
+  display: flex;
+  border-bottom: 1rpx solid #eee;
+}
+
+.assoc-tab {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 30rpx;
+  color: #666;
+  position: relative;
+}
+
+.assoc-tab.active {
+  color: #667eea;
+  font-weight: bold;
+}
+
+.assoc-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 60rpx;
+  height: 6rpx;
+  background: #667eea;
+  border-radius: 3rpx;
+}
+
+.assoc-scroll {
+  padding: 30rpx;
+  box-sizing: border-box;
+}
+
+.assoc-item {
+  margin-bottom: 30rpx;
+}
+
+.assoc-label {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 15rpx;
+}
+
+.assoc-value {
+  font-size: 28rpx;
+}
+
+.assoc-value.empty {
+  color: #999;
+}
+
+.range-tip {
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.5;
+  background: #f5f7fa;
+  border-radius: 8rpx;
+  padding: 15rpx 20rpx;
+}
+
+.clear-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25rpx 10rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  font-size: 30rpx;
+}
+
+.switch-box {
+  width: 44rpx;
+  height: 44rpx;
+  border: 3rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #fff;
+  font-size: 26rpx;
+}
+
+.switch-box.checked {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.assoc-confirm {
+  width: 100%;
+  height: 80rpx;
+  border-radius: 40rpx;
+}
+
+.assoc-confirm[disabled] {
+  opacity: 0.6;
+}
+
+/* 弹窗与选择器样式 */
+.picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.picker-content {
+  width: 100%;
+  height: 65vh;
+  max-height: 65vh;
+  background: #fff;
+  border-radius: 20rpx 20rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.picker-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.picker-close {
+  font-size: 48rpx;
+  color: #999;
+  padding: 0 20rpx;
+}
+
+.picker-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 50vh;
+}
+
+.picker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  font-size: 30rpx;
+}
+
+.picker-item.selected {
+  background: #f5f7fa;
+}
+
+.check-icon {
+  color: #667eea;
+  font-weight: bold;
+}
+
+.picker-footer {
+  padding: 20rpx 30rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #eee;
+}
+
+.picker-footer .btn-primary {
+  width: 100%;
+  border-radius: 40rpx;
+}
+
+.picker-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.picker-value.empty {
+  color: #999;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.multi-select-container {
+  min-height: 80rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
+  padding: 10rpx;
+  box-sizing: border-box;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.tag-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 20rpx;
+  background: #e8f5e9;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  color: #07c160;
+}
+
+.tag-close {
+  font-size: 32rpx;
+  color: #999;
+}
+
+.add-tag {
+  padding: 10rpx 20rpx;
+  border: 1rpx dashed #ddd;
+  border-radius: 20rpx;
+  font-size: 26rpx;
   color: #999;
 }
 

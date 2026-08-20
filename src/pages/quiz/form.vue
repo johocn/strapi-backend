@@ -494,12 +494,10 @@ async function loadQuestionDetail() {
     isInitializing.value = true
     const data = await getQuestionDetail(questionId.value)
     Object.assign(form, data)
-    // 知识点现在混在 tags 中，按 tagGroup.slug === 'knowledge-point' 过滤
-    if (data.tags && data.tags.length > 0) {
-      form.knowledgePoints = data.tags.filter(t => t.tagGroup?.slug === 'knowledge-point')
-    } else {
-      form.knowledgePoints = []
-    }
+    // 知识点混在 tags 中，拆分成「普通标签」与「知识点」，避免保存时把已删除的知识点带回去
+    const tags = data.tags || []
+    form.tags = tags.filter(t => t.tagGroup?.slug !== 'knowledge-points')
+    form.knowledgePoints = tags.filter(t => t.tagGroup?.slug === 'knowledge-points')
     const typeIdx = typeValues.indexOf(data.type)
     if (typeIdx > -1) {
       typeIndex.value = typeIdx

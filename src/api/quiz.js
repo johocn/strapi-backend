@@ -1,4 +1,4 @@
-import { get, post, put, del } from '../utils/request.js'
+import { get, post, put, del, downloadFile } from '../utils/request.js'
 import { extractList, extractItem } from '../utils/format.js'
 
 const V1 = '/zhao-quiz/v1'
@@ -23,6 +23,10 @@ export function updateQuestion(documentId, data) {
 
 export function deleteQuestion(documentId) {
   return del(`${ADMIN}/quizzes/${documentId}`).then(extractItem)
+}
+
+export function batchAssociateQuestions(data) {
+  return post(`${ADMIN}/quizzes/batch-associate`, { data }).then(extractItem)
 }
 
 export function getExamList(params = {}) {
@@ -69,8 +73,18 @@ export function getMyExamAttempts(params = {}) {
   return get(`${MY}/exam-attempts`, params).then(extractList)
 }
 
-export function downloadQuizTemplate() {
-  return get(`${ADMIN}/quiz-batches/template/download`)
+/**
+ * 下载导入模板；params: { course, lesson, knowledgePoints }（documentId）
+ * knowledgePoints 多个用 "|" 拼接，后端据此预填模板「课程/课时/知识点」列
+ */
+export function downloadQuizTemplate(params = {}) {
+  return downloadFile(`${ADMIN}/quiz-batches/template/download`, {
+    course: params.course || '',
+    lesson: params.lesson || '',
+    knowledgePoints: Array.isArray(params.knowledgePoints)
+      ? params.knowledgePoints.join('|')
+      : (params.knowledgePoints || ''), // 兼容字符串
+  }, 'quiz_import_template.xlsx')
 }
 
 export function getQuizRecordList(params = {}) {
