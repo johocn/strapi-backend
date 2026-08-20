@@ -155,6 +155,16 @@ export const ssoMsgTemplateApi = {
   delete: (id) => del(`${ADMIN}/msg-templates/${id}`).then(extractItem),
 }
 
+// 模板版本 / AB 测试（templateId 传模板 documentId，后端自动解析）
+export const ssoMsgTemplateVersionApi = {
+  list: (templateId) => get(`${ADMIN}/msg-templates/${templateId}/versions`).then(extractList),
+  create: (templateId, data) => post(`${ADMIN}/msg-templates/${templateId}/versions`, data).then(extractItem),
+  update: (templateId, id, data) => put(`${ADMIN}/msg-templates/${templateId}/versions/${id}`, data).then(extractItem),
+  delete: (templateId, id) => del(`${ADMIN}/msg-templates/${templateId}/versions/${id}`).then(extractItem),
+  activate: (templateId, id) => post(`${ADMIN}/msg-templates/${templateId}/versions/${id}/activate`).then(extractItem),
+  abStats: (templateId) => get(`${ADMIN}/msg-templates/${templateId}/ab-stats`).then(extractList),
+}
+
 export const ssoMsgJobApi = {
   list: (params = {}) => get(`${ADMIN}/msg-jobs`, params).then(extractList),
   detail: (id) => get(`${ADMIN}/msg-jobs/${id}`).then(extractItem),

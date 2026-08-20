@@ -43,6 +43,7 @@
           </view>
         </view>
         <view class="data-actions">
+          <view v-if="hasPermission('sso.msg.read')" class="action-btn ab" @click.stop="goAb(item.documentId)">AB 对比</view>
           <view v-if="hasPermission('sso.msg.write')" class="action-btn edit" @click.stop="goEdit(item.documentId)">编辑</view>
           <view v-if="hasPermission('sso.msg.write')" class="action-btn delete" @click.stop="handleDelete(item)">删除</view>
         </view>
@@ -121,6 +122,10 @@ function goEdit(id) {
   uni.navigateTo({ url: `/pages/sso/msg-template/edit?documentId=${id}` })
 }
 
+function goAb(id) {
+  uni.navigateTo({ url: `/pages/sso/msg-template/edit?documentId=${id}&ab=1` })
+}
+
 function handleDelete(item) {
   uni.showModal({
     title: '确认删除',
@@ -179,6 +184,7 @@ page { background: #f5f5f5; }
 .data-date { font-size: 22rpx; color: #999; }
 .data-actions { display: flex; flex-direction: column; gap: 12rpx; }
 .action-btn { padding: 12rpx 24rpx; border-radius: 8rpx; font-size: 24rpx; text-align: center; }
+.action-btn.ab { background: #e8f8ef; color: #07c160; }
 .action-btn.edit { background: #f5f5f5; color: #1989fa; }
 .action-btn.delete { background: #fff0f0; color: #ff4d4f; }
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }
