@@ -76,6 +76,94 @@
       </view>
 
       <view class="info-section">
+        <view class="section-title">课程类型与报名</view>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="info-label">课程类型</text>
+            <text class="info-value">{{ courseTypeMap[course.courseType] || course.courseType || '-' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">报名模式</text>
+            <text class="info-value">{{ enrollModeMap[course.enrollMode] || '-' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">积分价格</text>
+            <text class="info-value">{{ course.courseType === 'points' ? (course.pointsPrice || 0) : '-' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="info-section">
+        <view class="section-title">顺序与答题设置</view>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="info-label">强制顺序学习</text>
+            <text class="info-value">{{ course.enforceSequence ? '是（硬锁）' : '否（建议）' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">课程顺序号</text>
+            <text class="info-value">{{ course.sequenceNumber || 0 }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">顺序标签</text>
+            <text class="info-value">{{ course.sequenceTag?.name || '-' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">允许重复答题</text>
+            <text class="info-value">{{ course.allowRetakeQuiz ? '是' : '否' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">错题复答</text>
+            <text class="info-value">{{ quizRetryMap[course.quizRetryCount] || '-' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="info-section">
+        <view class="section-title">渠道与积分归属</view>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="info-label">渠道范围</text>
+            <text class="info-value">{{ course.channelScope === 'all' ? '全部渠道' : '指定渠道' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">允许跨渠道</text>
+            <text class="info-value">{{ course.allowCrossChannel === false ? '否' : '是' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">积分归属渠道</text>
+            <text class="info-value">{{ course.pointChannel || '-' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="info-section">
+        <view class="section-title">播放功能设置</view>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="info-label">已开启</text>
+            <text class="info-value">{{ featureOnList.length ? featureOnList.join('、') : '无' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">进度锁定</text>
+            <text class="info-value">{{ seekModeMap[course.featureFlags?.seekMode] || '不锁定' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">学习角色</text>
+            <text class="info-value">{{ roleNames(course.featureFlags?.learnRoles) }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">答题入口</text>
+            <text class="info-value">{{ quizOnList.length ? quizOnList.join('、') : '无' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">考试角色</text>
+            <text class="info-value">{{ roleNames(course.featureFlags?.quiz?.examRoles) }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="info-section">
         <view class="section-title">课程描述</view>
         <view class="description-content">{{ course.description || '-' }}</view>
       </view>
@@ -165,6 +253,43 @@ const knowledgePointTags = computed(() => {
   if (!course.value?.tags) return []
   return course.value.tags.filter(t => t.tagGroup?.slug === 'knowledge-points')
 })
+
+const courseTypeMap = { free: '免费', points: '积分兑换', paid: '付费' }
+const enrollModeMap = { none: '无', manual: '手动', auto: '自动' }
+const seekModeMap = { free: '不锁定', played_only: '已看可拖', locked: '全程锁定' }
+const quizFlagLabels = {
+  practice: '刷题练习',
+  lessonQuiz: '课堂测验',
+  exam: '模拟考试',
+  freeAnswer: '自由答题',
+  random: '随机抽题'
+}
+const quizRetryMap = {
+  no_retry: '不允许复答', retry_1: '可复答1次', retry_2: '可复答2次',
+  retry_3: '可复答3次', retry_4: '可复答4次'
+}
+const featureOnList = computed(() => {
+  const ff = course.value?.featureFlags
+  if (!ff || typeof ff !== 'object') return []
+  const list = []
+  if (ff.playbackSpeed) list.push('播放倍速')
+  if (ff.vipSpeedOverride) list.push('VIP特权倍速')
+  if (ff.allowLandscape) list.push('横屏播放')
+  if (ff.screenLock) list.push('防误触锁定')
+  if (ff.autoNext) list.push('自动连播')
+  if (ff.pictureInPicture) list.push('画中画')
+  return list
+})
+const quizOnList = computed(() => {
+  const quiz = course.value?.featureFlags?.quiz
+  if (!quiz || typeof quiz !== 'object') return []
+  return quizFlagLabels ? Object.keys(quizFlagLabels).filter(k => quiz[k]).map(k => quizFlagLabels[k]) : []
+})
+function fmtArr(arr) { return Array.isArray(arr) && arr.length ? arr.join('、') : '-' }
+function roleNames(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return '所有角色'
+  return arr.join('、')
+}
 
 const statusMap = {
   draft: '草稿',
