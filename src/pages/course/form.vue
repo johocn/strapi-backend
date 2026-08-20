@@ -326,6 +326,82 @@
         </view>
       </view>
 
+      <!-- 播放功能设置 -->
+      <view class="form-section">
+        <view class="section-title">播放功能设置</view>
+
+        <view class="form-item">
+          <text class="form-label">播放倍速</text>
+          <switch :checked="form.featureFlags.playbackSpeed" @change="form.featureFlags.playbackSpeed = !form.featureFlags.playbackSpeed" />
+          <text class="form-hint">开启后所有学员可选择播放倍速</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">VIP特权倍速</text>
+          <switch :checked="form.featureFlags.vipSpeedOverride" @change="form.featureFlags.vipSpeedOverride = !form.featureFlags.vipSpeedOverride" />
+          <text class="form-hint">开启后仅站点特权角色可使用倍速（需配合站点 speedPrivilegedRoles 配置）</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">允许横屏播放</text>
+          <switch :checked="form.featureFlags.allowLandscape" @change="form.featureFlags.allowLandscape = !form.featureFlags.allowLandscape" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">防误触锁定</text>
+          <switch :checked="form.featureFlags.screenLock" @change="form.featureFlags.screenLock = !form.featureFlags.screenLock" />
+          <text class="form-hint">播放时锁定屏幕控制，防误触</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">自动连播</text>
+          <switch :checked="form.featureFlags.autoNext" @change="form.featureFlags.autoNext = !form.featureFlags.autoNext" />
+          <text class="form-hint">本集播完后自动播放下方内容</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">画中画</text>
+          <switch :checked="form.featureFlags.pictureInPicture" @change="form.featureFlags.pictureInPicture = !form.featureFlags.pictureInPicture" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">进度锁定</text>
+          <picker mode="selector" :range="seekModeLabels" @change="handleSeekModeChange">
+            <view class="picker-value">
+              <text>{{ seekModeLabels[seekModeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+          <text class="form-hint">已看可拖=已学部分可拖动进度；全程锁定=不可拖动</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">学习角色白名单</text>
+          <view class="channel-picker-trigger" @click="openLearnRolesPicker">
+            <text class="form-hint" style="margin:0;">{{ learnRolesNames() }}</text>
+          </view>
+          <text class="form-hint">仅这些角色可见/学习本课程；留空则所有角色可见（admin 恒放行）</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">答题入口</text>
+          <view class="radio-group" style="flex-direction:column;align-items:flex-start;">
+            <view v-for="(label, key) in quizFlagLabels" :key="key" class="radio-item">
+              <view class="radio-circle" :class="{ active: form.featureFlags.quiz[key] }" @click="toggleQuizFlag(key)"></view>
+              <text>{{ label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">考试角色白名单</text>
+          <view class="channel-picker-trigger" @click="openExamRolesPicker">
+            <text class="form-hint" style="margin:0;">{{ examRolesNames() }}</text>
+          </view>
+          <text class="form-hint">仅这些角色可见/考试（独立于学习角色白名单）</text>
+        </view>
+      </view>
+
       <view class="form-section">
         <view class="section-title">渠道设置</view>
 
@@ -457,6 +533,48 @@
       <button class="btn-save" @click="handleSubmit">保存课程</button>
     </view>
 
+    <!-- 学习角色白名单弹层 -->
+      <view v-if="showLearnRolesPicker" class="modal-overlay" @click="showLearnRolesPicker = false">
+        <view class="modal-card" @click.stop>
+          <view class="modal-header">
+            <text class="modal-title">选择学习角色</text>
+            <text class="btn-close" @click="showLearnRolesPicker = false">×</text>
+          </view>
+          <scroll-view scroll-y class="modal-body">
+            <view v-for="r in roleOptions" :key="r.name" class="modal-option"
+              :class="{ selected: learnRolesSelected.includes(r.name) }"
+              @click="toggleLearnRoles(r.name)">
+              <text>{{ r.displayName || r.name }}</text>
+            </view>
+            <view v-if="roleOptions.length === 0" class="modal-empty">未获取到角色</view>
+          </scroll-view>
+          <view class="modal-footer">
+            <button class="btn-confirm" @click="confirmLearnRoles">确定</button>
+          </view>
+        </view>
+      </view>
+
+      <!-- 考试角色白名单弹层 -->
+      <view v-if="showExamRolesPicker" class="modal-overlay" @click="showExamRolesPicker = false">
+        <view class="modal-card" @click.stop>
+          <view class="modal-header">
+            <text class="modal-title">选择考试角色</text>
+            <text class="btn-close" @click="showExamRolesPicker = false">×</text>
+          </view>
+          <scroll-view scroll-y class="modal-body">
+            <view v-for="r in roleOptions" :key="r.name" class="modal-option"
+              :class="{ selected: examRolesSelected.includes(r.name) }"
+              @click="toggleExamRoles(r.name)">
+              <text>{{ r.displayName || r.name }}</text>
+            </view>
+            <view v-if="roleOptions.length === 0" class="modal-empty">未获取到角色</view>
+          </scroll-view>
+          <view class="modal-footer">
+            <button class="btn-confirm" @click="confirmExamRoles">确定</button>
+          </view>
+        </view>
+      </view>
+
     <!-- 标签选择器 -->
     <TagPicker
       v-model:visible="showTagPicker"
@@ -545,6 +663,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { getCourseDetail, createCourse, updateCourse, getCourseCategoryList } from '../../api/course.js'
 import { getChannelList } from '../../api/channel.js'
+import { getAllRoles } from '../../api/auth.js'
 import { loadSiteConfig, isFeatureEnabled, clearConfigCache } from '../../utils/config-helper.js'
 import { useUserStore } from '../../store/user.js'
 import MediaPicker from '../../components/MediaPicker.vue'
@@ -621,7 +740,27 @@ const form = reactive({
   sequenceTag: null,
   // 答题设置
   allowRetakeQuiz: false,
-  quizRetryCount: 'no_retry'
+  quizRetryCount: 'no_retry',
+  // 播放功能设置
+  featureFlags: {
+    configured: true,
+    playbackSpeed: false,
+    vipSpeedOverride: false,
+    allowLandscape: false,
+    screenLock: false,
+    autoNext: false,
+    pictureInPicture: false,
+    seekMode: 'played_only',
+    learnRoles: [],
+    quiz: {
+      practice: false,
+      lessonQuiz: false,
+      exam: false,
+      freeAnswer: false,
+      random: false,
+      examRoles: []
+    }
+  }
 })
 
 const categoryOptions = ['请选择分类']
@@ -644,6 +783,26 @@ const showSequenceTagPicker = ref(false)
 const quizRetryCountOptions = ['no_retry', 'retry_1', 'retry_2', 'retry_3', 'retry_4']
 const quizRetryCountLabels = ['不允许复答', '可复答1次', '可复答2次', '可复答3次', '可复答4次']
 const quizRetryCountIndex = ref(0)
+// 播放功能 - 学习/考试角色白名单
+const roleOptions = ref([])
+const showLearnRolesPicker = ref(false)
+const showExamRolesPicker = ref(false)
+const learnRolesSelected = ref([])
+const examRolesSelected = ref([])
+const seekModeOptions = [
+  { value: 'free', label: '不锁定（可任意拖动）' },
+  { value: 'played_only', label: '已看可拖（进度锁）' },
+  { value: 'locked', label: '全程锁定' }
+]
+const seekModeLabels = seekModeOptions.map(o => o.label)
+const seekModeIndex = ref(1)
+const quizFlagLabels = {
+  practice: '刷题练习',
+  lessonQuiz: '课堂测验',
+  exam: '模拟考试',
+  freeAnswer: '自由答题',
+  random: '随机抽题'
+}
 
 const courseTypeOptions = ['免费课程', '积分兑换', '付费课程']
 const courseTypeValues = ['free', 'points', 'paid']
@@ -797,6 +956,67 @@ function setChannelScope(scope) {
   }
 }
 
+async function loadRoleOptions() {
+  try {
+    const list = await getAllRoles()
+    roleOptions.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    console.warn('获取角色列表失败，使用空列表', e)
+    roleOptions.value = []
+  }
+}
+
+function toggleLearnRoles(roleName) {
+  const idx = learnRolesSelected.value.indexOf(roleName)
+  if (idx > -1) learnRolesSelected.value.splice(idx, 1)
+  else learnRolesSelected.value.push(roleName)
+}
+
+function toggleExamRoles(roleName) {
+  const idx = examRolesSelected.value.indexOf(roleName)
+  if (idx > -1) examRolesSelected.value.splice(idx, 1)
+  else examRolesSelected.value.push(roleName)
+}
+
+function confirmLearnRoles() {
+  form.featureFlags.learnRoles = [...learnRolesSelected.value]
+  showLearnRolesPicker.value = false
+}
+
+function confirmExamRoles() {
+  form.featureFlags.quiz.examRoles = [...examRolesSelected.value]
+  showExamRolesPicker.value = false
+}
+
+function openLearnRolesPicker() {
+  learnRolesSelected.value = [...(form.featureFlags.learnRoles || [])]
+  showLearnRolesPicker.value = true
+}
+
+function openExamRolesPicker() {
+  examRolesSelected.value = [...(form.featureFlags.quiz.examRoles || [])]
+  showExamRolesPicker.value = true
+}
+
+function toggleQuizFlag(key) {
+  form.featureFlags.quiz[key] = !form.featureFlags.quiz[key]
+}
+
+function handleSeekModeChange(e) {
+  seekModeIndex.value = Number(e.detail.value)
+  form.featureFlags.seekMode = seekModeOptions[seekModeIndex.value].value
+}
+
+function learnRolesNames() {
+  if (!form.featureFlags.learnRoles.length) return '未配置（所有角色可见）'
+  return form.featureFlags.learnRoles.join('、')
+}
+
+function examRolesNames() {
+  if (!form.featureFlags.quiz.examRoles.length) return '未配置'
+  return form.featureFlags.quiz.examRoles.join('、')
+}
+
 function handleCategoryChange(e) {
   const index = e.detail.value
   if (index === 0) {
@@ -921,6 +1141,31 @@ async function loadCourseDetail() {
       form.quizRetryCount = data.quizRetryCount
       quizRetryCountIndex.value = quizRetryCountOptions.indexOf(data.quizRetryCount)
     }
+    // 播放功能设置回显
+    if (data.featureFlags && typeof data.featureFlags === 'object') {
+      const ff = data.featureFlags
+      form.featureFlags = {
+        configured: true,
+        playbackSpeed: ff.playbackSpeed === true,
+        vipSpeedOverride: ff.vipSpeedOverride === true,
+        allowLandscape: ff.allowLandscape === true,
+        screenLock: ff.screenLock === true,
+        autoNext: ff.autoNext === true,
+        pictureInPicture: ff.pictureInPicture === true,
+        seekMode: (ff.seekMode === 'locked' || ff.seekMode === 'free' || ff.seekMode === 'played_only') ? ff.seekMode : 'played_only',
+        learnRoles: Array.isArray(ff.learnRoles) ? ff.learnRoles : [],
+        quiz: {
+          practice: ff.quiz?.practice === true,
+          lessonQuiz: ff.quiz?.lessonQuiz === true,
+          exam: ff.quiz?.exam === true,
+          freeAnswer: ff.quiz?.freeAnswer === true,
+          random: ff.quiz?.random === true,
+          examRoles: Array.isArray(ff.quiz?.examRoles) ? ff.quiz.examRoles : []
+        }
+      }
+    }
+    seekModeIndex.value = seekModeOptions.findIndex(o => o.value === form.featureFlags.seekMode)
+    if (seekModeIndex.value < 0) seekModeIndex.value = 1
     // 课程类型回显（旧数据无 courseType 时从 isFree/isPaid 反推）
     if (data.courseType) {
       form.courseType = data.courseType
@@ -1028,7 +1273,27 @@ async function handleSubmit() {
     sequenceTag: form.sequenceTag ? { documentId: form.sequenceTag.documentId } : null,
     // 答题设置
     allowRetakeQuiz: form.allowRetakeQuiz,
-    quizRetryCount: form.quizRetryCount
+    quizRetryCount: form.quizRetryCount,
+    // 播放功能设置（总是存对象）
+    featureFlags: {
+      configured: true,
+      playbackSpeed: form.featureFlags.playbackSpeed,
+      vipSpeedOverride: form.featureFlags.vipSpeedOverride,
+      allowLandscape: form.featureFlags.allowLandscape,
+      screenLock: form.featureFlags.screenLock,
+      autoNext: form.featureFlags.autoNext,
+      pictureInPicture: form.featureFlags.pictureInPicture,
+      seekMode: form.featureFlags.seekMode,
+      learnRoles: Array.isArray(form.featureFlags.learnRoles) ? form.featureFlags.learnRoles : [],
+      quiz: {
+        practice: form.featureFlags.quiz.practice,
+        lessonQuiz: form.featureFlags.quiz.lessonQuiz,
+        exam: form.featureFlags.quiz.exam,
+        freeAnswer: form.featureFlags.quiz.freeAnswer,
+        random: form.featureFlags.quiz.random,
+        examRoles: Array.isArray(form.featureFlags.quiz.examRoles) ? form.featureFlags.quiz.examRoles : []
+      }
+    }
   }
 
   if (form.category) {
@@ -1093,6 +1358,7 @@ onMounted(async () => {
   showPointsSection.value = isFeatureEnabled('pointsEnabled')
   showCrossChannelSection.value = isFeatureEnabled('allowCrossChannel')
 
+  await loadRoleOptions()
   await loadCategories()
   await loadChannels()
   await loadCourseDetail()
