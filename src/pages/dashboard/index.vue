@@ -619,6 +619,10 @@
           <view class="module-icon">📨</view>
           <view class="module-name">消息模板</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/profile/list')">
+          <view class="module-icon">👤</view>
+          <view class="module-name">用户画像</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/msg-job/list')">
           <view class="module-icon">📤</view>
           <view class="module-name">消息任务</view>

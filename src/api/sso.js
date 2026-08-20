@@ -170,6 +170,14 @@ export const ssoSopRuleApi = {
   delete: (id) => del(`${ADMIN}/sop-rules/${id}`).then(extractItem),
 }
 
+// ==================== SSO 用户画像分层 ====================
+
+export const ssoProfileApi = {
+  list: (params = {}) => get(`${ADMIN}/profiles`, params).then(extractList),
+  detail: (id) => get(`${ADMIN}/profiles/${id}`).then(extractItem),
+  recalcAll: () => post(`${ADMIN}/profiles/recalc-all`).then(extractItem),
+}
+
 // ==================== SSO 公开认证接口（auth:false，路径 /zhao-sso/v1/auth/xxx） ====================
 
 const AUTH = '/zhao-sso/v1/auth'
