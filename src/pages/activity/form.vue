@@ -64,8 +64,150 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">计费模式</text>
+          <picker mode="selector" :range="pricingModeLabels" @change="handlePricingModeChange">
+            <view class="picker-value">
+              <text>{{ pricingModeLabels[pricingModeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <view v-if="form.pricingMode === 'flat'" class="form-item">
           <text class="form-label">积分价</text>
           <input type="number" v-model="form.pointsCost" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view v-if="form.pricingMode === 'tier'" class="form-item">
+          <text class="form-label">费用档位</text>
+          <view v-for="(tier, ti) in form.feeTiers" :key="ti" class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">第 {{ ti + 1 }} 档</text>
+              <button class="btn-link-danger" @click="removeTier(ti)">删除</button>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">档名</text>
+              <input type="text" v-model="tier.name" placeholder="如：早鸟 / 正价" class="form-input" />
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">顺序</text>
+                <input type="number" v-model="tier.order" placeholder="数字越小越靠前" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">用户类型</text>
+                <input type="text" v-model="tier.userType" placeholder="all|partner|segment:S" class="form-input" />
+              </view>
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">窗口开始</text>
+                <picker mode="date" :value="tier.window.start" @change="e => tier.window.start = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ tier.window.start || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+              <view class="form-item half">
+                <text class="form-label">窗口结束</text>
+                <picker mode="date" :value="tier.window.end" @change="e => tier.window.end = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ tier.window.end || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">配额（名额）</text>
+                <input type="number" v-model="tier['fee-quota']" placeholder="留空不限制" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">积分价</text>
+                <input type="number" v-model="tier.pointsCost" placeholder="0=免费" class="form-input" />
+              </view>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">扣费点</text>
+              <picker mode="selector" :range="feeLabels" @change="handleTierFeeChange(ti, $event)">
+                <view class="picker-value">
+                  <text>{{ tierFeeLabel(tier) }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+          <button class="btn-add" @click="addTier">添加档位</button>
+        </view>
+
+        <view v-if="form.pricingMode === 'factor'" class="form-item">
+          <text class="form-label">基础积分</text>
+          <input type="number" v-model="form.feeFactors.base" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view v-if="form.pricingMode === 'factor'" class="form-item">
+          <text class="form-label">计费因子</text>
+          <view v-for="(f, fi) in form.feeFactors.factors" :key="fi" class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">因子 {{ fi + 1 }}</text>
+              <button class="btn-link-danger" @click="removeFactor(fi)">删除</button>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">类型</text>
+              <picker mode="selector" :range="factorTypeLabels" @change="handleFactorTypeChange(fi, $event)">
+                <view class="picker-value">
+                  <text>{{ factorTypeLabel(f.type) }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+
+            <view v-if="isWindowFactor(f.type)" class="form-row">
+              <view class="form-item half">
+                <text class="form-label">生效至</text>
+                <picker mode="date" :value="f.until" @change="e => f.until = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ f.until || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+              <view class="form-item half">
+                <text class="form-label">生效自</text>
+                <picker mode="date" :value="f.from" @change="e => f.from = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ f.from || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+            </view>
+
+            <view v-if="isWindowFactor(f.type) || f.type === 'flat_discount_amount'" class="form-item fee-field">
+              <text class="form-label">金额</text>
+              <input type="number" v-model="f.amount" placeholder="0=不设置" class="form-input" />
+            </view>
+
+            <view v-if="f.type === 'segment_discount_percent'" class="form-row">
+              <view class="form-item half">
+                <text class="form-label">最小分段</text>
+                <input type="text" v-model="f.minSegment" placeholder="如 segment:A" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">折扣百分比</text>
+                <input type="number" v-model="f.percent" placeholder="如 80" class="form-input" />
+              </view>
+            </view>
+          </view>
+          <button class="btn-add" @click="addFactor">添加因子</button>
         </view>
 
         <view class="form-item">
@@ -183,6 +325,9 @@ const form = reactive({
   signupEnd: '',
   pointsCost: 0,
   feeCollectAt: 'signup',
+  pricingMode: 'flat',
+  feeTiers: [],
+  feeFactors: { base: 0, factors: [] },
   checkinMode: 'both',
   geoEnforced: false,
   geoRadiusM: 500,
@@ -200,6 +345,13 @@ const statusIndex = ref(0)
 const feeValues = ['signup', 'checkin']
 const feeLabels = ['报名时扣费', '签到时收费']
 const feeIndex = ref(0)
+
+const pricingModeValues = ['flat', 'tier', 'factor']
+const pricingModeLabels = ['单一价', '档位列表', '因子叠加']
+const pricingModeIndex = ref(0)
+
+const factorTypeValues = ['window_discount', 'window_upcharge', 'segment_discount_percent', 'flat_discount_amount']
+const factorTypeLabels = ['窗口折扣', '窗口加价', '分段折扣百分比', '固定折扣额']
 const isFormLoaded = ref(false)
 
 function fmtDate(v) {
@@ -230,6 +382,58 @@ function handleSeriesChange(e) {
   form.belongsToSeries = seriesIndex.value === 0 ? '' : (seriesList.value[seriesIndex.value - 1]?.documentId || '')
 }
 
+function handlePricingModeChange(e) {
+  pricingModeIndex.value = Number(e.detail.value)
+  form.pricingMode = pricingModeValues[pricingModeIndex.value]
+}
+
+function tierFeeLabel(tier) {
+  const idx = Math.max(0, feeValues.indexOf(tier.feeCollectAt))
+  return feeLabels[idx]
+}
+function handleTierFeeChange(ti, e) {
+  form.feeTiers[ti].feeCollectAt = feeValues[Number(e.detail.value)]
+}
+
+function addTier() {
+  form.feeTiers.push({
+    name: '',
+    order: form.feeTiers.length,
+    window: { start: '', end: '' },
+    'fee-quota': '',
+    userType: 'all',
+    pointsCost: 0,
+    feeCollectAt: 'signup'
+  })
+}
+function removeTier(ti) {
+  form.feeTiers.splice(ti, 1)
+}
+
+function isWindowFactor(type) {
+  return type === 'window_discount' || type === 'window_upcharge'
+}
+function factorTypeLabel(type) {
+  const idx = factorTypeValues.indexOf(type)
+  return idx >= 0 ? factorTypeLabels[idx] : ''
+}
+function handleFactorTypeChange(fi, e) {
+  form.feeFactors.factors[fi].type = factorTypeValues[Number(e.detail.value)]
+}
+function addFactor() {
+  form.feeFactors.factors.push({
+    type: 'window_discount',
+    until: '',
+    from: '',
+    amount: 0,
+    minSegment: '',
+    percent: 0
+  })
+}
+function removeFactor(fi) {
+  form.feeFactors.factors.splice(fi, 1)
+}
+
 async function loadSeries() {
   try {
     const res = await listSeries({ page: 1, pageSize: 200 })
@@ -249,6 +453,7 @@ function syncIndexes() {
   checkinModeIndex.value = Math.max(0, checkinModeValues.indexOf(form.checkinMode))
   statusIndex.value = Math.max(0, statusValues.indexOf(form.status))
   feeIndex.value = Math.max(0, feeValues.indexOf(form.feeCollectAt))
+  pricingModeIndex.value = Math.max(0, pricingModeValues.indexOf(form.pricingMode))
 }
 
 async function loadDetail() {
@@ -271,7 +476,10 @@ async function loadDetail() {
       geoEnforced: data.geoEnforced === true,
       geoRadiusM: data.geoRadiusM ?? 500,
       checkinMode: data.checkinMode || 'both',
-      status: data.status || 'draft'
+      status: data.status || 'draft',
+      pricingMode: data.pricingMode || 'flat',
+      feeTiers: data.feeTiers || [],
+      feeFactors: data.feeFactors || { base: 0, factors: [] }
     })
     form.belongsToSeries = data.belongsToSeries || data.series || ''
     syncIndexes()
@@ -304,6 +512,9 @@ async function handleSubmit() {
     geoRadiusM: Number(form.geoRadiusM) || 0,
     pointsCost: Number(form.pointsCost) || 0,
     feeCollectAt: form.feeCollectAt,
+    pricingMode: form.pricingMode,
+    feeTiers: form.feeTiers,
+    feeFactors: form.feeFactors,
     status: form.status
   }
   // 清理空 datetime，避免后端校验空字符串
@@ -358,6 +569,12 @@ onMounted(() => { loadDetail(); loadSeries() })
 .picker-value { display: flex; justify-content: space-between; align-items: center; height: 80rpx; border: 1rpx solid #ddd; border-radius: 10rpx; padding: 0 20rpx; font-size: 28rpx; }
 .picker-placeholder.empty { color: #999; }
 .picker-arrow { font-size: 20rpx; color: #999; }
-.bottom-action { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx 30rpx; background: #fff; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1); }
 .btn-save { width: 100%; height: 90rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 45rpx; font-size: 32rpx; font-weight: bold; }
+.bottom-action { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx 30rpx; background: #fff; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1); }
+.fee-block { border: 1rpx solid #eee; border-radius: 16rpx; padding: 24rpx; margin-bottom: 20rpx; background: #fafbfe; }
+.fee-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.fee-block-title { font-size: 28rpx; font-weight: bold; color: #333; }
+.fee-field { margin-top: 20rpx; }
+.btn-add { width: 100%; height: 76rpx; border: 1rpx dashed #667eea; color: #667eea; background: transparent; border-radius: 12rpx; font-size: 28rpx; }
+.btn-link-danger { background: transparent; color: #ff4d4f; border: none; font-size: 26rpx; padding: 0; line-height: 1; }
 </style>

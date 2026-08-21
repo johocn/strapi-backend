@@ -90,8 +90,150 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">计费模式</text>
+          <picker mode="selector" :range="pricingModeLabels" @change="handleDrPricingModeChange">
+            <view class="picker-value">
+              <text>{{ pricingModeLabels[pricingModeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <view v-if="dr.pricingMode === 'flat'" class="form-item">
           <text class="form-label">积分价</text>
           <input type="number" v-model="dr.pointsCost" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view v-if="dr.pricingMode === 'tier'" class="form-item">
+          <text class="form-label">费用档位</text>
+          <view v-for="(tier, ti) in dr.feeTiers" :key="ti" class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">第 {{ ti + 1 }} 档</text>
+              <button class="btn-link-danger" @click="removeTier(ti)">删除</button>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">档名</text>
+              <input type="text" v-model="tier.name" placeholder="如：早鸟 / 正价" class="form-input" />
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">顺序</text>
+                <input type="number" v-model="tier.order" placeholder="数字越小越靠前" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">用户类型</text>
+                <input type="text" v-model="tier.userType" placeholder="all|partner|segment:S" class="form-input" />
+              </view>
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">窗口开始</text>
+                <picker mode="date" :value="tier.window.start" @change="e => tier.window.start = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ tier.window.start || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+              <view class="form-item half">
+                <text class="form-label">窗口结束</text>
+                <picker mode="date" :value="tier.window.end" @change="e => tier.window.end = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ tier.window.end || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+            </view>
+
+            <view class="form-row">
+              <view class="form-item half">
+                <text class="form-label">配额（名额）</text>
+                <input type="number" v-model="tier['fee-quota']" placeholder="留空不限制" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">积分价</text>
+                <input type="number" v-model="tier.pointsCost" placeholder="0=免费" class="form-input" />
+              </view>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">扣费点</text>
+              <picker mode="selector" :range="drFeeLabels" @change="handleTierFeeChange(ti, $event)">
+                <view class="picker-value">
+                  <text>{{ tierFeeLabel(tier) }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+          </view>
+          <button class="btn-add" @click="addTier">添加档位</button>
+        </view>
+
+        <view v-if="dr.pricingMode === 'factor'" class="form-item">
+          <text class="form-label">基础积分</text>
+          <input type="number" v-model="dr.feeFactors.base" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view v-if="dr.pricingMode === 'factor'" class="form-item">
+          <text class="form-label">计费因子</text>
+          <view v-for="(f, fi) in dr.feeFactors.factors" :key="fi" class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">因子 {{ fi + 1 }}</text>
+              <button class="btn-link-danger" @click="removeFactor(fi)">删除</button>
+            </view>
+
+            <view class="form-item fee-field">
+              <text class="form-label">类型</text>
+              <picker mode="selector" :range="factorTypeLabels" @change="handleFactorTypeChange(fi, $event)">
+                <view class="picker-value">
+                  <text>{{ factorTypeLabel(f.type) }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+
+            <view v-if="isWindowFactor(f.type)" class="form-row">
+              <view class="form-item half">
+                <text class="form-label">生效至</text>
+                <picker mode="date" :value="f.until" @change="e => f.until = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ f.until || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+              <view class="form-item half">
+                <text class="form-label">生效自</text>
+                <picker mode="date" :value="f.from" @change="e => f.from = e.detail.value">
+                  <view class="picker-value">
+                    <text>{{ f.from || '请选择' }}</text>
+                    <text class="picker-arrow">▼</text>
+                  </view>
+                </picker>
+              </view>
+            </view>
+
+            <view v-if="isWindowFactor(f.type) || f.type === 'flat_discount_amount'" class="form-item fee-field">
+              <text class="form-label">金额</text>
+              <input type="number" v-model="f.amount" placeholder="0=不设置" class="form-input" />
+            </view>
+
+            <view v-if="f.type === 'segment_discount_percent'" class="form-row">
+              <view class="form-item half">
+                <text class="form-label">最小分段</text>
+                <input type="text" v-model="f.minSegment" placeholder="如 segment:A" class="form-input" />
+              </view>
+              <view class="form-item half">
+                <text class="form-label">折扣百分比</text>
+                <input type="number" v-model="f.percent" placeholder="如 80" class="form-input" />
+              </view>
+            </view>
+          </view>
+          <button class="btn-add" @click="addFactor">添加因子</button>
         </view>
 
         <view class="form-item">
@@ -164,7 +306,10 @@ const dr = reactive({
   geoEnforced: false,
   geoRadiusM: 500,
   pointsCost: 0,
-  feeCollectAt: 'signup'
+  feeCollectAt: 'signup',
+  pricingMode: 'flat',
+  feeTiers: [],
+  feeFactors: { base: 0, factors: [] }
 })
 
 const statusValues = ['active', 'hidden']
@@ -196,9 +341,68 @@ function handleDrCheckinChange(e) {
   dr.checkinMode = drCheckinValues[drCheckinIndex.value]
 }
 
+const pricingModeValues = ['flat', 'tier', 'factor']
+const pricingModeLabels = ['单一价', '档位列表', '因子叠加']
+const pricingModeIndex = ref(0)
+
+const factorTypeValues = ['window_discount', 'window_upcharge', 'segment_discount_percent', 'flat_discount_amount']
+const factorTypeLabels = ['窗口折扣', '窗口加价', '分段折扣百分比', '固定折扣额']
+
+function handleDrPricingModeChange(e) {
+  pricingModeIndex.value = Number(e.detail.value)
+  dr.pricingMode = pricingModeValues[pricingModeIndex.value]
+}
+
+function tierFeeLabel(tier) {
+  const idx = Math.max(0, drFeeValues.indexOf(tier.feeCollectAt))
+  return drFeeLabels[idx]
+}
+function handleTierFeeChange(ti, e) {
+  dr.feeTiers[ti].feeCollectAt = drFeeValues[Number(e.detail.value)]
+}
+function addTier() {
+  dr.feeTiers.push({
+    name: '',
+    order: dr.feeTiers.length,
+    window: { start: '', end: '' },
+    'fee-quota': '',
+    userType: 'all',
+    pointsCost: 0,
+    feeCollectAt: 'signup'
+  })
+}
+function removeTier(ti) {
+  dr.feeTiers.splice(ti, 1)
+}
+
+function isWindowFactor(type) {
+  return type === 'window_discount' || type === 'window_upcharge'
+}
+function factorTypeLabel(type) {
+  const idx = factorTypeValues.indexOf(type)
+  return idx >= 0 ? factorTypeLabels[idx] : ''
+}
+function handleFactorTypeChange(fi, e) {
+  dr.feeFactors.factors[fi].type = factorTypeValues[Number(e.detail.value)]
+}
+function addFactor() {
+  dr.feeFactors.factors.push({
+    type: 'window_discount',
+    until: '',
+    from: '',
+    amount: 0,
+    minSegment: '',
+    percent: 0
+  })
+}
+function removeFactor(fi) {
+  dr.feeFactors.factors.splice(fi, 1)
+}
+
 function syncDrIndexes() {
   drFeeIndex.value = Math.max(0, drFeeValues.indexOf(dr.feeCollectAt))
   drCheckinIndex.value = Math.max(0, drCheckinValues.indexOf(dr.checkinMode))
+  pricingModeIndex.value = Math.max(0, pricingModeValues.indexOf(dr.pricingMode))
 }
 
 async function loadDetail() {
@@ -306,4 +510,10 @@ onMounted(() => { loadDetail() })
 .weekday-checkbox { transform: scale(0.7); }
 .bottom-action { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx 30rpx; background: #fff; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1); }
 .btn-save { width: 100%; height: 90rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 45rpx; font-size: 32rpx; font-weight: bold; }
+.fee-block { border: 1rpx solid #eee; border-radius: 16rpx; padding: 24rpx; margin-bottom: 20rpx; background: #fafbfe; }
+.fee-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.fee-block-title { font-size: 28rpx; font-weight: bold; color: #333; }
+.fee-field { margin-top: 20rpx; }
+.btn-add { width: 100%; height: 76rpx; border: 1rpx dashed #667eea; color: #667eea; background: transparent; border-radius: 12rpx; font-size: 28rpx; }
+.btn-link-danger { background: transparent; color: #ff4d4f; border: none; font-size: 26rpx; padding: 0; line-height: 1; }
 </style>
