@@ -1,0 +1,1 @@
+import{g as o,b as n}from"./request.kj9W_UOc.js";import{e as t}from"./format.GH1fU6WD.js";const r="/zhao-common/v1/admin/global-config";function a(){return o(r).then(t)}function s(o){return n(r,o).then(t)}export{a as g,s as u};

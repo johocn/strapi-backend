@@ -595,7 +595,8 @@
     { "path": "pages/activity/fission", "style": { "navigationBarTitleText": "裂变榜" } },
     { "path": "pages/activity/review", "style": { "navigationBarTitleText": "活动评价" } },
     { "path": "pages/series/list", "style": { "navigationBarTitleText": "活动系列" } },
-    { "path": "pages/series/form", "style": { "navigationBarTitleText": "系列编辑" } }
+    { "path": "pages/series/form", "style": { "navigationBarTitleText": "系列编辑" } },
+    { "path": "pages/msg/sopStats", "style": { "navigationBarTitleText": "SOP 触达报表" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
