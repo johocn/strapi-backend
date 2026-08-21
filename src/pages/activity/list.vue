@@ -1,7 +1,10 @@
 <template>
   <view class="page-container">
     <PageHeader title="线下活动">
-      <button class="btn-primary" @click="goCreate">+ 新建活动</button>
+      <view class="btn-group">
+        <button class="btn-primary" @click="goCalendar">📅 日历视图</button>
+        <button class="btn-primary" @click="goCreate">+ 新建活动</button>
+      </view>
     </PageHeader>
 
     <view class="search-section">
@@ -127,6 +130,9 @@ function nextPage() { if (currentPage.value < totalPages.value) loadData(current
 function goCreate() {
   uni.navigateTo({ url: '/pages/activity/form' })
 }
+function goCalendar() {
+  uni.navigateTo({ url: '/pages/activity/calendar' })
+}
 function goEdit(item) {
   uni.navigateTo({ url: `/pages/activity/form?id=${item.documentId}` })
 }
@@ -181,6 +187,7 @@ page { background: #f5f5f5; }
   color: #fff; padding: 16rpx 32rpx;
   font-size: 30rpx; border-radius: 40rpx; border: none; line-height: 1.2;
 }
+.btn-group { display: flex; gap: 16rpx; align-items: center; }
 
 .search-section { margin-bottom: 20rpx; }
 .filter-row { display: flex; }

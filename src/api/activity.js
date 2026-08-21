@@ -93,3 +93,8 @@ export function duplicateActivity(activityDocumentId) {
 export function generateSeries(documentId, count) {
   return post(`${ADMIN}/series/${documentId}/generate?count=${count}`)
 }
+
+// 活动日历聚合（按月，管理端全状态；返回原始体 { data: { days: [{ date, activities }] } }）
+export function getAdminActivityCalendar(month) {
+  return get(`${ADMIN}/activities/calendar?month=${month}`)
+}

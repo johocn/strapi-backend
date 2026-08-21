@@ -588,6 +588,7 @@
     { "path": "pages/wealth/holding/detail", "style": { "navigationBarTitleText": "持仓详情" } },
     { "path": "pages/wealth/disclosure/index", "style": { "navigationBarTitleText": "披露管理" } },
     { "path": "pages/activity/list", "style": { "navigationBarTitleText": "线下活动" } },
+    { "path": "pages/activity/calendar", "style": { "navigationBarTitleText": "活动日历" } },
     { "path": "pages/activity/form", "style": { "navigationBarTitleText": "活动编辑" } },
     { "path": "pages/activity/signups", "style": { "navigationBarTitleText": "报名名单" } },
     { "path": "pages/activity/scan", "style": { "navigationBarTitleText": "扫码核销" } },
