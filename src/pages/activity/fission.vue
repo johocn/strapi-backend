@@ -38,8 +38,8 @@
           <view class="board-info">
             <text class="board-name">{{ shareName(row) }}</text>
             <view class="board-stats">
-              <text class="stat-item">带来报名: {{ row.signupCount ?? '-' }}</text>
-              <text class="stat-item">发放积分: {{ row.points ?? '-' }}</text>
+              <text class="stat-item">带来报名: {{ row.inviteeCount ?? '-' }}</text>
+              <text class="stat-item">发放积分: {{ row.totalPoints ?? '-' }}</text>
             </view>
           </view>
           <text class="board-toggle">{{ expandedKey === row.key ? '收起' : '详情' }}</text>
@@ -48,7 +48,7 @@
           <view class="detail-item" v-for="(d, di) in row.details" :key="di">
             <text class="detail-main">{{ d.activity || '-' }}</text>
             <text class="detail-sub">
-              {{ d.points ?? 0 }} 积分 · {{ formatTime(d.time) }}
+              {{ d.points ?? 0 }} 积分 · {{ formatTime(d.issuedAt ?? d.time) }}
             </text>
           </view>
           <view v-if="!row.details || row.details.length === 0" class="detail-empty">暂无明细</view>
@@ -76,7 +76,7 @@ const loading = ref(false)
 const expandedKey = ref('')
 
 function shareName(row) {
-  return row.leaderName || row.shareName || row.sharerName || row.userName || row.name || (row.user?.name ?? '-')
+  return row.username || row.leaderName || row.shareName || row.sharerName || row.userName || row.name || (row.user?.name ?? '-')
 }
 
 function formatTime(v) {
@@ -89,6 +89,7 @@ function formatTime(v) {
 
 function normalizeRows(data) {
   if (Array.isArray(data)) return data
+  if (Array.isArray(data?.rows)) return data.rows
   if (data?.data && Array.isArray(data.data)) return data.data
   if (Array.isArray(data?.list)) return data.list
   if (Array.isArray(data?.records)) return data.records
