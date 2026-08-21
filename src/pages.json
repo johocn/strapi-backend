@@ -598,7 +598,8 @@
     { "path": "pages/series/form", "style": { "navigationBarTitleText": "系列编辑" } },
     { "path": "pages/msg/sopStats", "style": { "navigationBarTitleText": "SOP 触达报表" } },
     { "path": "pages/msg/repurchase", "style": { "navigationBarTitleText": "复购转化报表" } },
-    { "path": "pages/msg/courseD7", "style": { "navigationBarTitleText": "课程 D7 转化" } }
+    { "path": "pages/msg/courseD7", "style": { "navigationBarTitleText": "课程 D7 转化" } },
+    { "path": "pages/msg/courseCompletion", "style": { "navigationBarTitleText": "课程完课转化" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
