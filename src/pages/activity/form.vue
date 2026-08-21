@@ -248,6 +248,64 @@
       </view>
 
       <view class="form-section">
+        <view class="section-title">报名表单配置</view>
+        <view class="form-tip">报名时收集的字段（不配置则报名只填基础信息）</view>
+        <view v-for="(f, fi) in form.formConfig" :key="fi" class="fee-block">
+          <view class="fee-block-header">
+            <text class="fee-block-title">字段 {{ fi + 1 }}</text>
+            <button class="btn-link-danger" @click="removeFormField(fi)">删除</button>
+          </view>
+          <view class="form-row">
+            <view class="form-item half">
+              <text class="form-label">key</text>
+              <input type="text" v-model="f.key" placeholder="如 name" class="form-input" />
+            </view>
+            <view class="form-item half">
+              <text class="form-label">标签</text>
+              <input type="text" v-model="f.label" placeholder="如 姓名" class="form-input" />
+            </view>
+          </view>
+          <view class="form-row">
+            <view class="form-item half">
+              <text class="form-label">类型</text>
+              <picker mode="selector" :range="formTypeLabels" @change="handleFormTypeChange(fi, $event)">
+                <view class="picker-value">
+                  <text>{{ formTypeLabel(f.type) }}</text>
+                  <text class="picker-arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+            <view class="form-item half">
+              <text class="form-label">必填</text>
+              <view class="radio-row">
+                <text :class="['radio-opt', { on: f.required }]" @click="f.required = true">是</text>
+                <text :class="['radio-opt', { on: !f.required }]" @click="f.required = false">否</text>
+              </view>
+            </view>
+          </view>
+          <view v-if="f.type === 'number'" class="form-row">
+            <view class="form-item half">
+              <text class="form-label">最小值</text>
+              <input type="number" v-model="f.min" class="form-input" />
+            </view>
+            <view class="form-item half">
+              <text class="form-label">最大值</text>
+              <input type="number" v-model="f.max" class="form-input" />
+            </view>
+          </view>
+          <view v-if="f.type === 'radio' || f.type === 'select' || f.type === 'multi'" class="form-item fee-field">
+            <text class="form-label">选项</text>
+            <view v-for="(o, oi) in f.options" :key="oi" class="opt-row">
+              <input type="text" v-model="f.options[oi]" placeholder="选项内容" class="form-input" />
+              <text class="opt-del" @click="removeFormOption(fi, oi)">✕</text>
+            </view>
+            <button class="btn-add" @click="addFormOption(fi)">添加选项</button>
+          </view>
+        </view>
+        <button class="btn-add" @click="addFormField">添加字段</button>
+      </view>
+
+      <view class="form-section">
         <view class="section-title">核销与会场定位</view>
 
         <view class="form-item">
@@ -337,7 +395,8 @@ const form = reactive({
   geoEnforced: false,
   geoRadiusM: 500,
   shareRewardPoints: 0,
-  status: 'draft'
+  status: 'draft',
+  formConfig: []
 })
 
 const checkinModeValues = ['both', 'self', 'worker_scan']
@@ -355,6 +414,9 @@ const feeIndex = ref(0)
 const pricingModeValues = ['flat', 'tier', 'factor']
 const pricingModeLabels = ['单一价', '档位列表', '因子叠加']
 const pricingModeIndex = ref(0)
+
+const formTypeValues = ['text', 'phone', 'textarea', 'radio', 'select', 'multi', 'number']
+const formTypeLabels = ['文本', '手机号', '多行文本', '单选', '下拉', '多选', '数字']
 
 const factorTypeValues = ['window_discount', 'window_upcharge', 'segment_discount_percent', 'flat_discount_amount']
 const factorTypeLabels = ['窗口折扣', '窗口加价', '分段折扣百分比', '固定折扣额']
@@ -440,6 +502,26 @@ function removeFactor(fi) {
   form.feeFactors.factors.splice(fi, 1)
 }
 
+function addFormField() {
+  form.formConfig.push({ key: '', label: '', type: 'text', required: false, options: [], min: undefined, max: undefined })
+}
+function removeFormField(fi) {
+  form.formConfig.splice(fi, 1)
+}
+function handleFormTypeChange(fi, e) {
+  form.formConfig[fi].type = formTypeValues[Number(e.detail.value)]
+}
+function addFormOption(fi) {
+  form.formConfig[fi].options.push('')
+}
+function removeFormOption(fi, oi) {
+  form.formConfig[fi].options.splice(oi, 1)
+}
+function formTypeLabel(t) {
+  const idx = formTypeValues.indexOf(t)
+  return idx >= 0 ? formTypeLabels[idx] : t
+}
+
 async function loadSeries() {
   try {
     const res = await listSeries({ page: 1, pageSize: 200 })
@@ -486,7 +568,8 @@ async function loadDetail() {
       pricingMode: data.pricingMode || 'flat',
       shareRewardPoints: data.shareRewardPoints ?? 0,
       feeTiers: data.feeTiers || [],
-      feeFactors: data.feeFactors || { base: 0, factors: [] }
+      feeFactors: data.feeFactors || { base: 0, factors: [] },
+      formConfig: data.formConfig || []
     })
     form.belongsToSeries = data.belongsToSeries || data.series || ''
     syncIndexes()
@@ -523,6 +606,7 @@ async function handleSubmit() {
     pricingMode: form.pricingMode,
     feeTiers: form.feeTiers,
     feeFactors: form.feeFactors,
+    formConfig: form.formConfig,
     status: form.status
   }
   // 清理空 datetime，避免后端校验空字符串
@@ -585,4 +669,10 @@ onMounted(() => { loadDetail(); loadSeries() })
 .fee-field { margin-top: 20rpx; }
 .btn-add { width: 100%; height: 76rpx; border: 1rpx dashed #667eea; color: #667eea; background: transparent; border-radius: 12rpx; font-size: 28rpx; }
 .btn-link-danger { background: transparent; color: #ff4d4f; border: none; font-size: 26rpx; padding: 0; line-height: 1; }
+.form-tip { font-size: 24rpx; color: #999; margin: -8rpx 0 20rpx; }
+.radio-row { display: flex; gap: 24rpx; align-items: center; }
+.radio-opt { font-size: 26rpx; color: #999; padding: 6rpx 24rpx; border: 1rpx solid #ddd; border-radius: 20rpx; }
+.radio-opt.on { color: #667eea; border-color: #667eea; background: rgba(102,126,234,.08); }
+.opt-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 12rpx; }
+.opt-del { color: #ff4d4f; padding: 0 8rpx; font-size: 28rpx; }
 </style>
