@@ -63,6 +63,21 @@
           <input type="number" v-model="form.capacity" placeholder="默认100" class="form-input" />
         </view>
 
+        <view class="form-item">
+          <text class="form-label">积分价</text>
+          <input type="number" v-model="form.pointsCost" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">计费点</text>
+          <picker mode="selector" :range="feeLabels" @change="handleFeeChange">
+            <view class="picker-value">
+              <text>{{ feeLabels[feeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
         <view class="form-row">
           <view class="form-item half">
             <text class="form-label">报名开始</text>
@@ -166,6 +181,8 @@ const form = reactive({
   usedCapacity: 0,
   signupStart: '',
   signupEnd: '',
+  pointsCost: 0,
+  feeCollectAt: 'signup',
   checkinMode: 'both',
   geoEnforced: false,
   geoRadiusM: 500,
@@ -180,6 +197,9 @@ const statusValues = ['draft', 'signup_open', 'ongoing', 'ended']
 const statusOptions = ['草稿', '报名中', '进行中', '已结束']
 const statusIndex = ref(0)
 
+const feeValues = ['signup', 'checkin']
+const feeLabels = ['报名时扣费', '签到时收费']
+const feeIndex = ref(0)
 const isFormLoaded = ref(false)
 
 function fmtDate(v) {
@@ -200,6 +220,10 @@ function handleCheckinModeChange(e) {
 function handleStatusChange(e) {
   statusIndex.value = Number(e.detail.value)
   form.status = statusValues[statusIndex.value]
+}
+function handleFeeChange(e) {
+  feeIndex.value = Number(e.detail.value)
+  form.feeCollectAt = feeValues[feeIndex.value]
 }
 function handleSeriesChange(e) {
   seriesIndex.value = Number(e.detail.value)
@@ -224,6 +248,7 @@ function syncSeriesIndex() {
 function syncIndexes() {
   checkinModeIndex.value = Math.max(0, checkinModeValues.indexOf(form.checkinMode))
   statusIndex.value = Math.max(0, statusValues.indexOf(form.status))
+  feeIndex.value = Math.max(0, feeValues.indexOf(form.feeCollectAt))
 }
 
 async function loadDetail() {
@@ -241,6 +266,8 @@ async function loadDetail() {
       signupEnd: fmtDate(data.signupEnd),
       capacity: data.capacity ?? 100,
       usedCapacity: data.usedCapacity ?? 0,
+      pointsCost: Number(data.pointsCost || 0),
+      feeCollectAt: data.feeCollectAt || 'signup',
       geoEnforced: data.geoEnforced === true,
       geoRadiusM: data.geoRadiusM ?? 500,
       checkinMode: data.checkinMode || 'both',
@@ -275,6 +302,8 @@ async function handleSubmit() {
     checkinMode: form.checkinMode,
     geoEnforced: form.geoEnforced,
     geoRadiusM: Number(form.geoRadiusM) || 0,
+    pointsCost: Number(form.pointsCost) || 0,
+    feeCollectAt: form.feeCollectAt,
     status: form.status
   }
   // 清理空 datetime，避免后端校验空字符串

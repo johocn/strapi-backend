@@ -75,6 +75,55 @@
           </picker>
         </view>
       </view>
+
+      <view class="form-section">
+        <view class="section-title">默认报名/签到规则（场次继承，可单场覆盖）</view>
+
+        <view class="form-item">
+          <text class="form-label">默认容量</text>
+          <input type="number" v-model="dr.capacity" placeholder="默认100" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">提前报名天数</text>
+          <input type="number" v-model="dr.signupOpenDays" placeholder="默认0" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">积分价</text>
+          <input type="number" v-model="dr.pointsCost" placeholder="0=免费" class="form-input" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">计费点</text>
+          <picker mode="selector" :range="drFeeLabels" @change="handleDrFeeChange">
+            <view class="picker-value">
+              <text>{{ drFeeLabels[drFeeIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">签到模式</text>
+          <picker mode="selector" :range="drCheckinLabels" @change="handleDrCheckinChange">
+            <view class="picker-value">
+              <text>{{ drCheckinLabels[drCheckinIndex] }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">启用地理围栏</text>
+          <switch :checked="dr.geoEnforced" @change="dr.geoEnforced = !dr.geoEnforced" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">地理围栏半径（米）</text>
+          <input type="number" v-model="dr.geoRadiusM" placeholder="默认500" class="form-input" />
+        </view>
+      </view>
     </scroll-view>
 
     <view class="bottom-action">
@@ -108,9 +157,26 @@ const schedule = reactive({
   generateWeeks: 4
 })
 
+const dr = reactive({
+  capacity: 100,
+  signupOpenDays: 0,
+  checkinMode: 'both',
+  geoEnforced: false,
+  geoRadiusM: 500,
+  pointsCost: 0,
+  feeCollectAt: 'signup'
+})
+
 const statusValues = ['active', 'hidden']
 const statusOptions = ['启用', '隐藏']
 const statusIndex = ref(0)
+
+const drFeeValues = ['signup', 'checkin']
+const drFeeLabels = ['报名时扣费', '签到时收费']
+const drFeeIndex = ref(0)
+const drCheckinValues = ['both', 'self', 'worker_scan']
+const drCheckinLabels = ['双方自由核销', '自助核销', '工作人员扫码']
+const drCheckinIndex = ref(0)
 
 const isFormLoaded = ref(false)
 
@@ -120,6 +186,19 @@ function handleWeekdayChange(e) {
 function handleStatusChange(e) {
   statusIndex.value = Number(e.detail.value)
   form.status = statusValues[statusIndex.value]
+}
+function handleDrFeeChange(e) {
+  drFeeIndex.value = Number(e.detail.value)
+  dr.feeCollectAt = drFeeValues[drFeeIndex.value]
+}
+function handleDrCheckinChange(e) {
+  drCheckinIndex.value = Number(e.detail.value)
+  dr.checkinMode = drCheckinValues[drCheckinIndex.value]
+}
+
+function syncDrIndexes() {
+  drFeeIndex.value = Math.max(0, drFeeValues.indexOf(dr.feeCollectAt))
+  drCheckinIndex.value = Math.max(0, drCheckinValues.indexOf(dr.checkinMode))
 }
 
 async function loadDetail() {
@@ -143,6 +222,8 @@ async function loadDetail() {
     schedule.durationMin = s.durationMin ?? 60
     schedule.generateWeeks = s.generateWeeks ?? 4
     statusIndex.value = Math.max(0, statusValues.indexOf(form.status))
+    Object.assign(dr, data.defaultRules || {})
+    syncDrIndexes()
   } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -169,7 +250,8 @@ async function handleSubmit() {
     cover: form.cover || undefined,
     sortOrder: Number(form.sortOrder) || 0,
     status: form.status,
-    schedule: buildSubmitSchedule()
+    schedule: buildSubmitSchedule(),
+    defaultRules: { ...dr }
   }
 
   uni.showLoading({ title: '保存中...' })
