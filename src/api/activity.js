@@ -108,3 +108,8 @@ export function getShareLeaderboard(params = {}) {
 export function getActivityReviews(params = {}) {
   return get(`${ADMIN}/activity-reviews`, params)
 }
+
+// 活动效果总览（返回原始体 { data: { summary, rows }, meta }；?status=all|draft|signup_open|ongoing|ended）
+export function getActivityOverview(params = {}) {
+  return get(`${ADMIN}/activity-overview`, params)
+}
