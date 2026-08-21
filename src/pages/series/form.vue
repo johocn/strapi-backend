@@ -90,6 +90,11 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">分享奖励积分（下线报名给分享者的积分）</text>
+          <input type="number" v-model="dr.shareRewardPoints" placeholder="0=不奖励" class="form-input" />
+        </view>
+
+        <view class="form-item">
           <text class="form-label">计费模式</text>
           <picker mode="selector" :range="pricingModeLabels" @change="handleDrPricingModeChange">
             <view class="picker-value">
@@ -306,6 +311,7 @@ const dr = reactive({
   geoEnforced: false,
   geoRadiusM: 500,
   pointsCost: 0,
+  shareRewardPoints: 0,
   feeCollectAt: 'signup',
   pricingMode: 'flat',
   feeTiers: [],

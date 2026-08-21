@@ -240,6 +240,11 @@
             </picker>
           </view>
         </view>
+
+        <view class="form-item">
+          <text class="form-label">分享奖励积分（下线报名给分享者的积分）</text>
+          <input type="number" v-model="form.shareRewardPoints" placeholder="0=不奖励" class="form-input" />
+        </view>
       </view>
 
       <view class="form-section">
@@ -331,6 +336,7 @@ const form = reactive({
   checkinMode: 'both',
   geoEnforced: false,
   geoRadiusM: 500,
+  shareRewardPoints: 0,
   status: 'draft'
 })
 
@@ -478,6 +484,7 @@ async function loadDetail() {
       checkinMode: data.checkinMode || 'both',
       status: data.status || 'draft',
       pricingMode: data.pricingMode || 'flat',
+      shareRewardPoints: data.shareRewardPoints ?? 0,
       feeTiers: data.feeTiers || [],
       feeFactors: data.feeFactors || { base: 0, factors: [] }
     })
@@ -511,6 +518,7 @@ async function handleSubmit() {
     geoEnforced: form.geoEnforced,
     geoRadiusM: Number(form.geoRadiusM) || 0,
     pointsCost: Number(form.pointsCost) || 0,
+    shareRewardPoints: Number(form.shareRewardPoints) || 0,
     feeCollectAt: form.feeCollectAt,
     pricingMode: form.pricingMode,
     feeTiers: form.feeTiers,

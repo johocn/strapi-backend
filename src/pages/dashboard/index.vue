@@ -517,6 +517,14 @@
           <view class="module-icon">🎪</view>
           <view class="module-name">活动系列</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/activity/list')">
+          <view class="module-icon">📋</view>
+          <view class="module-name">线下活动</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/activity/fission')">
+          <view class="module-icon">🏆</view>
+          <view class="module-name">裂变榜</view>
+        </view>
       </view>
     </view>
 

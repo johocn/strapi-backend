@@ -98,3 +98,8 @@ export function generateSeries(documentId, count) {
 export function getAdminActivityCalendar(month) {
   return get(`${ADMIN}/activities/calendar?month=${month}`)
 }
+
+// 裂变榜（分享奖励排行；start/end 时间范围可筛）
+export function getShareLeaderboard(params = {}) {
+  return get(`${ADMIN}/activity-share/leaderboard`, params)
+}
