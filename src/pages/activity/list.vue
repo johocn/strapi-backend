@@ -32,6 +32,7 @@
         </view>
         <view class="card-actions">
           <view class="action-btn" @click="goEdit(item)">编辑</view>
+          <view class="action-btn" @click="goDuplicate(item)">复制</view>
           <view class="action-btn" @click="goSignups(item)">到场名单</view>
           <view class="action-btn" @click="goScan(item)">扫码核销</view>
           <view class="action-btn danger" @click="confirmDelete(item)">删除</view>
@@ -72,7 +73,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { listActivities, deleteActivity } from '../../api/activity.js'
+import { listActivities, deleteActivity, duplicateActivity } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const statusOptions = ['全部状态', '草稿', '报名中', '进行中', '已结束']
@@ -131,6 +132,15 @@ function goEdit(item) {
 }
 function goSignups(item) {
   uni.navigateTo({ url: `/pages/activity/signups?id=${item.documentId}` })
+}
+async function goDuplicate(item) {
+  try {
+    await duplicateActivity(item.documentId)
+    uni.showToast({ title: '复制成功', icon: 'success' })
+    loadData(currentPage.value)
+  } catch (e) {
+    uni.showToast({ title: '复制失败', icon: 'none' })
+  }
 }
 function goScan(item) {
   uni.navigateTo({ url: `/pages/activity/scan?id=${item.documentId}` })

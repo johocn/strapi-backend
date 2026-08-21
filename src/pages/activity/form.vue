@@ -23,6 +23,16 @@
           <input type="text" v-model="form.venueName" placeholder="请输入场地名称" class="form-input" />
         </view>
 
+        <view class="form-item">
+          <text class="form-label">所属系列</text>
+          <picker mode="selector" :range="seriesNames" @change="handleSeriesChange">
+            <view class="picker-value">
+              <text class="picker-placeholder" :class="{ empty: !form.belongsToSeries }">{{ seriesNames[seriesIndex] || '不归属系列' }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
         <view class="form-row">
           <view class="form-item half">
             <text class="form-label">开始时间</text>
@@ -131,13 +141,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivity, createActivity, updateActivity } from '../../api/activity.js'
+import { getActivity, createActivity, updateActivity, listSeries } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const isEdit = ref(false)
 const activityId = ref('')
+
+const seriesList = ref([])
+const seriesNames = computed(() => ['不归属系列', ...seriesList.value.map(s => s.title || '未命名系列')])
+const seriesIndex = ref(0)
 
 const form = reactive({
   title: '',
@@ -145,6 +159,7 @@ const form = reactive({
   startTime: '',
   endTime: '',
   venueName: '',
+  belongsToSeries: '',
   lat: '',
   lng: '',
   capacity: 100,
@@ -186,6 +201,25 @@ function handleStatusChange(e) {
   statusIndex.value = Number(e.detail.value)
   form.status = statusValues[statusIndex.value]
 }
+function handleSeriesChange(e) {
+  seriesIndex.value = Number(e.detail.value)
+  form.belongsToSeries = seriesIndex.value === 0 ? '' : (seriesList.value[seriesIndex.value - 1]?.documentId || '')
+}
+
+async function loadSeries() {
+  try {
+    const res = await listSeries({ page: 1, pageSize: 200 })
+    seriesList.value = res.list || []
+    syncSeriesIndex()
+  } catch (e) {
+    seriesList.value = []
+  }
+}
+
+function syncSeriesIndex() {
+  const idx = seriesList.value.findIndex(s => s.documentId === form.belongsToSeries)
+  seriesIndex.value = idx >= 0 ? idx + 1 : 0
+}
 
 function syncIndexes() {
   checkinModeIndex.value = Math.max(0, checkinModeValues.indexOf(form.checkinMode))
@@ -212,7 +246,9 @@ async function loadDetail() {
       checkinMode: data.checkinMode || 'both',
       status: data.status || 'draft'
     })
+    form.belongsToSeries = data.belongsToSeries || data.series || ''
     syncIndexes()
+    syncSeriesIndex()
   } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -228,6 +264,7 @@ async function handleSubmit() {
     title: form.title,
     description: form.description || undefined,
     venueName: form.venueName || undefined,
+    belongsToSeries: form.belongsToSeries || undefined,
     lat: form.lat === '' ? undefined : Number(form.lat),
     lng: form.lng === '' ? undefined : Number(form.lng),
     capacity: Number(form.capacity),
@@ -270,7 +307,7 @@ onLoad((options) => {
     activityId.value = options.id
   }
 })
-onMounted(() => { loadDetail() })
+onMounted(() => { loadDetail(); loadSeries() })
 </script>
 
 <style scoped>
@@ -290,6 +327,7 @@ onMounted(() => { loadDetail() })
 .form-input { width: 100%; height: 80rpx; border: 1rpx solid #ddd; border-radius: 10rpx; padding: 0 20rpx; font-size: 28rpx; box-sizing: border-box; }
 .form-textarea { width: 100%; height: 160rpx; border: 1rpx solid #ddd; border-radius: 10rpx; padding: 20rpx; font-size: 28rpx; box-sizing: border-box; }
 .picker-value { display: flex; justify-content: space-between; align-items: center; height: 80rpx; border: 1rpx solid #ddd; border-radius: 10rpx; padding: 0 20rpx; font-size: 28rpx; }
+.picker-placeholder.empty { color: #999; }
 .picker-arrow { font-size: 20rpx; color: #999; }
 .bottom-action { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx 30rpx; background: #fff; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1); }
 .btn-save { width: 100%; height: 90rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 45rpx; font-size: 32rpx; font-weight: bold; }

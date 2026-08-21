@@ -590,7 +590,9 @@
     { "path": "pages/activity/list", "style": { "navigationBarTitleText": "线下活动" } },
     { "path": "pages/activity/form", "style": { "navigationBarTitleText": "活动编辑" } },
     { "path": "pages/activity/signups", "style": { "navigationBarTitleText": "报名名单" } },
-    { "path": "pages/activity/scan", "style": { "navigationBarTitleText": "扫码核销" } }
+    { "path": "pages/activity/scan", "style": { "navigationBarTitleText": "扫码核销" } },
+    { "path": "pages/series/list", "style": { "navigationBarTitleText": "活动系列" } },
+    { "path": "pages/series/form", "style": { "navigationBarTitleText": "系列编辑" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

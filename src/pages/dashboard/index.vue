@@ -509,6 +509,17 @@
       </view>
     </view>
 
+    <!-- 活动管理 -->
+    <view class="module-section">
+      <view class="section-title">🎪 活动管理</view>
+      <view class="module-grid">
+        <view class="module-item" @click="navigateTo('/pages/series/list')">
+          <view class="module-icon">🎪</view>
+          <view class="module-name">活动系列</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 系统工具 -->
     <view class="module-section" v-if="hasPermission('menu.system-center')">
       <view class="section-title">🔧 系统工具</view>

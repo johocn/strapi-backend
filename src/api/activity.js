@@ -56,3 +56,40 @@ export function scanCheckin(documentId, data) {
 export function getActivityAttendance(documentId) {
   return get(`${ADMIN}/activities/${documentId}/attendance`).then(extractList)
 }
+
+// ===== 活动系列 =====
+
+export function listSeries(params = {}) {
+  return get(`${ADMIN}/series`, params).then(extractList)
+}
+
+export function getSeries(documentId) {
+  return get(`${ADMIN}/series/${documentId}`).then(extractItem)
+}
+
+export function createSeries(data) {
+  return post(`${ADMIN}/series`, data).then(extractItem)
+}
+
+export function updateSeries(documentId, data) {
+  return put(`${ADMIN}/series/${documentId}`, data).then(extractItem)
+}
+
+export function deleteSeries(documentId) {
+  return del(`${ADMIN}/series/${documentId}`).then(extractItem)
+}
+
+// 系列下全部场次（无 query 参数）
+export function getSeriesActivities(documentId) {
+  return get(`${ADMIN}/series/${documentId}/activities`).then(extractList)
+}
+
+// 复制场次，返回新建的一场
+export function duplicateActivity(activityDocumentId) {
+  return post(`${ADMIN}/activities/${activityDocumentId}/duplicate`).then(extractItem)
+}
+
+// 按排期规则批量生成 count 场草稿（count 走 query）
+export function generateSeries(documentId, count) {
+  return post(`${ADMIN}/series/${documentId}/generate?count=${count}`)
+}
