@@ -14,14 +14,17 @@
         <view v-for="item in signupList" :key="item.id || item.documentId" class="card">
           <view class="card-header">
             <text class="user-name">{{ item.user?.nickname || item.user?.username || `用户#${item.user?.id}` }}</text>
-            <text class="status-badge" :class="item.status === 'active' ? 'active' : 'cancelled'">
-              {{ item.status === 'active' ? '已报名' : '已取消' }}
+            <text class="status-badge" :class="item.status === 'active' ? 'active' : item.status === 'waiting' ? 'waiting' : 'cancelled'">
+              {{ item.status === 'active' ? '已报名' : item.status === 'waiting' ? '候补中' : '已取消' }}
             </text>
             <text v-if="item.attendedAt" class="status-badge checked">已到场</text>
           </view>
           <view class="card-meta">
             <text class="meta-item">用户ID: {{ item.user?.id || '-' }}</text>
             <text class="meta-item">报名时间: {{ formatTime(item.signupAt) }}</text>
+          </view>
+          <view v-if="item.status === 'waiting'" class="card-actions">
+            <view class="remove-btn" @click="removeWaiting(item)"><text>移出候补</text></view>
           </view>
         </view>
         <view v-if="signupList.length === 0" class="empty-state">
@@ -58,7 +61,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivitySignups, getActivityAttendance } from '../../api/activity.js'
+import { getActivitySignups, getActivityAttendance, cancelActivitySignup } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activityId = ref('')
@@ -116,6 +119,28 @@ function switchTab(tab) {
   }
 }
 
+async function removeWaiting(item) {
+  uni.showModal({
+    title: '移出候补',
+    content: '确定将该用户移出候补名单吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          const r = await cancelActivitySignup(activityId.value, item.id)
+          if (r?.ok === false) {
+            uni.showToast({ title: '仅可移出候补', icon: 'none' })
+          } else {
+            uni.showToast({ title: '已移出', icon: 'success' })
+          }
+          loadSignups()
+        } catch (e) {
+          uni.showToast({ title: '操作失败', icon: 'none' })
+        }
+      }
+    },
+  })
+}
+
 onLoad((options) => {
   if (options.id) {
     activityId.value = options.id
@@ -139,9 +164,12 @@ page { background: #f5f5f5; }
 .status-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; }
 .status-badge.active { background: #e6f7ff; color: #1890ff; }
 .status-badge.cancelled { background: #f5f5f5; color: #999; }
+.status-badge.waiting { background: #fff7e6; color: #fa8c16; }
 .status-badge.checked { background: #f6ffed; color: #52c41a; }
 .card-meta { display: flex; gap: 16rpx; flex-wrap: wrap; }
 .meta-item { font-size: 24rpx; color: #999; }
+.card-actions { margin-top: 16rpx; text-align: right; }
+.remove-btn { display: inline-block; font-size: 24rpx; color: #ff4d4f; border: 1rpx solid #ff4d4f; border-radius: 8rpx; padding: 6rpx 20rpx; }
 
 .loading { text-align: center; padding: 60rpx 0; color: #999; }
 .empty-state { text-align: center; padding: 80rpx 0; }

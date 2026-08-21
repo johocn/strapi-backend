@@ -41,6 +41,11 @@ export function getActivitySignups(documentId) {
   return get(`${ADMIN}/activities/${documentId}/signups`).then(extractList)
 }
 
+// 移出候补（仅 waiting 可移出；不改动名额）
+export function cancelActivitySignup(documentId, signupId) {
+  return post(`${ADMIN}/activities/${documentId}/signups/${signupId}/cancel`)
+}
+
 // 扫码核销到场（成功返回 {ok:true,...}；已签过返回 {ok:false,reason:'already_checked_in'}；未报名 400）
 export function scanCheckin(documentId, data) {
   // 不走 extractItem，保留 ok/ reason 字段供页面区分结果类型
