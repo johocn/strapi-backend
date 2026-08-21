@@ -593,6 +593,7 @@
     { "path": "pages/activity/signups", "style": { "navigationBarTitleText": "报名名单" } },
     { "path": "pages/activity/scan", "style": { "navigationBarTitleText": "扫码核销" } },
     { "path": "pages/activity/fission", "style": { "navigationBarTitleText": "裂变榜" } },
+    { "path": "pages/activity/review", "style": { "navigationBarTitleText": "活动评价" } },
     { "path": "pages/series/list", "style": { "navigationBarTitleText": "活动系列" } },
     { "path": "pages/series/form", "style": { "navigationBarTitleText": "系列编辑" } }
   ],

@@ -525,6 +525,10 @@
           <view class="module-icon">🏆</view>
           <view class="module-name">裂变榜</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/activity/review')">
+          <view class="module-icon">⭐</view>
+          <view class="module-name">活动评价</view>
+        </view>
       </view>
     </view>
 
