@@ -23,6 +23,18 @@
             <text class="meta-item">用户ID: {{ item.user?.id || '-' }}</text>
             <text class="meta-item">报名时间: {{ formatTime(item.signupAt) }}</text>
           </view>
+          <view v-if="item.formData && formFieldList(item).length" class="card-form" @click.stop>
+            <view class="card-form-head" @click="toggleForm(item.id || item.documentId)">
+              <text>报名信息</text>
+              <text class="form-toggle">{{ expandedForm === (item.id || item.documentId) ? '收起' : '展开' }}</text>
+            </view>
+            <view v-if="expandedForm === (item.id || item.documentId)" class="form-fields">
+              <view v-for="fd in formFieldList(item)" :key="fd.key" class="form-field-row">
+                <text class="ff-label">{{ fd.label }}</text>
+                <text class="ff-value">{{ fd.value }}</text>
+              </view>
+            </view>
+          </view>
           <view v-if="item.status === 'waiting'" class="card-actions">
             <view class="remove-btn" @click="removeWaiting(item)"><text>移出候补</text></view>
           </view>
@@ -61,7 +73,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivitySignups, getActivityAttendance, cancelActivitySignup } from '../../api/activity.js'
+import { getActivitySignups, getActivityAttendance, cancelActivitySignup, getActivity } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activityId = ref('')
@@ -70,6 +82,8 @@ const signupList = ref([])
 const attendanceList = ref([])
 const loadingSignup = ref(false)
 const loadingAttendance = ref(false)
+const formConfig = ref([])
+const expandedForm = ref('')
 
 function formatTime(dateStr) {
   if (!dateStr) return '-'
@@ -110,6 +124,29 @@ async function loadAttendance() {
   }
 }
 
+async function loadFormConfig() {
+  try {
+    const act = await getActivity(activityId.value)
+    formConfig.value = Array.isArray(act?.formConfig) ? act.formConfig : []
+  } catch (e) {
+    formConfig.value = []
+  }
+}
+
+function formFieldList(item) {
+  const fd = item.formData && typeof item.formData === 'object' ? item.formData : {}
+  return (formConfig.value || []).filter(f => f?.key && fd[f.key] !== undefined && fd[f.key] !== null && fd[f.key] !== '')
+    .map(f => ({
+      key: f.key,
+      label: f.label || f.key,
+      value: Array.isArray(fd[f.key]) ? fd[f.key].join('、') : String(fd[f.key]),
+    }))
+}
+
+function toggleForm(k) {
+  expandedForm.value = expandedForm.value === k ? '' : k
+}
+
 function switchTab(tab) {
   activeTab.value = tab
   if (tab === 'signup') {
@@ -145,6 +182,7 @@ onLoad((options) => {
   if (options.id) {
     activityId.value = options.id
     loadSignups()
+    loadFormConfig()
   }
 })
 </script>
@@ -174,4 +212,11 @@ page { background: #f5f5f5; }
 .loading { text-align: center; padding: 60rpx 0; color: #999; }
 .empty-state { text-align: center; padding: 80rpx 0; }
 .empty-text { font-size: 28rpx; color: #999; }
+.card-form { margin-top: 16rpx; border-top: 1rpx solid #f0f0f0; padding-top: 12rpx; }
+.card-form-head { display: flex; justify-content: space-between; font-size: 26rpx; color: #333; }
+.form-toggle { color: #667eea; }
+.form-fields { margin-top: 12rpx; }
+.form-field-row { display: flex; justify-content: space-between; gap: 20rpx; padding: 8rpx 0; font-size: 26rpx; }
+.ff-label { color: #999; flex-shrink: 0; }
+.ff-value { color: #333; text-align: right; word-break: break-all; }
 </style>
