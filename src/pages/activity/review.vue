@@ -64,6 +64,31 @@
       </view>
     </view>
 
+    <!-- 评分均值趋势（按周，最近12周） -->
+    <view v-if="summary && summary.trend && summary.trend.length" class="trend-section">
+      <text class="trend-title">评分趋势（按周）</text>
+      <view v-for="tp in summary.trend" :key="tp.weekLabel" class="trend-row">
+        <text class="trend-week">{{ tp.weekLabel.slice(5) }}</text>
+        <text class="trend-count">{{ tp.count }}条</text>
+        <view class="trend-track">
+          <view class="trend-fill" :style="{ width: ratingWidth(tp.avgRating) + '%' }"></view>
+        </view>
+        <text class="trend-rating">{{ tp.avgRating ?? '-' }}分</text>
+        <text class="trend-nps">NPS {{ tp.avgNps ?? '-' }}</text>
+      </view>
+    </view>
+
+    <!-- 评价关键词（词频 Top） -->
+    <view v-if="summary && summary.keywords && summary.keywords.length" class="kw-section">
+      <text class="kw-title">评价关键词</text>
+      <view class="kw-cloud">
+        <view v-for="(k, i) in summary.keywords" :key="k.text" class="kw-chip" :class="'kw-lv' + kwLevel(i)">
+          <text class="kw-text">{{ k.text }}</text>
+          <text class="kw-count">{{ k.value }}</text>
+        </view>
+      </view>
+    </view>
+
     <view class="review-list" v-if="!loading && rows.length > 0">
       <view v-for="row in rows" :key="row.id" class="review-card">
         <view class="review-head">
@@ -130,6 +155,19 @@ const distRows = computed(() => {
 function distPercent(star) {
   const row = distRows.value.find(r => r.star === star)
   return row ? Math.round((row.count / maxDist.value) * 100) : 0
+}
+
+// 趋势条宽度（0~5 分映射到百分比）
+function ratingWidth(r) {
+  if (r == null) return 0
+  return Math.round(Math.max(0, Math.min(5, r)) / 5 * 100)
+}
+
+// 关键词层级：按词频排序位次放大字号（前3/前6/其余）
+function kwLevel(i) {
+  if (i < 3) return 3
+  if (i < 6) return 2
+  return 1
 }
 
 function npsClass(score) {
@@ -234,6 +272,30 @@ page { background: #f5f5f5; }
 .dist-track { flex: 1; height: 32rpx; background: #f5f5f5; border-radius: 16rpx; margin: 0 20rpx; overflow: hidden; }
 .dist-fill { height: 100%; border-radius: 16rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-width: 8rpx; }
 .dist-count { width: 60rpx; font-size: 26rpx; font-weight: bold; color: #333; text-align: right; flex-shrink: 0; }
+
+.trend-section { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 20rpx; }
+.trend-title { display: block; font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 20rpx; }
+.trend-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; }
+.trend-row:last-child { margin-bottom: 0; }
+.trend-week { width: 90rpx; font-size: 24rpx; color: #666; flex-shrink: 0; }
+.trend-count { width: 64rpx; font-size: 22rpx; color: #999; flex-shrink: 0; }
+.trend-track { flex: 1; height: 28rpx; background: #f5f5f5; border-radius: 14rpx; overflow: hidden; }
+.trend-fill { height: 100%; border-radius: 14rpx; background: linear-gradient(90deg, #52c41a 0%, #fa8c16 100%); min-width: 6rpx; }
+.trend-rating { width: 70rpx; font-size: 26rpx; font-weight: bold; color: #333; text-align: right; flex-shrink: 0; }
+.trend-nps { width: 110rpx; font-size: 22rpx; color: #667eea; text-align: right; flex-shrink: 0; }
+
+.kw-section { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 20rpx; }
+.kw-title { display: block; font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 20rpx; }
+.kw-cloud { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.kw-chip {
+  display: inline-flex; align-items: center; gap: 8rpx;
+  padding: 8rpx 20rpx; border-radius: 32rpx; background: #f5f5f5;
+}
+.kw-text { color: #333; font-weight: bold; }
+.kw-count { color: #999; }
+.kw-lv3 .kw-text { font-size: 30rpx; }
+.kw-lv2 .kw-text { font-size: 26rpx; }
+.kw-lv1 .kw-text { font-size: 22rpx; }
 
 .review-list { display: flex; flex-direction: column; gap: 16rpx; }
 .review-card { background: #fff; border-radius: 12rpx; padding: 24rpx; }
