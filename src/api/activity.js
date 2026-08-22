@@ -127,3 +127,8 @@ export function getLedgers(params = {}) {
 export function regenerateLedger(activityDocumentId) {
   return post(`${LEDGER_ADMIN}/activities/${activityDocumentId}/ledger`)
 }
+
+// 标记台账快照已结算/回退未结（body:{settleStatus:'settled'|'pending'}）
+export function settleLedger(ledgerDocumentId, settleStatus) {
+  return put(`${LEDGER_ADMIN}/ledgers/${ledgerDocumentId}/settle`, { settleStatus })
+}

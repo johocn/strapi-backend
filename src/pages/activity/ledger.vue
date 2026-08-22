@@ -57,15 +57,34 @@
           </view>
         </view>
 
+        <view class="points-grid cash-grid">
+          <view class="point-item">
+            <text class="point-num">{{ row.cashRevenue ?? 0 }}</text>
+            <text class="point-label">现金应收</text>
+          </view>
+          <view class="point-item">
+            <text class="point-num">{{ row.cashExpense ?? 0 }}</text>
+            <text class="point-label">讲师/场地费</text>
+          </view>
+          <view class="point-item">
+            <text class="point-num net" :class="{ negative: (row.cashNet ?? 0) < 0 }">{{ row.cashNet ?? 0 }}</text>
+            <text class="point-label">现金净额</text>
+          </view>
+        </view>
+
         <view class="summary-row" v-if="row.summary">
           <text class="summary-item">报名 {{ row.summary.signupCount ?? 0 }}</text>
           <text class="summary-item">到场 {{ row.summary.attendedCount ?? 0 }}</text>
           <text class="summary-item">取消 {{ row.summary.cancelledCount ?? 0 }}</text>
           <text class="summary-item">候补 {{ row.summary.waitingCount ?? 0 }}</text>
+          <text class="summary-item" :class="row.settleStatus === 'settled' ? 'settled' : 'pending'">{{ row.settleStatus === 'settled' ? '已结算' : '待结算' }}</text>
         </view>
 
         <view class="board-actions">
           <view class="action-btn primary" @click="handleRegenerate(row)">手动重归档</view>
+          <view class="action-btn quiet" @click="handleSettle(row)">
+            {{ row.settleStatus === 'settled' ? '回退未结' : '标记已结算' }}
+          </view>
         </view>
 
         <view v-if="expandedKey === keyOf(row, idx)" class="board-detail">
@@ -83,6 +102,19 @@
           <view class="detail-item" v-for="(d, di) in row.detail?.referrals || []" :key="'r' + di">
             <text class="detail-main">邀请人 #{{ d.inviterId ?? '-' }}</text>
             <text class="detail-sub">{{ d.points ?? 0 }} 积分</text>
+          </view>
+          <view class="detail-sec">现金明细</view>
+          <view class="detail-item" v-if="row.detail?.cash">
+            <text class="detail-main">现金应收</text>
+            <text class="detail-sub">{{ row.detail.cash.revenuePer?.cashPrice ?? 0 }}元 × {{ row.detail.cash.revenuePer?.activeCount ?? 0 }}人</text>
+          </view>
+          <view class="detail-item" v-if="row.detail?.cash?.lecturer && row.detail.cash.lecturer.cost > 0">
+            <text class="detail-main">讲师费 {{ row.detail.cash.lecturer.source === 'activity' ? '(活动登记)' : (row.detail.cash.lecturer.source === 'lecturer' ? '(讲师主档)' : '(未配置)') }}</text>
+            <text class="detail-sub">¥{{ row.detail.cash.lecturer.cost }}</text>
+          </view>
+          <view class="detail-item" v-if="row.detail?.cash?.venue && row.detail.cash.venue.cost > 0">
+            <text class="detail-main">场地费 {{ row.detail.cash.venue.source === 'activity' ? '(活动登记)' : (row.detail.cash.venue.source === 'venue' ? '(场地主档)' : '(未配置)') }}</text>
+            <text class="detail-sub">¥{{ row.detail.cash.venue.cost }}</text>
           </view>
           <view v-if="isEmptyDetail(row)" class="detail-empty">暂无明细</view>
         </view>
@@ -105,7 +137,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getLedgers, regenerateLedger } from '../../api/activity.js'
+import { getLedgers, regenerateLedger, settleLedger } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activityFilter = ref('')
@@ -137,7 +169,7 @@ function toggleDetail(row, idx) {
 
 function isEmptyDetail(row) {
   const d = row.detail
-  return !d || (!(d.signups || []).length && !(d.attendees || []).length && !(d.referrals || []).length)
+  return !d || (!(d.signups || []).length && !(d.attendees || []).length && !(d.referrals || []).length && !d.cash)
 }
 
 function handleQuery() {
@@ -191,6 +223,31 @@ async function doRegenerate(row) {
   }
 }
 
+function handleSettle(row) {
+  const id = row.documentId
+  if (!id) {
+    uni.showToast({ title: '缺少快照ID，无法结算', icon: 'none' })
+    return
+  }
+  const next = row.settleStatus === 'settled' ? 'pending' : 'settled'
+  const text = next === 'settled' ? '标记该快照为已结算？' : '将该快照回退为未结？'
+  uni.showModal({
+    title: '结算登记',
+    content: text,
+    success: (res) => { if (res.confirm) doSettle(id, next) }
+  })
+}
+
+async function doSettle(id, next) {
+  try {
+    await settleLedger(id, next)
+    uni.showToast({ title: next === 'settled' ? '已标记结算' : '已回退未结', icon: 'success' })
+    loadData(currentPage.value)
+  } catch (e) {
+    uni.showToast({ title: e.message || '结算失败', icon: 'none' })
+  }
+}
+
 onMounted(() => loadData(1))
 </script>
 
@@ -228,6 +285,7 @@ page { background: #f5f5f5; }
 .board-toggle { font-size: 24rpx; color: #667eea; flex-shrink: 0; }
 
 .points-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12rpx; margin-top: 20rpx; background: #fafbfe; border-radius: 12rpx; padding: 16rpx 8rpx; }
+.points-grid.cash-grid { grid-template-columns: repeat(3, 1fr); margin-top: 8rpx; }
 .point-item { display: flex; flex-direction: column; align-items: center; gap: 6rpx; }
 .point-num { font-size: 30rpx; font-weight: bold; color: #333; }
 .point-num.positive { color: #52c41a; }
@@ -237,6 +295,8 @@ page { background: #f5f5f5; }
 
 .summary-row { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 16rpx; }
 .summary-item { font-size: 24rpx; color: #666; background: #f5f5f5; padding: 6rpx 16rpx; border-radius: 8rpx; }
+.summary-item.settled { color: #52c41a; background: #f0fff4; }
+.summary-item.pending { color: #fa8c16; background: #fffbe6; }
 
 .board-actions { display: flex; margin-top: 16rpx; }
 .action-btn {
@@ -244,6 +304,7 @@ page { background: #f5f5f5; }
   background: #f5f5f5; color: #333; font-weight: bold;
 }
 .action-btn.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+.action-btn.quiet { background: #f0f5ff; color: #667eea; margin-left: 16rpx; }
 
 .board-detail { border-top: 1rpx solid #f0f0f0; padding: 8rpx 4rpx 0; margin-top: 16rpx; }
 .detail-sec { font-size: 24rpx; color: #667eea; font-weight: bold; margin: 16rpx 0 8rpx; }
