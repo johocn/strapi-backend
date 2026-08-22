@@ -605,7 +605,12 @@
     { "path": "pages/msg/repurchase", "style": { "navigationBarTitleText": "复购转化报表" } },
     { "path": "pages/msg/repurchase-leads", "style": { "navigationBarTitleText": "复购线索" } },
     { "path": "pages/msg/courseD7", "style": { "navigationBarTitleText": "课程 D7 转化" } },
-    { "path": "pages/msg/courseCompletion", "style": { "navigationBarTitleText": "课程完课转化" } }
+    { "path": "pages/msg/courseCompletion", "style": { "navigationBarTitleText": "课程完课转化" } },
+    { "path": "pages/wechat/config", "style": { "navigationBarTitleText": "公众号接入配置" } },
+    { "path": "pages/wechat/menu", "style": { "navigationBarTitleText": "菜单管理" } },
+    { "path": "pages/wechat/reply", "style": { "navigationBarTitleText": "关键字自动回复" } },
+    { "path": "pages/wechat/material", "style": { "navigationBarTitleText": "素材库" } },
+    { "path": "pages/wechat/article", "style": { "navigationBarTitleText": "图文草稿与发布" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

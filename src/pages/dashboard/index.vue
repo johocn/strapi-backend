@@ -669,6 +669,33 @@
       </view>
     </view>
 
+    <!-- 公众号运营 -->
+    <view class="module-section" v-if="ssoVisible && hasPermission('menu.sso')">
+      <view class="section-title">💬 公众号运营</view>
+      <view class="module-grid">
+        <view class="module-item" v-if="hasPermission('menu.sso')" @click="navigateTo('/pages/wechat/config')">
+          <view class="module-icon">🔌</view>
+          <view class="module-name">接入配置</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso')" @click="navigateTo('/pages/wechat/menu')">
+          <view class="module-icon">📱</view>
+          <view class="module-name">菜单管理</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso')" @click="navigateTo('/pages/wechat/reply')">
+          <view class="module-icon">💬</view>
+          <view class="module-name">自动回复</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso')" @click="navigateTo('/pages/wechat/material')">
+          <view class="module-icon">🖼️</view>
+          <view class="module-name">素材库</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso')" @click="navigateTo('/pages/wechat/article')">
+          <view class="module-icon">📝</view>
+          <view class="module-name">图文发布</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 系统设置 -->
     <view class="module-section" v-if="hasPermission('menu.system-center')">
       <view class="section-title">⚙️ 系统设置</view>
