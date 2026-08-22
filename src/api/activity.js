@@ -113,3 +113,17 @@ export function getActivityReviews(params = {}) {
 export function getActivityOverview(params = {}) {
   return get(`${ADMIN}/activity-overview`, params)
 }
+
+// ===== 经营对账（活动台账快照）=====
+// 注意：台账接口后端注册在 /v1/admin/adm 下（channelScopeRoute），需带 /adm 段，与 activity.js 其他 /admin 请求不同
+const LEDGER_ADMIN = '/zhao-point/v1/admin/adm'
+
+// 台账列表（返回原始体 { data:[...], meta:{ pagination } }；?activityDocumentId=&page=&pageSize=）
+export function getLedgers(params = {}) {
+  return get(`${LEDGER_ADMIN}/ledgers`, params)
+}
+
+// 手动重归档（新增 source=manual 快照）
+export function regenerateLedger(activityDocumentId) {
+  return post(`${LEDGER_ADMIN}/activities/${activityDocumentId}/ledger`)
+}
