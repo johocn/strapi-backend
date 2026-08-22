@@ -2,6 +2,7 @@
   <view class="page-container">
     <PageHeader title="线下活动">
       <view class="btn-group">
+        <button class="btn-primary" @click="goResources">🎓 讲师/场地</button>
         <button class="btn-primary" @click="goCalendar">📅 日历视图</button>
         <button class="btn-primary" @click="goCreate">+ 新建活动</button>
       </view>
@@ -132,6 +133,15 @@ function goCreate() {
 }
 function goCalendar() {
   uni.navigateTo({ url: '/pages/activity/calendar' })
+}
+function goResources() {
+  uni.showActionSheet({
+    itemList: ['讲师管理', '场地管理'],
+    success: (res) => {
+      const url = res.tapIndex === 0 ? '/pages/activity/resource-lecturer' : '/pages/activity/resource-venue'
+      uni.navigateTo({ url })
+    }
+  })
 }
 function goEdit(item) {
   uni.navigateTo({ url: `/pages/activity/form?id=${item.documentId}` })
