@@ -180,6 +180,12 @@ export const ssoSopRuleApi = {
   delete: (id) => del(`${ADMIN}/sop-rules/${id}`).then(extractItem),
 }
 
+// 复购线索跟进（列表返回原始体 { rows, summary, pagination }，为避免丢 summary 不做 extractList）
+export const repurchaseLeadApi = {
+  list: (params = {}) => get(`${ADMIN}/msg/repurchase-leads`, params),
+  markFollow: (id, data) => post(`${ADMIN}/msg/repurchase-leads/${id}/follow`, data),
+}
+
 // ==================== SSO 用户画像分层 ====================
 
 export const ssoProfileApi = {

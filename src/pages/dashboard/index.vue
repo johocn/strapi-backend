@@ -529,6 +529,10 @@
           <view class="module-icon">⭐</view>
           <view class="module-name">活动评价</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/msg/repurchase-leads')">
+          <view class="module-icon">🔁</view>
+          <view class="module-name">复购线索</view>
+        </view>
         <view class="module-item" @click="navigateTo('/pages/activity/overview')">
           <view class="module-icon">📊</view>
           <view class="module-name">活动效果</view>
