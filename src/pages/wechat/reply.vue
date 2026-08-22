@@ -1,7 +1,7 @@
 <template>
   <view class="page-container">
     <PageHeader title="关键字自动回复">
-      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso')">+ 新建规则</button>
+      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso-wx')">+ 新建规则</button>
     </PageHeader>
 
     <view class="help-banner">
@@ -84,8 +84,8 @@
           </view>
         </view>
         <view class="data-actions">
-          <view v-if="hasPermission('menu.sso')" class="action-btn edit" @click="openEdit(item)">编辑</view>
-          <view v-if="hasPermission('menu.sso')" class="action-btn delete" @click="handleDelete(item)">删除</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn edit" @click="openEdit(item)">编辑</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn delete" @click="handleDelete(item)">删除</view>
         </view>
       </view>
     </view>

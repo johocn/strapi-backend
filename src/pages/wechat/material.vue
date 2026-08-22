@@ -1,7 +1,7 @@
 <template>
   <view class="page-container">
     <PageHeader title="素材库">
-      <button class="btn-primary" @click="chooseAndUpload" :disabled="uploading" v-if="hasPermission('menu.sso')">
+      <button class="btn-primary" @click="chooseAndUpload" :disabled="uploading" v-if="hasPermission('menu.sso-wx')">
         {{ uploading ? '上传中...' : '+ 上传素材' }}
       </button>
     </PageHeader>
@@ -55,7 +55,7 @@
           </view>
         </view>
         <view class="data-actions">
-          <view v-if="hasPermission('menu.sso')" class="action-btn delete" @click="handleDelete(item)">删除</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn delete" @click="handleDelete(item)">删除</view>
         </view>
       </view>
     </view>

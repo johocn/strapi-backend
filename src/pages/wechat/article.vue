@@ -1,7 +1,7 @@
 <template>
   <view class="page-container">
     <PageHeader title="图文草稿与发布">
-      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso')">+ 新建图文</button>
+      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso-wx')">+ 新建图文</button>
     </PageHeader>
 
     <view class="help-banner">
@@ -68,9 +68,9 @@
         </view>
         <view class="data-actions">
           <view v-if="isPublishing(item) " class="publishing-tip">发布中...</view>
-          <view v-if="hasPermission('menu.sso')" class="action-btn edit" @click="openEdit(item)">编辑</view>
-          <view v-if="hasPermission('menu.sso')" class="action-btn publish" @click="handlePublish(item)">发布</view>
-          <view v-if="hasPermission('menu.sso')" class="action-btn delete" @click="handleDelete(item)">删除</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn edit" @click="openEdit(item)">编辑</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn publish" @click="handlePublish(item)">发布</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn delete" @click="handleDelete(item)">删除</view>
         </view>
       </view>
     </view>

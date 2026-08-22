@@ -1,7 +1,7 @@
 <template>
   <view class="page-container">
     <PageHeader title="菜单管理">
-      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso')">+ 新建</button>
+      <button class="btn-primary" @click="openCreate" v-if="hasPermission('menu.sso-wx')">+ 新建</button>
     </PageHeader>
 
     <view class="help-banner">
@@ -11,7 +11,7 @@
 
     <view class="action-bar">
       <button class="btn-publish" @click="handlePublish" :disabled="publishing">{{ publishing ? '发布中...' : '发布下发' }}</button>
-      <button class="btn-danger" @click="handleDeleteRemote" v-if="hasPermission('menu.sso')">删除远程菜单</button>
+      <button class="btn-danger" @click="handleDeleteRemote" v-if="hasPermission('menu.sso-wx')">删除远程菜单</button>
     </view>
 
     <!-- 新建/编辑表单 -->
@@ -48,8 +48,8 @@
           </view>
         </view>
         <view class="data-actions">
-          <view v-if="hasPermission('menu.sso')" class="action-btn edit" @click="openEdit(item)">编辑</view>
-          <view v-if="hasPermission('menu.sso')" class="action-btn delete" @click="handleDelete(item)">删除</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn edit" @click="openEdit(item)">编辑</view>
+          <view v-if="hasPermission('menu.sso-wx')" class="action-btn delete" @click="handleDelete(item)">删除</view>
         </view>
       </view>
     </view>
