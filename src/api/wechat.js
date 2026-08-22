@@ -88,3 +88,26 @@ export const ssoWxMenuApi = {
   // 删除远程菜单（撤销公众号菜单；后端：DELETE /wx/menu/remote）
   deleteRemote: () => adminDel(`${WX}/menu/remote`).then(extractItem),
 }
+
+// ==================== 公众号发布账号（对接 zhao-studio 多媒体发布中心账号体系） ====================
+const ZS = '/zhao-studio/v1/admin'
+export const ssoWxPublishAccountApi = {
+  /**
+   * 确保 type=wechat 的公众号发布平台存在，返回其 documentId。
+   * 公众号图文草稿/发布账号必须挂在 wechat 平台下，账号 config 填 appId/appSecret。
+   */
+  ensureWechatPlatform: async () => {
+    const { list } = await adminGet(`${ZS}/platforms`).then(extractList)
+    const wx = (list || []).find((p) => p.type === 'wechat' && p.isActive !== false)
+    if (wx) return wx.documentId || wx.id
+    const created = await adminPost(`${ZS}/platforms`, {
+      data: { name: '微信公众号', type: 'wechat', category: 'content', isActive: true },
+    }).then(extractItem)
+    return created.documentId || created.id
+  },
+  // 列表（按 wechat 平台过滤）
+  list: (platformId) => adminGet(`${ZS}/accounts`, { platformId }).then(extractList),
+  create: (data) => adminPost(`${ZS}/accounts`, { data }).then(extractItem),
+  update: (id, data) => adminPut(`${ZS}/accounts/${id}`, { data }).then(extractItem),
+  remove: (id) => adminDel(`${ZS}/accounts/${id}`).then(extractItem),
+}

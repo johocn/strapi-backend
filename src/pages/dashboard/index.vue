@@ -681,6 +681,10 @@
           <view class="module-icon">📱</view>
           <view class="module-name">菜单管理</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-wx')" @click="navigateTo('/pages/wechat/account')">
+          <view class="module-icon">🔑</view>
+          <view class="module-name">发布账号</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.sso-wx')" @click="navigateTo('/pages/wechat/reply')">
           <view class="module-icon">💬</view>
           <view class="module-name">自动回复</view>

@@ -609,6 +609,7 @@
     { "path": "pages/wechat/config", "style": { "navigationBarTitleText": "公众号接入配置" } },
     { "path": "pages/wechat/menu", "style": { "navigationBarTitleText": "菜单管理" } },
     { "path": "pages/wechat/reply", "style": { "navigationBarTitleText": "关键字自动回复" } },
+    { "path": "pages/wechat/account", "style": { "navigationBarTitleText": "公众号发布账号" } },
     { "path": "pages/wechat/material", "style": { "navigationBarTitleText": "素材库" } },
     { "path": "pages/wechat/article", "style": { "navigationBarTitleText": "图文草稿与发布" } }
   ],
