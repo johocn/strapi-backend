@@ -36,9 +36,11 @@
         </view>
         <view class="card-actions">
           <view class="action-btn" @click="goEdit(item)">编辑</view>
-          <view class="action-btn" @click="goDuplicate(item)">复制</view>
+          <view class="action-btn" @click="goDuplicate(item)">一键克隆</view>
           <view class="action-btn" @click="goSignups(item)">到场名单</view>
           <view class="action-btn" @click="goScan(item)">扫码核销</view>
+          <view class="action-btn" v-if="item.status === 'ended'" @click="confirmArchive(item)">归档</view>
+          <view class="action-btn" v-if="item.status === 'archived'" @click="confirmUnarchive(item)">恢复</view>
           <view class="action-btn danger" @click="confirmDelete(item)">删除</view>
         </view>
       </view>
@@ -77,14 +79,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { listActivities, deleteActivity, duplicateActivity } from '../../api/activity.js'
+import { listActivities, deleteActivity, duplicateActivity, archiveActivity, unarchiveActivity } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
-const statusOptions = ['全部状态', '草稿', '报名中', '进行中', '已结束']
-const statusValues = ['', 'draft', 'signup_open', 'ongoing', 'ended']
+const statusOptions = ['全部状态', '草稿', '报名中', '进行中', '已结束', '已归档']
+const statusValues = ['', 'draft', 'signup_open', 'ongoing', 'ended', 'archived']
 const statusIndex = ref(0)
-const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束' }
-const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended' }
+const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束', archived: '已归档' }
+const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended', archived: 'archived' }
 
 const list = ref([])
 const pagination = ref({ page: 1, pageSize: 20, total: 0 })
@@ -185,6 +187,40 @@ async function handleDelete() {
   }
 }
 
+function confirmArchive(item) {
+  uni.showModal({
+    title: '归档活动',
+    content: `确定归档「${item.title}」吗？归档后 C 端不再展示。`,
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        await archiveActivity(item.documentId)
+        uni.showToast({ title: '已归档', icon: 'success' })
+        loadData(currentPage.value)
+      } catch (e) {
+        uni.showToast({ title: '归档失败', icon: 'none' })
+      }
+    }
+  })
+}
+
+function confirmUnarchive(item) {
+  uni.showModal({
+    title: '恢复活动',
+    content: `确定恢复「${item.title}」吗？恢复后重新对 C 端展示。`,
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        await unarchiveActivity(item.documentId)
+        uni.showToast({ title: '已恢复', icon: 'success' })
+        loadData(currentPage.value)
+      } catch (e) {
+        uni.showToast({ title: '恢复失败', icon: 'none' })
+      }
+    }
+  })
+}
+
 onMounted(() => loadData(1))
 </script>
 
@@ -216,6 +252,7 @@ page { background: #f5f5f5; }
 .status-badge.open { background: #e6f7ff; color: #1890ff; }
 .status-badge.ongoing { background: #fff7e6; color: #fa8c16; }
 .status-badge.ended { background: #f6ffed; color: #52c41a; }
+.status-badge.archived { background: #f0f0f0; color: #8c8c8c; text-decoration: line-through; }
 .status-badge.default { background: #f5f5f5; color: #666; }
 .card-meta { display: flex; gap: 16rpx; margin-bottom: 8rpx; flex-wrap: wrap; }
 .meta-item { font-size: 24rpx; color: #999; }

@@ -36,6 +36,14 @@ export function deleteActivity(documentId) {
   return del(`${ADMIN}/activities/${documentId}`).then(extractItem)
 }
 
+// 归档 / 恢复（已结束活动→归档；已归档→恢复为已结束）
+export function archiveActivity(documentId) {
+  return post(`${ADMIN}/activities/${documentId}/archive`).then(extractItem)
+}
+export function unarchiveActivity(documentId) {
+  return post(`${ADMIN}/activities/${documentId}/unarchive`).then(extractItem)
+}
+
 // 报名名单（active=已报名 / cancelled=已取消；attendedAt 有值=已到场）
 export function getActivitySignups(documentId) {
   return get(`${ADMIN}/activities/${documentId}/signups`).then(extractList)
