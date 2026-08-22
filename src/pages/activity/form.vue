@@ -14,6 +14,11 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">活动分类</text>
+          <input type="text" v-model="form.category" placeholder="活动分类（如 讲座/沙龙/工作坊/其他）" class="form-input" />
+        </view>
+
+        <view class="form-item">
           <text class="form-label">活动描述</text>
           <textarea v-model="form.description" placeholder="请输入活动描述" class="form-textarea" />
         </view>
@@ -401,6 +406,8 @@ const seriesIndex = ref(0)
 
 const form = reactive({
   title: '',
+  category: '',
+  tags: [],
   description: '',
   startTime: '',
   endTime: '',
@@ -647,7 +654,9 @@ async function loadDetail() {
       shareRewardPoints: data.shareRewardPoints ?? 0,
       feeTiers: data.feeTiers || [],
       feeFactors: data.feeFactors || { base: 0, factors: [] },
-      formConfig: data.formConfig || []
+      formConfig: data.formConfig || [],
+      category: data.category || '',
+      tags: Array.isArray(data.tags) ? data.tags : []
     })
     form.belongsToSeries = data.belongsToSeries || data.series || ''
     // 回显讲师/场地（relation 可能是对象或数组）
@@ -673,6 +682,8 @@ async function handleSubmit() {
 
   const submitData = {
     title: form.title,
+    category: form.category || undefined,
+    tags: Array.isArray(form.tags) && form.tags.length ? form.tags : undefined,
     description: form.description || undefined,
     venueName: form.venueName || undefined,
     belongsToSeries: form.belongsToSeries || undefined,
