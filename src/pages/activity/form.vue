@@ -29,6 +29,17 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">回放与资料</text>
+          <input type="text" v-model="form.assets.recordingUrl" placeholder="回放视频链接(URL)" class="form-input" />
+          <view v-for="(m, i) in form.assets.materials" :key="i" class="form-row assets-row">
+            <input type="text" v-model="m.name" placeholder="资料名称" class="form-input form-inline" />
+            <input type="text" v-model="m.url" placeholder="资料URL" class="form-input form-inline" />
+            <view class="link-del" @click="removeMaterial(i)">删除</view>
+          </view>
+          <view class="link-add" @click="addMaterial">+ 添加资料</view>
+        </view>
+
+        <view class="form-item">
           <text class="form-label">所属系列</text>
           <picker mode="selector" :range="seriesNames" @change="handleSeriesChange">
             <view class="picker-value">
@@ -408,6 +419,7 @@ const form = reactive({
   title: '',
   category: '',
   tags: [],
+  assets: { recordingUrl: '', materials: [] },
   description: '',
   startTime: '',
   endTime: '',
@@ -548,6 +560,14 @@ function handleTierFeeChange(ti, e) {
   form.feeTiers[ti].feeCollectAt = feeValues[Number(e.detail.value)]
 }
 
+function addMaterial() {
+  if (!form.assets.materials) form.assets.materials = []
+  form.assets.materials.push({ name: '', url: '' })
+}
+function removeMaterial(i) {
+  form.assets.materials.splice(i, 1)
+}
+
 function addTier() {
   form.feeTiers.push({
     name: '',
@@ -656,7 +676,11 @@ async function loadDetail() {
       feeFactors: data.feeFactors || { base: 0, factors: [] },
       formConfig: data.formConfig || [],
       category: data.category || '',
-      tags: Array.isArray(data.tags) ? data.tags : []
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      assets: (data.assets && typeof data.assets === 'object') ? {
+        recordingUrl: data.assets.recordingUrl || '',
+        materials: Array.isArray(data.assets.materials) ? data.assets.materials : [],
+      } : { recordingUrl: '', materials: [] }
     })
     form.belongsToSeries = data.belongsToSeries || data.series || ''
     // 回显讲师/场地（relation 可能是对象或数组）
@@ -684,6 +708,12 @@ async function handleSubmit() {
     title: form.title,
     category: form.category || undefined,
     tags: Array.isArray(form.tags) && form.tags.length ? form.tags : undefined,
+    assets: (form.assets?.recordingUrl || (form.assets?.materials && form.assets.materials.length))
+      ? {
+        recordingUrl: form.assets?.recordingUrl || undefined,
+        materials: Array.isArray(form.assets?.materials) ? form.assets.materials.filter(m => m?.name && m?.url) : undefined,
+      }
+      : undefined,
     description: form.description || undefined,
     venueName: form.venueName || undefined,
     belongsToSeries: form.belongsToSeries || undefined,
@@ -805,4 +835,8 @@ onMounted(() => { loadDetail(); loadSeries(); loadResources() })
 .radio-opt.on { color: #667eea; border-color: #667eea; background: rgba(102,126,234,.08); }
 .opt-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 12rpx; }
 .opt-del { color: #ff4d4f; padding: 0 8rpx; font-size: 28rpx; }
+.assets-row { gap: 12rpx; margin-bottom: 16rpx; align-items: center; }
+.form-inline { flex: 1; min-width: 0; }
+.link-del { color: #ff4d4f; font-size: 26rpx; padding: 0 8rpx; }
+.link-add { color: #667eea; font-size: 28rpx; margin-top: 16rpx; text-align: center; }
 </style>
