@@ -53,6 +53,26 @@
       </view>
     </view>
 
+    <view class="form-section" v-if="roleGate" style="margin-top: 20rpx;">
+      <view class="form-item">
+        <text class="form-label">可见角色</text>
+        <view class="visible-roles-group">
+          <view
+            v-for="r in roleOptions"
+            :key="r.name"
+            class="visible-role-opt"
+            :class="{ 'visible-role-opt-selected': form.visibleToRoles.includes(r.name) }"
+            @click="toggleVisibleRole(r.name)"
+          >
+            <text>{{ r.displayName || r.name }}</text>
+            <text v-if="form.visibleToRoles.includes(r.name)" class="visible-role-check">✓</text>
+          </view>
+          <view v-if="roleOptions.length === 0" class="form-hint">未获取到角色</view>
+        </view>
+        <text class="form-hint">不勾选（留空）表示对所有角色可见</text>
+      </view>
+    </view>
+
     <view class="form-actions">
       <button class="btn-delete" v-if="isEdit" @click="handleDelete">删除</button>
       <button class="btn-submit" @click="handleSubmit" :loading="submitting">
@@ -66,10 +86,14 @@
 import { ref, onMounted } from 'vue'
 import PageHeader from '../../../components/PageHeader.vue'
 import { getExamDetail, createExam, updateExam, deleteExam } from '../../../api/quiz.js'
+import { getAllRoles } from '../../../api/auth.js'
+import { loadSiteConfig, isFeatureEnabled } from '../../../utils/config-helper.js'
 
 const isEdit = ref(false)
 const documentId = ref('')
 const submitting = ref(false)
+const roleGate = ref(false)
+const roleOptions = ref([])
 
 const statusOptions = [
   { label: '草稿', value: 'draft' },
@@ -83,9 +107,13 @@ const form = ref({
   timeLimit: '',
   passingScore: '',
   status: 'draft',
+  visibleToRoles: [],
 })
 
-onMounted(() => {
+onMounted(async () => {
+  await loadSiteConfig()
+  roleGate.value = isFeatureEnabled('roleGate')
+  if (roleGate.value) loadRoleOptions()
   const pages = getCurrentPages()
   const page = pages[pages.length - 1]
   const id = page.options?.id
@@ -96,6 +124,22 @@ onMounted(() => {
   }
 })
 
+async function loadRoleOptions() {
+  try {
+    const list = await getAllRoles()
+    roleOptions.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    console.warn('获取角色列表失败，使用空列表', e)
+    roleOptions.value = []
+  }
+}
+
+function toggleVisibleRole(roleName) {
+  const idx = form.value.visibleToRoles.indexOf(roleName)
+  if (idx > -1) form.value.visibleToRoles.splice(idx, 1)
+  else form.value.visibleToRoles.push(roleName)
+}
+
 async function loadDetail(id) {
   try {
     const data = await getExamDetail(id)
@@ -105,6 +149,7 @@ async function loadDetail(id) {
       form.value.timeLimit = data.timeLimit ?? ''
       form.value.passingScore = data.passingScore ?? ''
       form.value.status = data.status || 'draft'
+      form.value.visibleToRoles = Array.isArray(data.visibleToRoles) ? data.visibleToRoles : []
       const idx = statusOptions.findIndex(s => s.value === form.value.status)
       if (idx > -1) statusIndex.value = idx
     }
@@ -131,6 +176,8 @@ async function handleSubmit() {
       timeLimit: form.value.timeLimit ? Number(form.value.timeLimit) : undefined,
       passingScore: form.value.passingScore ? Number(form.value.passingScore) : undefined,
       status: form.value.status,
+      // 可见角色（仅租户开启 roleGate 时下发）
+      visibleToRoles: roleGate.value ? (Array.isArray(form.value.visibleToRoles) ? form.value.visibleToRoles : []) : undefined,
     }
     if (isEdit.value) {
       await updateExam(documentId.value, payload)
@@ -209,4 +256,10 @@ page { background: #f5f5f5; }
   flex: 1; height: 88rpx; line-height: 88rpx; text-align: center;
   background: #07c160; color: #fff; font-size: 30rpx; border-radius: 8rpx; border: none;
 }
+
+.form-hint { font-size: 24rpx; color: #999; margin-top: 8rpx; line-height: 1.4; }
+.visible-roles-group { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.visible-role-opt { display: flex; align-items: center; gap: 6rpx; padding: 12rpx 20rpx; border: 1rpx solid #ddd; border-radius: 20rpx; font-size: 26rpx; color: #333; background: #fff; }
+.visible-role-opt-selected { border-color: #07c160; color: #fff; background: #07c160; }
+.visible-role-check { font-size: 24rpx; }
 </style>

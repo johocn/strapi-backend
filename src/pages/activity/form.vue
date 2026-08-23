@@ -381,6 +381,27 @@
         </view>
       </view>
 
+      <view class="form-section" v-if="roleGate">
+        <view class="section-title">可见角色</view>
+        <view class="form-item">
+          <text class="form-label">设置可见角色</text>
+          <view class="visible-roles-group">
+            <view
+              v-for="r in roleOptions"
+              :key="r.name"
+              class="visible-role-opt"
+              :class="{ 'visible-role-opt-selected': form.visibleToRoles.includes(r.name) }"
+              @click="toggleVisibleRole(r.name)"
+            >
+              <text>{{ r.displayName || r.name }}</text>
+              <text v-if="form.visibleToRoles.includes(r.name)" class="visible-role-check">✓</text>
+            </view>
+            <view v-if="roleOptions.length === 0" class="form-tip">未获取到角色</view>
+          </view>
+          <text class="form-tip">不勾选（留空）表示对所有角色可见</text>
+        </view>
+      </view>
+
       <view class="form-section">
         <view class="section-title">状态</view>
         <view class="form-item">
@@ -441,6 +462,7 @@ const form = reactive({
   geoRadiusM: 500,
   shareRewardPoints: 0,
   status: 'draft',
+  visibleToRoles: [],
   formConfig: []
 })
 
@@ -622,6 +644,22 @@ function addFormOption(fi) {
 function removeFormOption(fi, oi) {
   form.formConfig[fi].options.splice(oi, 1)
 }
+
+function toggleVisibleRole(roleName) {
+  const idx = form.visibleToRoles.indexOf(roleName)
+  if (idx > -1) form.visibleToRoles.splice(idx, 1)
+  else form.visibleToRoles.push(roleName)
+}
+
+async function loadRoleOptions() {
+  try {
+    const list = await getAllRoles()
+    roleOptions.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    console.warn('获取角色列表失败，使用空列表', e)
+    roleOptions.value = []
+  }
+}
 function formTypeLabel(t) {
   const idx = formTypeValues.indexOf(t)
   return idx >= 0 ? formTypeLabels[idx] : t
@@ -677,6 +715,7 @@ async function loadDetail() {
       formConfig: data.formConfig || [],
       category: data.category || '',
       tags: Array.isArray(data.tags) ? data.tags : [],
+      visibleToRoles: Array.isArray(data.visibleToRoles) ? data.visibleToRoles : [],
       assets: (data.assets && typeof data.assets === 'object') ? {
         recordingUrl: data.assets.recordingUrl || '',
         materials: Array.isArray(data.assets.materials) ? data.assets.materials : [],
@@ -799,7 +838,12 @@ onLoad((options) => {
     activityId.value = options.id
   }
 })
-onMounted(() => { loadDetail(); loadSeries(); loadResources() })
+onMounted(async () => {
+  await loadSiteConfig()
+  roleGate.value = isFeatureEnabled('roleGate')
+  if (roleGate.value) loadRoleOptions()
+  loadDetail(); loadSeries(); loadResources()
+})
 </script>
 
 <style scoped>
@@ -839,4 +883,8 @@ onMounted(() => { loadDetail(); loadSeries(); loadResources() })
 .form-inline { flex: 1; min-width: 0; }
 .link-del { color: #ff4d4f; font-size: 26rpx; padding: 0 8rpx; }
 .link-add { color: #667eea; font-size: 28rpx; margin-top: 16rpx; text-align: center; }
+.visible-roles-group { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.visible-role-opt { display: flex; align-items: center; gap: 6rpx; padding: 12rpx 20rpx; border: 1rpx solid #ddd; border-radius: 20rpx; font-size: 26rpx; color: #333; }
+.visible-role-opt-selected { border-color: #667eea; color: #fff; background: #667eea; }
+.visible-role-check { font-size: 24rpx; }
 </style>

@@ -451,6 +451,27 @@
         </view>
       </view>
 
+      <view class="form-section" v-if="roleGate">
+        <view class="section-title">可见角色</view>
+        <view class="form-item">
+          <text class="form-label">设置可见角色</text>
+          <view class="tag-list">
+            <view
+              v-for="r in roleOptions"
+              :key="r.name"
+              class="tag-item"
+              :class="{ 'tag-item-selected': form.visibleToRoles.includes(r.name) }"
+              @click="toggleVisibleRole(r.name)"
+            >
+              <text>{{ r.displayName || r.name }}</text>
+              <text v-if="form.visibleToRoles.includes(r.name)" class="tag-remove">✓</text>
+            </view>
+            <view v-if="roleOptions.length === 0" class="form-hint">未获取到角色</view>
+          </view>
+          <text class="form-hint">不勾选（留空）表示对所有角色可见</text>
+        </view>
+      </view>
+
       <view class="form-section" v-if="showPointsSection">
         <view class="section-title">积分设置</view>
         
@@ -710,6 +731,7 @@ const showCoverPicker = ref(false)
 const showThumbnailPicker = ref(false)
 const showPointsSection = ref(true)
 const showCrossChannelSection = ref(false)
+const roleGate = ref(false)
 
 const userStore = useUserStore()
 
@@ -719,6 +741,7 @@ watch(() => userStore.currentTenantId, async () => {
   showPointsSection.value = isFeatureEnabled('pointsEnabled')
   showCrossChannelSection.value = isFeatureEnabled('allowCrossChannel')
   allowCrossChannelPublish.value = isFeatureEnabled('allowCrossChannelPublish')
+  roleGate.value = isFeatureEnabled('roleGate')
   if (!allowCrossChannelPublish.value) {
     form.channelScope = 'specific'
   }
@@ -763,6 +786,7 @@ const form = reactive({
   channelIds: [],
   pointChannel: null,
   allowCrossChannel: true,
+  visibleToRoles: [],
   // 顺序学习
   enforceSequence: false,
   sequenceNumber: 0,
@@ -1197,6 +1221,7 @@ async function loadCourseDetail() {
         selectedTags.value = normalTags
       }
       if (data.channelScope) form.channelScope = data.channelScope
+      if (Array.isArray(data.visibleToRoles)) form.visibleToRoles = data.visibleToRoles
       if (data.channelIds && Array.isArray(data.channelIds)) {
         const parsedIds = data.channelIds.map(id => Number(id))
         console.log('[DEBUG] channelIds raw:', data.channelIds)
@@ -1354,6 +1379,8 @@ async function handleSubmit() {
     channelIds: form.channelScope === 'specific' ? form.channelIds.map(id => Number(id)) : [],
     pointChannel: form.channelScope === 'specific' && form.pointChannel ? Number(form.pointChannel) : null,
     allowCrossChannel: form.allowCrossChannel,
+    // 可见角色（仅租户开启 roleGate 时下发）
+    visibleToRoles: roleGate.value ? (Array.isArray(form.visibleToRoles) ? form.visibleToRoles : []) : undefined,
     // 顺序学习
     enforceSequence: form.enforceSequence,
     sequenceNumber: parseInt(form.sequenceNumber) || 0,
@@ -1445,6 +1472,7 @@ onMounted(async () => {
   await loadSiteConfig()
   showPointsSection.value = isFeatureEnabled('pointsEnabled')
   showCrossChannelSection.value = isFeatureEnabled('allowCrossChannel')
+  roleGate.value = isFeatureEnabled('roleGate')
 
   await loadRoleOptions()
   await loadCategories()
@@ -1611,6 +1639,11 @@ onMounted(async () => {
 .tag-item.knowledge-tag {
   background: #fff7e6;
   color: #fa8c16;
+}
+
+.tag-item-selected {
+  background: #667eea;
+  color: #fff;
 }
 
 .tag-remove {

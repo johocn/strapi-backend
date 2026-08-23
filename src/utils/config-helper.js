@@ -27,6 +27,8 @@ const DEFAULT_MODULE_VISIBILITY = {
   community: ['channel-admin', 'plugin-manager', 'instructor', 'marketing-manager', 'marketing-editor'],
   forum: ['channel-admin', 'plugin-manager', 'instructor', 'marketing-manager', 'marketing-editor'],
   wealth: ['channel-admin', 'plugin-manager', 'instructor', 'wealth-manager', 'wealth-editor'],
+  exam: ['channel-admin', 'plugin-manager', 'instructor', 'quiz-manager', 'quiz-editor', 'course-manager', 'course-editor', 'tag-manager', 'tag-editor'],
+  activity: ['channel-admin', 'plugin-manager', 'instructor', 'point-manager', 'point-editor'],
 }
 
 function notifyServiceUnavailable() {
@@ -95,6 +97,9 @@ export function getDefaultConfig() {
       logistics: true,
       studio: true,
       wealth: false,
+      exam: true,
+      activity: true,
+      roleGate: false,
       // 细粒度默认值
       pointsEnabled: true,
       coursePreviewEnabled: true,
@@ -136,14 +141,14 @@ export function getDefaultConfig() {
       points: true, course: true, quiz: true, channel: true,
       sso: false, thirdParty: false, oss: false,
       payment: false, community: false, forum: false,
-      wealth: false,
+      wealth: false, exam: true, activity: true,
     },
     moduleGrantedForCurrentTenant: {
       website: false, logistics: false, studio: false,
       points: true, course: true, quiz: true, channel: true,
       sso: false, thirdParty: false, oss: false,
       payment: false, community: false, forum: false,
-      wealth: false,
+      wealth: false, exam: true, activity: true,
     },
     moduleVisibility: DEFAULT_MODULE_VISIBILITY,
   }

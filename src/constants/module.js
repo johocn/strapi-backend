@@ -16,6 +16,8 @@ export const MODULE_LIST = [
   { key: 'sso', label: 'SSO 登录', icon: '🔑' },
   { key: 'thirdParty', label: '三方登录', icon: '🔌' },
   { key: 'oss', label: 'OSS 存储', icon: '☁️' },
+  { key: 'exam', label: '考试中心', icon: '📝' },
+  { key: 'activity', label: '线下活动', icon: '📍' },
   { key: 'wealth', label: '理财中心', icon: '💰' },
 ]
 
@@ -32,4 +34,7 @@ export const DEFAULT_FEATURE_FLAGS = {
   thirdParty: true,
   oss: false,
   wealth: false,
+  exam: true,
+  activity: true,
+  roleGate: false,
 }

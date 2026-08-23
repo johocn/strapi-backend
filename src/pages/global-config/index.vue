@@ -61,6 +61,9 @@ const MODULE_LIST = [
   { key: 'payment', icon: '💳', name: '支付中心' },
   { key: 'community', icon: '👥', name: '社区中心' },
   { key: 'forum', icon: '💬', name: '论坛中心' },
+  { key: 'wealth', icon: '💰', name: '理财中心' },
+  { key: 'exam', icon: '📝', name: '考试中心' },
+  { key: 'activity', icon: '📍', name: '线下活动中心' },
 ]
 
 const DEFAULT_MODULE_ENABLED = {
@@ -68,6 +71,7 @@ const DEFAULT_MODULE_ENABLED = {
   points: true, course: true, quiz: true, channel: true,
   sso: false, thirdParty: false, oss: false,
   payment: false, community: false, forum: false,
+  wealth: false, exam: true, activity: true,
 }
 
 const saving = ref(false)

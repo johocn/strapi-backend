@@ -116,7 +116,7 @@
         </view>
       </view>
 
-      <view class="form-section">
+      <view v-if="isAdminOnly" class="form-section">
         <text class="section-title">功能开关</text>
         <view class="feature-grid">
           <view
@@ -130,6 +130,13 @@
             </view>
             <text class="feature-label">{{ mod.label }}</text>
           </view>
+        </view>
+        <!-- 内容角色限制：独立开关（非模块，独立于 MODULE_LIST） -->
+        <view class="feature-item" @click="toggleFeature('roleGate')">
+          <view :class="['feature-icon', formData.featureFlags?.roleGate ? 'enabled' : 'disabled']">
+            {{ formData.featureFlags?.roleGate ? '🔒' : '' }}
+          </view>
+          <text class="feature-label">内容角色限制</text>
         </view>
       </view>
 
@@ -539,6 +546,9 @@ const thirdPartyLabels = {
 const currentAuthModeLabel = computed(() =>
   authModeOptions.find(m => m.value === formData.authConfig.authMode)?.label || ''
 )
+
+// 仅 admin 角色可配置功能开关/企业官网/多媒体发布中心
+const isAdminOnly = computed(() => userStore.hasRole('admin'))
 
 const platformIcons = {
   wechat: '💬',
