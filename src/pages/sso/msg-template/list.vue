@@ -4,10 +4,7 @@
       <button class="btn-primary" @click="goCreate" v-if="hasPermission('sso.msg.write')">+ 新增模板</button>
     </PageHeader>
 
-    <view class="help-banner">
-      <text class="help-icon">ℹ️</text>
-      <text class="help-text">消息模板定义各触达通道（当前为微信模板消息）的消息内容与参数字段。SOP 规则按 templateCode 引用模板，模板需「启用」且已在公众号后台配置对应模板ID才能下发。</text>
-    </view>
+    <ConfigWizard />
 
     <view class="search-section">
       <view class="search-box">
@@ -70,6 +67,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ssoMsgTemplateApi } from '../../../api/sso.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
+import ConfigWizard from '../../../components/msg/ConfigWizard.vue'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
