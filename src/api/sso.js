@@ -19,6 +19,14 @@ export function getSsoUserList(params = {}) {
   return get(`${ADMIN}/users`, params).then(extractList)
 }
 
+// SSO 用户列表（下拉选择用）：后端返回 { users, meta }，extractList 不识别该结构，故单独解析 .users
+export function getSsoUserOptions(params = {}) {
+  return get(`${ADMIN}/users`, params).then((res) => ({
+    list: (res && Array.isArray(res.users)) ? res.users : [],
+    meta: (res && res.meta) || {},
+  }))
+}
+
 export function getSsoUserDetail(id) {
   return get(`${ADMIN}/users/${id}`).then(extractItem)
 }
