@@ -124,6 +124,7 @@
     </view>
 
     <view class="footer-bar">
+      <button class="btn-save test" @click="openSendTest" v-if="isEdit && hasPermission('sso.msg.write')" :disabled="sending">{{ sending ? '发送中...' : '发送测试' }}</button>
       <button class="btn-save" @click="handleSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
     </view>
 
@@ -159,14 +160,58 @@
         </view>
       </view>
     </view>
+
+    <!-- 发送测试弹层 -->
+    <view class="send-mask" v-if="sendVisible" @click="sendVisible = false">
+      <view class="send-modal" @click.stop>
+        <view class="send-modal-header">
+          <text class="send-modal-title">发送测试</text>
+          <text class="ab-modal-close" @click="sendVisible = false">✕</text>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">测试用户 <text class="required">*</text></text>
+          <input class="form-input" v-model="sendSearch" placeholder="搜索微信手机号/昵称/邮箱" @confirm="searchUsers" />
+          <view class="user-list" v-if="sendUserLists.length">
+            <view v-for="u in sendUserLists" :key="u.id" class="user-row" :class="{ active: sendUser && sendUser.id === u.id }" @click="pickUser(u)">
+              <text class="user-name">{{ u.username || u.nickname || u.mobile || u.email || '#' + u.id }}</text>
+              <text class="user-id">id={{ u.id }}</text>
+            </view>
+          </view>
+          <view v-if="sendUser" class="user-picked">已选: {{ sendUser.username || sendUser.mobile || sendUser.email || ('#' + sendUser.id) }}</view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">参数字段测试值</text>
+          <view v-if="sendFields.length === 0" class="send-empty">该模板无参数字段，可直接发送</view>
+          <view v-for="(f, i) in sendFields" :key="i" class="form-item">
+            <text class="form-label">{{ f.key }} → {{ f.name }}</text>
+            <input class="form-input" v-model="sendParams[f.key]" :placeholder="`填 ${f.name} 的测试值`" />
+          </view>
+        </view>
+
+        <view v-if="sendResult" class="send-result" :class="sendResult.ok ? 'ok' : 'fail'">
+          <text>{{ sendResult.ok ? '发送成功 msqId=' + sendResult.msgId : '发送失败: ' + sendResult.reason }}</text>
+        </view>
+
+        <view class="send-footer">
+          <view class="btn-add" @click="sendVisible = false">取消</view>
+          <button class="btn-save small" @click="doSendTest" :disabled="sending">{{ sending ? '发送中...' : '发送' }}</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { ssoMsgTemplateApi, ssoMsgTemplateVersionApi } from '../../../api/sso.js'
+import { ssoMsgTemplateApi, ssoMsgTemplateVersionApi, ssoMsgJobApi, getSsoUserOptions } from '../../../api/sso.js'
+import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
+
+const userStore = useUserStore()
+const hasPermission = userStore.hasPermission
 
 const PROVIDERS = [
   { value: 'wechat', label: '微信模板消息' },
@@ -363,6 +408,65 @@ async function handleSave() {
   }
 }
 
+// ===== 发送测试 =====
+const sendVisible = ref(false)
+const sendSearch = ref('')
+const sendUserLists = ref([])
+const sendUser = ref(null)
+const sendFields = ref([])
+const sendParams = ref({})
+const sendResult = ref(null)
+const sending = ref(false)
+
+function openSendTest() {
+  if (!documentId.value) return
+  sendVisible.value = true
+  sendResult.value = null
+  sendUser.value = null
+  sendUserLists.value = []
+  sendFields.value = form.value.wxTemplateFields.filter((f) => f && f.key && f.name).map((f) => ({ key: f.key, name: f.name }))
+  sendParams.value = {}
+  sendFields.value.forEach((f) => { sendParams.value[f.key] = '' })
+}
+
+async function searchUsers() {
+  if (!sendSearch.value) return
+  try {
+    const { list } = await getSsoUserOptions({ search: sendSearch.value, pageSize: 20 })
+    sendUserLists.value = list || []
+  } catch (e) {
+    uni.showToast({ title: '用户查询失败', icon: 'none' })
+  }
+}
+
+function pickUser(u) {
+  sendUser.value = u
+  sendUserLists.value = []
+}
+
+async function doSendTest() {
+  if (!sendUser.value) { uni.showToast({ title: '请选择测试用户', icon: 'none' }); return }
+  if (!form.value.code) { uni.showToast({ title: '模板未保存，请先保存再测试', icon: 'none' }); return }
+  sending.value = true
+  sendResult.value = null
+  const params = {}
+  sendFields.value.forEach((f) => { if (sendParams.value[f.key] !== '' && sendParams.value[f.key] !== undefined) params[f.key] = sendParams.value[f.key] })
+  try {
+    const job = await ssoMsgJobApi.sendNow({ user: sendUser.value.id, scene: 'manual', templateCode: form.value.code, params })
+    const st = job && job.status
+    if (st === 'sent') {
+      sendResult.value = { ok: true, msgId: (job && job.wxMsgId) || '' }
+    } else {
+      const reason = (job && job.result && (job.result.message || job.result.reason || job.result.error)) || JSON.stringify(job && job.result) || st
+      sendResult.value = { ok: false, reason: (st === 'quota_limited' ? '频控拦截: ' : '') + reason }
+    }
+  } catch (e) {
+    sendResult.value = { ok: false, reason: (e && (e.message || e.data && e.data.error)) || '发送异常' }
+  } finally {
+    sending.value = false
+  }
+}
+
 onLoad((query) => {
   if (query.documentId) {
     documentId.value = query.documentId
@@ -436,4 +540,21 @@ page { background: #f5f5f5; }
 .ab-bar.success { background: #07c160; }
 .ab-bar.click { background: #1677ff; }
 .ab-bar-caption { font-size: 20rpx; color: #999; margin: 6rpx 0 14rpx; }
+
+.btn-save.test { background: #1677ff; margin-bottom: 16rpx; }
+.send-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; display: flex; align-items: center; justify-content: center; }
+.send-modal { width: 88%; max-height: 80vh; background: #fff; border-radius: 16rpx; padding: 28rpx; box-sizing: border-box; overflow-y: auto; }
+.send-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.send-modal-title { font-size: 32rpx; font-weight: bold; color: #333; }
+.user-list { margin-top: 12rpx; border-top: 1rpx solid #f0f0f0; }
+.user-row { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.user-row.active { background: #e6f4ff; }
+.user-name { font-size: 26rpx; color: #333; }
+.user-id { font-size: 24rpx; color: #999; }
+.user-picked { margin-top: 12rpx; font-size: 26rpx; color: #1677ff; }
+.send-empty { font-size: 26rpx; color: #999; padding: 20rpx 0; }
+.send-result { margin-top: 16rpx; padding: 20rpx; border-radius: 8rpx; font-size: 26rpx; }
+.send-result.ok { background: #f0fff4; color: #07c160; }
+.send-result.fail { background: #fff0f0; color: #ff4d4f; word-break: break-all; }
+.send-footer { display: flex; align-items: center; justify-content: flex-end; gap: 20rpx; margin-top: 24rpx; }
 </style>
