@@ -10,6 +10,7 @@
 - [4. 多租户管理](ch4-tenant.md)
 - [5. 渠道管理](ch5-channel.md)
 - [6. 课程管理](ch6-course.md)
+- [7. 权限设置](ch7-permissions.md)
 - [8. 题库管理](ch8-quiz.md)
 - [9. 积分管理](ch9-points.md)
 - [10. 系统管理](ch10-system.md)

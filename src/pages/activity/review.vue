@@ -103,6 +103,9 @@
         <view class="review-body">
           <text class="review-text">{{ row.review || '（无文字）' }}</text>
         </view>
+        <view class="review-ops" v-if="row.id">
+          <view class="review-op" @click.stop="toggleHidden(row)">{{ row.reviewHidden ? '恢复显示' : '隐藏' }}</view>
+        </view>
       </view>
     </view>
 
@@ -122,7 +125,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getActivityReviews, listActivities } from '../../api/activity.js'
+import { getActivityReviews, setActivityReviewHidden, listActivities } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activityList = ref([])
@@ -222,6 +225,18 @@ async function loadData(page = 1) {
 function prevPage() { if (currentPage.value > 1) loadData(currentPage.value - 1) }
 function nextPage() { if (currentPage.value < (pagination.value.pageCount || 1)) loadData(currentPage.value + 1) }
 
+async function toggleHidden(row) {
+  try {
+    const next = !row.reviewHidden
+    await setActivityReviewHidden(row.id, next)
+    row.reviewHidden = next
+    uni.showToast({ title: next ? '已隐藏' : '已恢复', icon: 'none' })
+    loadData(currentPage.value)
+  } catch (e) {
+    uni.showToast({ title: '操作失败', icon: 'none' })
+  }
+}
+
 onMounted(() => {
   loadActivities()
   loadData(1)
@@ -308,6 +323,8 @@ page { background: #f5f5f5; }
 .review-time { font-size: 24rpx; color: #999; }
 .review-body { padding-top: 16rpx; border-top: 1rpx solid #f0f0f0; }
 .review-text { font-size: 26rpx; color: #333; line-height: 1.6; }
+.review-ops { margin-top: 12rpx; display: flex; justify-content: flex-end; }
+.review-op { font-size: 24rpx; color: #667eea; border: 1rpx solid #667eea; padding: 4rpx 16rpx; border-radius: 20rpx; }
 
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }

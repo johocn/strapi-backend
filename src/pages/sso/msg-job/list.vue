@@ -240,7 +240,7 @@ async function doManualSend() {
   const params = {}
   manualFields.value.forEach((f) => { if (manualParams.value[f.key] !== '' && manualParams.value[f.key] !== undefined) params[f.key] = manualParams.value[f.key] })
   try {
-    const job = await ssoMsgJobApi.sendNow({ user: manualUser.value.id, scene: 'manual', templateCode: manualTemplate.value.code, params })
+    const job = await ssoMsgJobApi.sendNow({ userId: manualUser.value.id, scene: 'manual', templateCode: manualTemplate.value.code, params })
     const st = job && job.status
     if (st === 'sent') {
       uni.showToast({ title: '发送成功', icon: 'success' })

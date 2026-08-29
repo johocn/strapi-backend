@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [
     uni()
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern'
+      }
+    }
+  },
   server: {
     host: '0.0.0.0',
     port: 5174,

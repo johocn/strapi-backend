@@ -1,0 +1,141 @@
+<!-- 线下活动使用手册 — 第四章 操作指南（按活动全流程） -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>线下活动使用手册 · 第四章 操作指南（按活动全流程）</title>
+
+<h2 id="ch4"><span class="ch-num">第四章</span>操作指南（按活动全流程）</h2>
+
+<p>本章按一场线下活动的<strong>完整生命周期顺序</strong>给出操作步骤：前期准备 &rarr; 创建配置 &rarr; 发布报名 &rarr; 现场签到 &rarr; 结束回访 &rarr; 对账结算 &rarr; 归档复用。运营者按阶段顺序执行即可覆盖整场活动。</p>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node">阶段 0<br>前期准备</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 1<br>创建活动</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 2<br>发布报名</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 3<br>现场签到</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 4<br>结束回访</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 5<br>对账结算</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">阶段 6<br>归档复用</span>
+</div>
+</div>
+
+<h3 id="ch4-0">阶段 0：前期准备</h3>
+
+<p>创建活动前，先确认以下主档数据已就绪，避免创建时下拉无数据：</p>
+
+<ol class="steps">
+  <li><strong>确认活动分类</strong>：分类来自 <code>activity-category</code> 分组标签（社会公益、讲座、沙龙、工作坊、培训、读书会、交流会、其他）。若需新增分类，先在资源/标签维护入口补齐</li>
+  <li><strong>维护讲师/场地主档</strong>：在资源管理中确认本次活动讲师、场地已存在（<code>listLecturers</code> / <code>listVenues</code>），必要时新建。主档新建后会自动同步生成同名标签</li>
+  <li><strong>维护活动系列</strong>（如需）：系列活动先创建系列，再在活动表单中归属</li>
+  <li><strong>确认积分与费用配置</strong>：如需报名扣分/奖励/裂变奖励，确认积分规则已配置（详见积分相关手册）</li>
+  <li><strong>确认权限</strong>：当前账号需具备活动创建/更新权限，且租户已开启活动相关功能开关</li>
+</ol>
+
+<h3 id="ch4-1">阶段 1：创建活动</h3>
+
+<p>在运营端进入「线下活动」，点击「新建活动」，按下述区块填写：</p>
+
+<h4>1.1 基础信息</h4>
+<ol class="steps">
+  <li><strong>活动标题</strong>：必填，用户可见</li>
+  <li><strong>活动分类</strong>：下拉选择（可不选）</li>
+  <li><strong>活动描述</strong>：活动详情介绍，展示给 C 端用户</li>
+  <li><strong>回放与资料</strong>：可关联回放链接/资料内容</li>
+  <li><strong>所属系列</strong>：下拉选择已建系列（可不选）</li>
+  <li><strong>活动时间</strong>：开始/结束时间，用于列表展示与签到判断</li>
+</ol>
+
+<h4>1.2 报名设置</h4>
+<ol class="steps">
+  <li><strong>报名容量</strong>：<code>capacity</code>，满员后自动转候补</li>
+  <li><strong>计费模式</strong>：一口价（<code>flat</code>）/ 档位（<code>tier</code>）/ 因子（<code>factor</code>），按需选择并配置对应价格档位或因子</li>
+  <li><strong>积分价 / 现金价</strong>：<code>pointsCost</code>（报名所需积分）与 <code>cashPrice</code>（现金价），按计费模式填写</li>
+  <li><strong>收取时点</strong>：<code>feeCollectAt</code>——报名时（<code>signup</code>）或签到时（<code>checkin</code>）</li>
+  <li><strong>报名开始/结束时间</strong>：<code>signupStart</code> / <code>signupEnd</code>，报名时间窗外无法报名</li>
+  <li><strong>签到方式</strong>：<code>checkinMode</code>——工作人员扫码 / 用户自助 / 两者均可；如开启自助核销并需定位校验，配置 <code>geoEnforced</code> 与半径</li>
+</ol>
+
+<h4>1.3 报名表单（formConfig）</h4>
+<ol class="steps">
+  <li>按需添加报名收集字段：设置字段 <code>key / label / type / 是否必填 / 最小值 / 最大值 / 选项</code></li>
+  <li>用户报名时填写的内容保存在报名记录 <code>formData</code>，运营端报名名单可展开查看</li>
+</ol>
+
+<h4>1.4 资源与内容解锁</h4>
+<ol class="steps">
+  <li><strong>选择讲师 / 场地</strong>：下拉选择（可快速新建后自动选中），系统会做档期冲突预检</li>
+  <li><strong>内容解锁</strong>：如需报名后解锁文章/课时（<code>preUnlockArticles</code> / <code>preUnlockLessons</code>）或配置学习资料包，在此关联对应内容</li>
+  <li><strong>分享裂变奖励</strong>：如需拉新，配置 <code>shareRewardPoints</code></li>
+</ol>
+
+<div class="callout callout-info">
+<div class="callout-title">草稿阶段</div>
+<p>创建后活动默认处于 <code>draft</code> 草稿状态，C 端不可见。可反复编辑，确认无误后再发布。</p>
+</div>
+
+<h3 id="ch4-2">阶段 2：发布与报名期</h3>
+
+<ol class="steps">
+  <li><strong>发布活动</strong>：将活动状态转为 <code>signup_open</code>（报名中）。发布后 C 端即可看到并报名，未发布/已归档活动默认被过滤</li>
+  <li><strong>关注报名进度</strong>：在活动列表查看已报名人数与名额占用；报名高峰并发安全由系统保证</li>
+  <li><strong>查看报名名单</strong>：进入「报名名单」，按用户查看状态徽章（已报名 <code>active</code> / 候补中 <code>waiting</code> / 已取消 <code>cancelled</code> / 已到场），可展开查看报名表单信息</li>
+  <li><strong>候补管理</strong>：对候补用户执行「移出候补」（<code>adminCancelSignup</code>）。注意：仅候补状态可移出；对已报名（active）执行移出会被拒绝</li>
+  <li><strong>处理取消</strong>：用户主动取消 <code>active</code> 报名时，系统自动释放名额并递补最旧的候补转正（自动通知）；候补取消仅置取消，不递补</li>
+  <li><strong>临时关闭报名</strong>：如需提前截止，可关闭报名（<code>adminClose</code>）</li>
+</ol>
+
+<h3 id="ch4-3">阶段 3：现场签到</h3>
+
+<ol class="steps">
+  <li><strong>确认签到方式</strong>：按活动配置的 <code>checkinMode</code> 安排——工作人员扫码核销，或引导用户自助核销（如开启定位校验，需在活动场地半径内）</li>
+  <li><strong>扫码核销</strong>：在活动列表进入「扫码核销」，扫描用户报名凭证完成核销</li>
+  <li><strong>查看到场记录</strong>：切到「到场记录」页，查看已到场用户、到场时间与核销方式（<code>worker_scan</code> / <code>self</code>），用于核对到场率与后续对账</li>
+</ol>
+
+<div class="callout callout-warning">
+<div class="callout-title">计费时点提醒</div>
+<p>若活动配置为 <code>feeCollectAt = checkin</code>（签到时收取），请确保到场签到环节完成扣费/收款，避免漏收。</p>
+</div>
+
+<h3 id="ch4-4">阶段 4：活动结束</h3>
+
+<ol class="steps">
+  <li><strong>结束活动</strong>：将活动状态转为 <code>ended</code>。系统会对活动期内<strong>未签到且未取消</strong>的报名用户触发回访提醒，并对已到场用户触发评价/复购相关通知</li>
+  <li><strong>沉淀数据</strong>：结束后的活动仍可在运营端查看报名名单、到场记录与评价，用于复盘</li>
+</ol>
+
+<h3 id="ch4-5">阶段 5：对账结算</h3>
+
+<ol class="steps">
+  <li><strong>生成台账</strong>：在活动对账/台账入口生成台账快照（<code>ledger</code>），汇总报名、到场与费用数据；如数据有更新可重新生成</li>
+  <li><strong>确认讲师/场地结算金额</strong>：核对 <code>settleLecturer</code>（讲师结算）、<code>settleVenue</code>（场地结算）</li>
+  <li><strong>完成结算</strong>：确认金额无误后执行结算（<code>settle</code>）</li>
+</ol>
+
+<h3 id="ch4-6">阶段 6：归档与复用</h3>
+
+<ol class="steps">
+  <li><strong>归档活动</strong>：将已结束（<code>ended</code>）活动转为 <code>archived</code>，归档后 C 端不再展示；归档是长期历史沉淀方式</li>
+  <li><strong>恢复活动</strong>：如需重新可见，可将 <code>archived</code> 恢复为 <code>ended</code></li>
+  <li><strong>克隆复用</strong>：基于已有活动一键克隆，复制讲师/场地关系及分类/表单/资料/结算等配置，用于同类型活动快速开新场</li>
+  <li><strong>删除</strong>：仅草稿等可安全删除的活动可直接删除，已产生报名数据请谨慎处理</li>
+</ol>
+
+<div class="callout callout-success">
+<div class="callout-title">全流程核对清单</div>
+<ul class="checklist">
+  <li>创建前：分类/讲师/场地/系列/积分配置就绪</li>
+  <li>创建时：容量、计费、报名时间窗、签到方式、报名表单、内容解锁配置完整</li>
+  <li>发布后：转 <code>signup_open</code>，C 端可见可报名</li>
+  <li>报名期：名单与候补管理到位，满员自动候补、取消自动递补</li>
+  <li>活动日：按 <code>checkinMode</code> 完成核销，到场记录完整</li>
+  <li>结束后：转 <code>ended</code> 触发回访/评价，生成台账并完成讲师/场地结算</li>
+  <li>收尾：归档沉淀，或用克隆快速开启下一场</li>
+</ul>
+</div>

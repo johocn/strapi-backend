@@ -2,7 +2,9 @@ import { get, post, put, del } from '../utils/request.js'
 import { extractList, extractItem } from '../utils/format.js'
 
 const V1 = '/zhao-point/v1'
-const ADMIN = `${V1}/admin`
+// 注意：zhao-point 后端所有管理端（list/create/series/对账等）路由都注册在 /v1/admin/adm 段下，
+// 必须带 /adm。此前缺 /adm 会 405（如系列新建）。与 resource.js 的 /adm 前缀对齐。
+const ADMIN = `${V1}/admin/adm`
 
 // 活动管理（list/create 走 /adm/activities；获取单项复用列表接口）
 
@@ -10,12 +12,11 @@ export function listActivities(params = {}) {
   return get(`${ADMIN}/activities`, params).then(extractList)
 }
 
-// 从列表接口按 documentId 抽取单项（未提供单独 GET 详情接口）
+// 按 documentId 从列表接口取单项（后端 adminList 支持 documentIds 过滤，以此精准命中当前活动）
 export async function getActivity(documentId, params = {}) {
-  const res = await get(`${ADMIN}/activities`, { ...params })
+  const res = await get(`${ADMIN}/activities`, { ...params, documentIds: documentId, page: 1, pageSize: 1 })
   const list = res?.list ?? res?.data ?? []
-  const item = list.find(i => i.documentId === documentId) || null
-  return flattenItem(item)
+  return flattenItem(list[0] || null)
 }
 
 function flattenItem(item) {
@@ -117,13 +118,18 @@ export function getActivityReviews(params = {}) {
   return get(`${ADMIN}/activity-reviews`, params)
 }
 
+// 评价隐藏/恢复（body:{hidden:boolean}；隐藏后 C 端公开列表不再展示）
+export function setActivityReviewHidden(signupId, hidden) {
+  return put(`${ADMIN}/activity-reviews/${signupId}/hidden`, { hidden })
+}
+
 // 活动效果总览（返回原始体 { data: { summary, rows }, meta }；?status=all|draft|signup_open|ongoing|ended）
 export function getActivityOverview(params = {}) {
   return get(`${ADMIN}/activity-overview`, params)
 }
 
 // ===== 经营对账（活动台账快照）=====
-// 注意：台账接口后端注册在 /v1/admin/adm 下（channelScopeRoute），需带 /adm 段，与 activity.js 其他 /admin 请求不同
+// 对账路由与活动管理同属 /v1/admin/adm 段，LEDGER_ADMIN 即 ADMIN。
 const LEDGER_ADMIN = '/zhao-point/v1/admin/adm'
 
 // 台账列表（返回原始体 { data:[...], meta:{ pagination } }；?activityDocumentId=&page=&pageSize=）
@@ -139,4 +145,14 @@ export function regenerateLedger(activityDocumentId) {
 // 标记台账快照已结算/回退未结（body:{settleStatus:'settled'|'pending'}）
 export function settleLedger(ledgerDocumentId, settleStatus) {
   return put(`${LEDGER_ADMIN}/ledgers/${ledgerDocumentId}/settle`, { settleStatus })
+}
+
+// ===== 活动宣传页客服留言 =====
+// 列表（?activity=活动documentId&status=open|replied&page=&pageSize=），返回 { list, pagination }
+export function listActivityMessages(params = {}) {
+  return get(`${ADMIN}/activity-messages`, params).then(extractList)
+}
+// 回复（body:{reply}）
+export function replyActivityMessage(messageDocumentId, reply) {
+  return put(`${ADMIN}/activity-messages/${messageDocumentId}/reply`, { reply })
 }

@@ -1,0 +1,136 @@
+<!-- 线下活动使用手册 — 第一章 手册目的与系统总览 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>线下活动使用手册 · 第一章 手册目的与系统总览</title>
+
+<h2 id="ch1"><span class="ch-num">第一章</span>手册目的与系统总览</h2>
+
+<h3 id="ch1-1">1.1 手册定位与阅读对象</h3>
+
+<p>本手册是<strong>运营端线下活动功能的使用说明</strong>，面向在 <code>h.joho.cn</code> 运营端创建和管理线下活动的操作者，包括：<code>admin</code>（超级管理员）、<code>channel-admin</code>（渠道管理员）、<code>plugin-manager</code>（插件管理员）以及日常运营人员。</p>
+
+<p>手册不是 API 文档，也不讲解源码实现，而是解决三类问题：</p>
+
+<ul class="checklist">
+  <li><strong>这是什么</strong>——线下活动在业务中承担什么角色、系统结构如何组成（第一章）</li>
+  <li><strong>它跟什么有关</strong>——活动与标签、积分、课程/官网、系列、资源、渠道/角色、C 端如何联动（第二章）</li>
+  <li><strong>它怎么用</strong>——系统内置的关键机制（第三章），以及按活动全流程的操作步骤（第四章）</li>
+</ul>
+
+<div class="callout callout-info">
+<div class="callout-title">阅读建议</div>
+<p>初次使用者建议按顺序通读一遍；平时操作遇到疑问，可在第四章按活动所处阶段（准备→创建→发布→签到→结束→结算→归档）定位到对应小节。</p>
+</div>
+
+<h3 id="ch1-2">1.2 线下活动是什么</h3>
+
+<p>线下活动是平台触达会员的<strong>线下触点</strong>，覆盖讲座、沙龙、工作坊、培训、读书会、交流会等场景。运营者在后台创建活动并开放报名，C 端用户报名、到场签到，活动结束后进行对账结算与归档。</p>
+
+<p>系统围绕三个核心能力构建：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>核心能力</th><th>说明</th><th>对应数据</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>活动发布与报名</strong></td><td>创建活动、配置容量/计费/报名表单、开放报名、候补管理</td><td><code>activity</code> + <code>activity-signup</code></td></tr>
+<tr><td><strong>到场与经营闭环</strong></td><td>扫码/自助核销、到场记录、活动结束后回访评价与复购触发</td><td><code>sign-in-record</code> / <code>attendedAt</code></td></tr>
+<tr><td><strong>对账与归档</strong></td><td>生成台账快照、讲师/场地结算、活动归档与克隆复用</td><td><code>ledger</code> / <code>settleLecturer</code> / <code>settleVenue</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>活动本身还可以与课程/官网内容打通：报名前后解锁指定文章或课时，把"线下到场"转化为"线上内容学习"的引流与复购入口。</p>
+
+<h3 id="ch1-3">1.3 活动全生命周期与状态机</h3>
+
+<p>每个活动都有明确的<strong>状态</strong>，状态决定了当前可执行的操作。运营者通过操作（或系统自动流转）推动活动走完整个生命周期：</p>
+
+<div class="flow-diagram">
+<div class="flow-row">
+  <span class="flow-node">草稿 draft</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">报名中 signup_open</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">进行中 ongoing</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">已结束 ended</span>
+</div>
+<div class="flow-row">
+  <span class="flow-arrow">&nbsp;</span>
+  <span class="flow-arrow">&nbsp;</span>
+  <span class="flow-arrow">&nbsp;</span>
+  <span class="flow-arrow">&darr; 归档</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node-primary">已归档 archived</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-arrow">&uarr; 恢复</span>
+</div>
+<div class="flow-row">
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node" style="visibility:hidden">占位</span>
+  <span class="flow-node">已结束 ended</span>
+</div>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th><th>主要可执行操作</th><th>C 端可见性</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>draft</strong></td><td>草稿，创建后默认状态</td><td>编辑、删除、转报名中</td><td>不可见</td></tr>
+<tr><td><strong>signup_open</strong></td><td>报名中，开放报名</td><td>报名名单、扫码核销、编辑、关闭报名</td><td>可见，可报名</td></tr>
+<tr><td><strong>ongoing</strong></td><td>进行中（活动开始）</td><td>报名名单、扫码核销、结束活动</td><td>可见，按需</td></tr>
+<tr><td><strong>ended</strong></td><td>已结束，触发回访/评价/复购</td><td>对账结算、归档</td><td>可见（列表默认过滤草稿与已归档）</td></tr>
+<tr><td><strong>archived</strong></td><td>已归档，历史沉淀</td><td>恢复（回 ended）、克隆</td><td>不可见</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout callout-warning">
+<div class="callout-title">状态流转注意</div>
+<p><strong>归档</strong>仅允许从 <code>ended</code> 转入，<strong>恢复</strong>仅允许从 <code>archived</code> 回到 <code>ended</code>。C 端活动列表默认过滤 <code>draft</code> 与 <code>archived</code>，因此未发布或已归档的活动不会展示给用户。</p>
+</div>
+
+<h3 id="ch1-4">1.4 角色与权限</h3>
+
+<p>活动功能受两类权限约束：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>权限维度</th><th>机制</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>操作权限</strong></td><td>权限点 <code>activity.read / create / update / delete</code> 等</td><td>未授权的角色无法看到/创建/编辑/删除活动按钮</td></tr>
+<tr><td><strong>渠道作用域</strong></td><td><code>channelScope</code>（all / specific）+ <code>channelIds</code></td><td>活动可按渠道限定数据范围，管理接口按渠道作用域隔离</td></tr>
+<tr><td><strong>可见角色</strong></td><td><code>visibleToRoles</code> + 租户开关 <code>roleGate</code></td><td>仅当租户开启 roleGate 且填写 visibleToRoles 时，指定角色才可见该活动</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>管理员路由（<code>/adm/activities/*</code>）均要求渠道作用域与对应权限点，普通用户路由（<code>/my/activity/*</code>）面向 C 端注册用户。</p>
+
+<h3 id="ch1-5">1.5 手册结构说明</h3>
+
+<p>四章之间是"理解 &rarr; 上手"的递进关系：</p>
+
+<ul class="checklist">
+  <li><strong>第一章（本章）</strong>：系统定位、状态机与权限，建立全局认识</li>
+  <li><strong>第二章</strong>：活动与周边系统（标签、积分、课程/官网、系列、资源、渠道/角色、C 端）的关系，回答"改了这里会影响哪里"</li>
+  <li><strong>第三章</strong>：名额并发、候补递补、计费、签到、对账、裂变等内置机制的原理与规则，回答"系统替我把关了什么"</li>
+  <li><strong>第四章</strong>：按活动全生命周期顺序的分阶段操作步骤，回答"我该怎么点"</li>
+</ul>
+
+<p>建议在操作前重点阅读第三、四章；涉及跨系统配置时回查第二章。</p>

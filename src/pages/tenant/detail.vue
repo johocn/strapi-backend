@@ -140,6 +140,44 @@
         </view>
       </view>
 
+      <view v-if="isAdminOnly" class="form-section">
+        <view class="section-header">
+          <text class="section-title">功能模块开通</text>
+          <text class="section-hint">仅管理员可配置；全局开启的模块对所有租户可用，全局关闭的模块需在此为当前租户开通</text>
+        </view>
+        <view class="module-grant-list">
+          <view
+            v-for="mod in MODULE_LIST"
+            :key="mod.key"
+            class="module-grant-item"
+            :class="{ disabled: isModuleGloballyEnabled(mod.key) }"
+          >
+            <view class="module-grant-info">
+              <text class="module-grant-icon">{{ mod.icon }}</text>
+              <text class="module-grant-name">{{ mod.label }}</text>
+              <text v-if="isModuleGloballyEnabled(mod.key)" class="toggle-grant-state">🔓 全局已开</text>
+              <text v-else :class="['toggle-grant-state', isModuleGranted(mod.key) ? 'on' : 'off']">
+                {{ isModuleGranted(mod.key) ? '已开通' : '未开通' }}
+              </text>
+            </view>
+            <switch
+              :checked="isModuleGranted(mod.key)"
+              :disabled="isModuleGloballyEnabled(mod.key) || !isEdit"
+              color="#07c160"
+              @change="(e) => toggleModuleGrant(mod.key, e.detail.value)"
+            />
+          </view>
+        </view>
+        <button
+          v-if="isEdit"
+          class="btn-save-modules"
+          :disabled="savingModuleGrants || globalConfigLoading"
+          @click="saveModuleGrants"
+        >
+          {{ savingModuleGrants ? '保存中...' : '保存功能模块开通' }}
+        </button>
+      </view>
+
       <view class="form-section">
         <text class="section-title">认证配置</text>
 
@@ -497,6 +535,8 @@ import ColorPicker from '../../components/ColorPicker.vue'
 import { getTemplates } from '../../api/site-template.js'
 import { MODULE_LIST, DEFAULT_FEATURE_FLAGS } from '../../constants/module.js'
 import { isLoggedIn } from '../../utils/auth.js'
+import { getGlobalConfig, updateGlobalConfig } from '../../api/global-config.js'
+import { clearConfigCache } from '../../utils/config-helper.js'
 
 const userStore = useUserStore()
 const documentId = ref('')
@@ -514,6 +554,12 @@ const availableChannels = ref([])
 const saving = ref(false)
 const loading = ref(false)
 const originalExtraConfig = ref({})
+
+// 功能模块开通（管理员配置租户可用模块）
+const moduleEnabled = ref({})
+const moduleTenantGrants = ref({})
+const globalConfigLoading = ref(false)
+const savingModuleGrants = ref(false)
 
 // schema 字段集（存入 site-config 列，非 extraConfig）
 // 与后端 updateSiteById 的 SITE_FIELDS 保持一致
@@ -719,6 +765,7 @@ onMounted(async () => {
     isEdit.value = true
     await loadTemplates()
     await loadTenantDetail()
+    await loadGlobalConfig()
   }
 
   await loadChannels()
@@ -1054,6 +1101,54 @@ function removeMedia(target) {
   else if (target === 'favicon') { formData.faviconId = null; formData.faviconUrl = '' }
   else if (target === 'shareImage') { formData.shareImageId = null; formData.shareImageUrl = '' }
   else if (target === 'posterDefaultUserAvatar') { formData.posterDefaultUserAvatarId = null; formData.posterDefaultUserAvatarUrl = '' }
+}
+
+async function loadGlobalConfig() {
+  globalConfigLoading.value = true
+  try {
+    const res = await getGlobalConfig()
+    moduleEnabled.value = { ...(res?.moduleEnabled || {}) }
+    moduleTenantGrants.value = { ...(res?.moduleTenantGrants || {}) }
+  } catch (e) {
+    moduleEnabled.value = {}
+    moduleTenantGrants.value = {}
+  } finally {
+    globalConfigLoading.value = false
+  }
+}
+
+// 该模块全局是否开启（开启后所有租户可用，前端禁用不可单独关闭）
+function isModuleGloballyEnabled(moduleKey) {
+  return moduleEnabled.value[moduleKey] === true
+}
+
+// 该模块是否为当前租户开通（全局关闭时依据 moduleTenantGrants 判定）
+function isModuleGranted(moduleKey) {
+  if (isModuleGloballyEnabled(moduleKey)) return true
+  return (moduleTenantGrants.value[moduleKey] || []).includes(documentId.value)
+}
+
+function toggleModuleGrant(moduleKey, value) {
+  if (!documentId.value) return
+  const list = moduleTenantGrants.value[moduleKey] || []
+  const idx = list.indexOf(documentId.value)
+  if (value && idx === -1) list.push(documentId.value)
+  if (!value && idx > -1) list.splice(idx, 1)
+  moduleTenantGrants.value[moduleKey] = list
+}
+
+async function saveModuleGrants() {
+  if (savingModuleGrants.value) return
+  savingModuleGrants.value = true
+  try {
+    await updateGlobalConfig({ moduleTenantGrants: moduleTenantGrants.value })
+    clearConfigCache()
+    uni.showToast({ title: '功能模块开通已保存', icon: 'success' })
+  } catch (e) {
+    uni.showToast({ title: '保存失败', icon: 'none' })
+  } finally {
+    savingModuleGrants.value = false
+  }
 }
 
 async function saveTenant(goBack = false) {
@@ -1413,6 +1508,76 @@ function getAppTypeLabel(platform, appType) {
     color: #909399;
     font-size: 28rpx;
     background: #fff;
+  }
+  
+  .module-grant-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+    
+    .module-grant-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20rpx;
+      background: #f5f7fa;
+      border-radius: 10rpx;
+      
+      &.disabled {
+        opacity: 1;
+        
+        .toggle-grant-state {
+          color: #67c23a;
+          background: #f0f9eb;
+        }
+      }
+      
+      .module-grant-info {
+        display: flex;
+        align-items: center;
+        gap: 16rpx;
+        flex: 1;
+        
+        .module-grant-icon {
+          font-size: 32rpx;
+        }
+        
+        .module-grant-name {
+          font-size: 28rpx;
+          color: #303133;
+          flex: 1;
+        }
+        
+        .toggle-grant-state {
+          font-size: 22rpx;
+          padding: 4rpx 16rpx;
+          border-radius: 20rpx;
+          background: #f5f5f5;
+          color: #909399;
+          
+          &.on {
+            color: #67c23a;
+            background: #f0f9eb;
+          }
+          
+          &.off {
+            color: #f56c6c;
+            background: #fef0f0;
+          }
+        }
+      }
+    }
+  }
+  
+  .btn-save-modules {
+    width: 100%;
+    margin-top: 20rpx;
+    padding: 20rpx;
+    background: #409eff;
+    color: #fff;
+    border: none;
+    border-radius: 8rpx;
+    font-size: 28rpx;
   }
   
   .third-config-list {

@@ -71,8 +71,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ssoWxServerConfig } from '../../../api/wechat.js'
-import PageHeader from '../../../components/PageHeader.vue'
+import { ssoWxServerConfig } from '../../api/wechat.js'
+import PageHeader from '../../components/PageHeader.vue'
 
 const config = ref(null)
 const loading = ref(false)

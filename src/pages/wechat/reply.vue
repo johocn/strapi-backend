@@ -69,11 +69,12 @@
             <text class="rule-name">{{ item.trigger === 'keyword' ? (item.match || '未设置关键字') : (item.name || triggerMeta(item.trigger).label) }}</text>
             <view class="data-status" :class="(item.is_enabled === false) ? 'inactive' : 'active'">{{ (item.is_enabled === false) ? '停用' : '启用' }}</view>
           </view>
-          <view class="data-meta">
-            <text class="meta-item">回复类型: {{ item.reply_type === 'article' ? '图文' : '文本' }}</text>
-            <text class="meta-item" v-if="item.reply_type === 'text'">{{ item.text }}</text>
+          <view class="data-meta" v-if="item.reply_type === 'text'">
+            <text class="meta-item">回复类型: 文本</text>
+            <text class="meta-item">{{ item.text }}</text>
           </view>
           <view class="data-meta" v-else-if="item.reply_type === 'article'">
+            <text class="meta-item">回复类型: 图文</text>
             <text class="meta-item">📰 {{ item.title || '-' }}</text>
           </view>
           <view class="data-meta" v-if="item.reply_type === 'article' && item.link_url">
@@ -107,9 +108,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { ssoWxReplyApi } from '../../../api/wechat.js'
-import { useUserStore } from '../../../store/user.js'
-import PageHeader from '../../../components/PageHeader.vue'
+import { ssoWxReplyApi } from '../../api/wechat.js'
+import { useUserStore } from '../../store/user.js'
+import PageHeader from '../../components/PageHeader.vue'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission

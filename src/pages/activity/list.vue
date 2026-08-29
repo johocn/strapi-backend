@@ -2,6 +2,7 @@
   <view class="page-container">
     <PageHeader title="线下活动">
       <view class="btn-group">
+        <button class="btn-primary" @click="goMessages">💬 留言</button>
         <button class="btn-primary" @click="goResources">🎓 讲师/场地</button>
         <button class="btn-primary" @click="goCalendar">📅 日历视图</button>
         <button class="btn-primary" @click="goCreate">+ 新建活动</button>
@@ -16,18 +17,36 @@
             <text class="arrow">▼</text>
           </view>
         </picker>
+        <picker mode="selector" :range="venueOptions" @change="handleVenueFilter">
+          <view class="filter-item">
+            <text>{{ venueOptions[venueIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="selector" :range="lecturerOptions" @change="handleLecturerFilter">
+          <view class="filter-item">
+            <text>{{ lecturerOptions[lecturerIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="selector" :range="categoryOptions" @change="handleCategoryFilter">
+          <view class="filter-item">
+            <text>{{ categoryOptions[categoryIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
       </view>
     </view>
 
-    <view class="activity-list" v-if="!loading && list.length > 0">
-      <view v-for="item in list" :key="item.documentId || item.id" class="activity-card">
+    <view class="activity-list" v-if="!loading && pagedList.length > 0">
+      <view v-for="item in pagedList" :key="item.documentId || item.id" class="activity-card">
         <view class="card-header">
           <text class="card-title">{{ item.title || '-' }}</text>
           <text class="status-badge" :class="statusClass(item.status)">{{ statusText(item.status) }}</text>
         </view>
         <view class="card-meta">
           <text class="meta-item">🕐 {{ formatTime(item.startTime) }}</text>
-          <text class="meta-item">📍 {{ item.venueName || '-' }}</text>
+          <text class="meta-item">📍 {{ item.venue?.name || '-' }}</text>
         </view>
         <view class="card-meta">
           <text class="meta-item">名额: {{ item.capacity ?? '-' }}</text>
@@ -35,6 +54,7 @@
           <text class="meta-item">已报名: {{ item.signupCount ?? '-' }}</text>
         </view>
         <view class="card-actions">
+          <view class="action-btn promo" @click="goPromo(item)">宣传文案设计</view>
           <view class="action-btn" @click="goEdit(item)">编辑</view>
           <view class="action-btn" @click="goDuplicate(item)">一键克隆</view>
           <view class="action-btn" @click="goSignups(item)">到场名单</view>
@@ -47,12 +67,12 @@
     </view>
 
     <view v-if="loading" class="loading"><text>加载中...</text></view>
-    <view v-if="!loading && list.length === 0" class="empty-state">
+    <view v-if="!loading && filteredAll.length === 0" class="empty-state">
       <text class="empty-icon">📋</text>
       <text class="empty-text">暂无活动</text>
     </view>
 
-    <view class="pagination" v-if="pagination.total > pagination.pageSize">
+    <view class="pagination" v-if="filteredAll.length > pageSize">
       <view class="pagination-btn" @click="prevPage" :class="{ disabled: currentPage === 1 }">上一页</view>
       <text class="pagination-info">{{ currentPage }} / {{ totalPages }}</text>
       <view class="pagination-btn" @click="nextPage" :class="{ disabled: currentPage >= totalPages }">下一页</view>
@@ -79,7 +99,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { listActivities, deleteActivity, duplicateActivity, archiveActivity, unarchiveActivity } from '../../api/activity.js'
+import { listLecturers, listVenues } from '../../api/resource.js'
+import { getTagList } from '../../api/tag.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const statusOptions = ['全部状态', '草稿', '报名中', '进行中', '已结束', '已归档']
@@ -88,16 +111,76 @@ const statusIndex = ref(0)
 const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束', archived: '已归档' }
 const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended', archived: 'archived' }
 
-const list = ref([])
-const pagination = ref({ page: 1, pageSize: 20, total: 0 })
+// 服务端拉取（按状态）的原始数据
+const dataList = ref([])
+const filteredAll = computed(() => dataList.value.filter(a => {
+  if (venueIndex.value > 0) {
+    const id = relId(a.venue)
+    if (id !== relId(venueList.value[venueIndex.value - 1])) return false
+  }
+  if (lecturerIndex.value > 0) {
+    const id = relId(a.lecturer)
+    if (id !== relId(lecturerList.value[lecturerIndex.value - 1])) return false
+  }
+  if (categoryIndex.value > 0 && a.category !== categoryOptions.value[categoryIndex.value]) return false
+  return true
+}))
+
+// 前端筛选：场地 / 讲师 / 分类
+const venueList = ref([])
+const lecturerList = ref([])
+const categoryList = ref([])
+const venueIndex = ref(0)
+const lecturerIndex = ref(0)
+const categoryIndex = ref(0)
+const venueOptions = computed(() => ['全部场地', ...venueList.value.filter(v => !v.disabled).map(v => v.name || `场地#${v.id}`)])
+const lecturerOptions = computed(() => ['全部讲师', ...lecturerList.value.filter(l => !l.disabled).map(l => l.name || `讲师#${l.id}`)])
+const categoryOptions = computed(() => ['全部分类', ...categoryList.value.map(t => t.name || '')])
+
+function relId(r) {
+  if (!r) return ''
+  const row = Array.isArray(r) ? r[0] : r
+  if (!row) return ''
+  return String(row.id ?? row.documentId ?? '')
+}
+
+async function loadFilters() {
+  try {
+    const [v, l] = await Promise.all([
+      listVenues({ page: 1, pageSize: 500, includeDisabled: 'true' }),
+      listLecturers({ page: 1, pageSize: 500, includeDisabled: 'true' })
+    ])
+    venueList.value = v.list || []
+    lecturerList.value = l.list || []
+  } catch (e) {
+    venueList.value = []
+    lecturerList.value = []
+  }
+  try {
+    const cat = await getTagList({ page: 1, pageSize: 500, 'filters[tagGroup][slug][$eq]': 'activity-category' })
+    categoryList.value = (cat.list || []).filter(t => t.name).sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  } catch (e) {
+    categoryList.value = []
+  }
+}
+
+function handleVenueFilter(e) { venueIndex.value = Number(e.detail.value); currentPage.value = 1 }
+function handleLecturerFilter(e) { lecturerIndex.value = Number(e.detail.value); currentPage.value = 1 }
+function handleCategoryFilter(e) { categoryIndex.value = Number(e.detail.value); currentPage.value = 1 }
+
+// 分页：基于 filteredAll 客户端切片
 const currentPage = ref(1)
+const pageSize = 10
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredAll.value.slice(start, start + pageSize)
+})
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredAll.value.length / pageSize)))
 const loading = ref(false)
 
 const showDeleteModal = ref(false)
 const deleteItem = ref(null)
 const deleting = ref(false)
-
-const totalPages = computed(() => Math.ceil(pagination.value.total / pagination.value.pageSize))
 
 function statusText(s) { return statusTextMap[s] || s || '-' }
 function statusClass(s) { return statusClassMap[s] || 'default' }
@@ -110,28 +193,31 @@ function formatTime(dateStr) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-async function loadData(page = 1) {
+async function loadData() {
   loading.value = true
   try {
-    const params = { page, pageSize: pagination.value.pageSize }
+    const params = { page: 1, pageSize: 500 }
     if (statusIndex.value > 0) params.status = statusValues[statusIndex.value]
     const res = await listActivities(params)
-    list.value = res.list || []
-    pagination.value = res.pagination || { page: 1, pageSize: 20, total: 0 }
-    currentPage.value = page
+    dataList.value = res.list || []
+    currentPage.value = 1
   } catch (e) {
+    dataList.value = []
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-function handleStatusChange(e) { statusIndex.value = Number(e.detail.value); loadData(1) }
-function prevPage() { if (currentPage.value > 1) loadData(currentPage.value - 1) }
-function nextPage() { if (currentPage.value < totalPages.value) loadData(currentPage.value + 1) }
+function handleStatusChange(e) { statusIndex.value = Number(e.detail.value); loadData() }
+function prevPage() { if (currentPage.value > 1) currentPage.value-- }
+function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
 
 function goCreate() {
   uni.navigateTo({ url: '/pages/activity/form' })
+}
+function goMessages() {
+  uni.navigateTo({ url: '/pages/activity/messages' })
 }
 function goCalendar() {
   uni.navigateTo({ url: '/pages/activity/calendar' })
@@ -148,6 +234,9 @@ function goResources() {
 function goEdit(item) {
   uni.navigateTo({ url: `/pages/activity/form?id=${item.documentId}` })
 }
+function goPromo(item) {
+  uni.navigateTo({ url: `/pages/activity/promo?id=${item.documentId}` })
+}
 function goSignups(item) {
   uni.navigateTo({ url: `/pages/activity/signups?id=${item.documentId}` })
 }
@@ -155,7 +244,7 @@ async function goDuplicate(item) {
   try {
     await duplicateActivity(item.documentId)
     uni.showToast({ title: '复制成功', icon: 'success' })
-    loadData(currentPage.value)
+    loadData()
   } catch (e) {
     uni.showToast({ title: '复制失败', icon: 'none' })
   }
@@ -179,7 +268,7 @@ async function handleDelete() {
     await deleteActivity(deleteItem.value.documentId)
     uni.showToast({ title: '删除成功', icon: 'success' })
     closeDelete()
-    loadData(currentPage.value)
+    loadData()
   } catch (e) {
     uni.showToast({ title: '删除失败', icon: 'none' })
   } finally {
@@ -196,7 +285,7 @@ function confirmArchive(item) {
       try {
         await archiveActivity(item.documentId)
         uni.showToast({ title: '已归档', icon: 'success' })
-        loadData(currentPage.value)
+        loadData()
       } catch (e) {
         uni.showToast({ title: '归档失败', icon: 'none' })
       }
@@ -213,7 +302,7 @@ function confirmUnarchive(item) {
       try {
         await unarchiveActivity(item.documentId)
         uni.showToast({ title: '已恢复', icon: 'success' })
-        loadData(currentPage.value)
+        loadData()
       } catch (e) {
         uni.showToast({ title: '恢复失败', icon: 'none' })
       }
@@ -221,7 +310,8 @@ function confirmUnarchive(item) {
   })
 }
 
-onMounted(() => loadData(1))
+onShow(() => { loadData() })
+onMounted(() => { loadFilters() })
 </script>
 
 <style scoped>
@@ -236,7 +326,7 @@ page { background: #f5f5f5; }
 .btn-group { display: flex; gap: 16rpx; align-items: center; }
 
 .search-section { margin-bottom: 20rpx; }
-.filter-row { display: flex; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .filter-item {
   display: flex; align-items: center; gap: 8rpx;
   padding: 12rpx 24rpx; background: #fff; border-radius: 8rpx; font-size: 26rpx;
@@ -258,6 +348,7 @@ page { background: #f5f5f5; }
 .meta-item { font-size: 24rpx; color: #999; }
 .card-actions { display: flex; gap: 10rpx; border-top: 1rpx solid #f0f0f0; padding-top: 16rpx; }
 .action-btn { flex: 1; padding: 12rpx 0; border-radius: 8rpx; font-size: 26rpx; text-align: center; background: #f5f5f5; color: #333; font-weight: bold; }
+.action-btn.promo { background: #eef2ff; color: #6366f1; }
 .action-btn.danger { background: #fff1f0; color: #ff4d4f; }
 
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }

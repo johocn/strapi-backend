@@ -57,7 +57,7 @@
           </view>
           <view class="form-item">
             <text class="form-label">描述</text>
-            <textarea v-model="form.desc" placeholder="讲师介绍" class="form-textarea" />
+            <textarea v-model="form.desc" placeholder="讲师介绍" class="form-textarea" maxlength="-1" />
           </view>
           <view class="form-item">
             <text class="form-label">默认缓冲(分钟)</text>

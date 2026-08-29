@@ -77,10 +77,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { ssoWxMaterialApi } from '../../../api/wechat.js'
-import { useUserStore } from '../../../store/user.js'
-import PageHeader from '../../../components/PageHeader.vue'
-import { getMediaUrl } from '../../../utils/format.js'
+import { ssoWxMaterialApi } from '../../api/wechat.js'
+import { useUserStore } from '../../store/user.js'
+import PageHeader from '../../components/PageHeader.vue'
+import { getMediaUrl } from '../../utils/format.js'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission

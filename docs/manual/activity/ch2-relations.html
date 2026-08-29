@@ -1,0 +1,135 @@
+<!-- 线下活动使用手册 — 第二章 与其他设计的关系 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body/style 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>线下活动使用手册 · 第二章 与其他设计的关系</title>
+
+<h2 id="ch2"><span class="ch-num">第二章</span>与其他设计的关系</h2>
+
+<p>线下活动不是孤立功能，它与标签、积分、课程/官网、系列、资源排期、渠道/角色、C 端展示等多个子系统联动。理解这些关系，才能在配置一处时预判对其他地方的影响。</p>
+
+<h3 id="ch2-1">2.1 与标签系统（zhao-tag）的关系</h3>
+
+<p>活动通过<strong>影子标签联动</strong>方案接入统一标签系统，涉及四个标签分组：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>标签分组</th><th>对应资源</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>activity-category</code></td><td>活动分类</td><td>活动分类下拉选项（社会公益、讲座、沙龙、工作坊、培训、读书会、交流会、其他）</td></tr>
+<tr><td><code>activity-venue</code></td><td>场地</td><td>场地下拉与检索</td></tr>
+<tr><td><code>activity-lecturer</code></td><td>讲师</td><td>讲师大下拉与检索</td></tr>
+<tr><td><code>activity-series</code></td><td>活动系列</td><td>系列下拉与检索</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>联动规则（务必理解，避免误改）：</p>
+
+<ul class="checklist">
+  <li><strong>资源是权威</strong>：讲师/场地/系列资源主档新建或改名时，系统自动在对应分组创建/同步同名标签；活动通过这些标签与资源建立索引关系</li>
+  <li><strong>不回写</strong>：在标签页改名<strong>不会</strong>回写资源主档，资源侧始终是权威数据源</li>
+  <li><strong>标签检索</strong>：活动列表接口支持 <code>documentIds</code> 过滤，通过标签索引检索活动，用于按分类/场地/讲师/系列聚合</li>
+</ul>
+
+<div class="callout callout-warning">
+<div class="callout-title">操作提醒</div>
+<p>活动分类请在表单分类下拉中选择即可（下拉数据来自 <code>activity-category</code> 分组标签）；若要维护分类全集，请在资源/标签维护入口处理，不要直接在标签页造新分类而不落资源。</p>
+</div>
+
+<h3 id="ch2-2">2.2 与积分系统的关系</h3>
+
+<p>活动可深度绑定积分：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>积分能力</th><th>字段</th><th>时机</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>报名扣分</strong></td><td><code>pointsCost</code></td><td><code>feeCollectAt = signup</code> 时，报名即扣；<code>checkin</code> 时签到时扣</td></tr>
+<tr><td><strong>报名奖励</strong></td><td><code>rewardConfig</code></td><td>报名成功发放</td></tr>
+<tr><td><strong>分享裂变奖励</strong></td><td><code>shareRewardPoints</code></td><td>用户分享带来的新报名奖励</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>积分余额校验与扣减由积分服务统一完成，报名记录会保存实际扣点数（<code>pointsCharged</code>）。<strong>退款/逆向场景需单独核对积分方法签名与渠道约束</strong>，不要假设"报名取消=自动退分"——活动取消仅释放名额并递补候补，积分处理按配置规则执行。</p>
+
+<h3 id="ch2-3">2.3 与课程/官网的关系</h3>
+
+<p>活动可通过"内容解锁"打通线上课程与官网文章：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>能力</th><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>报名前解锁</strong></td><td><code>preUnlockArticles</code> / <code>preUnlockLessons</code></td><td>报名（或转正）后自动解锁指定的官网文章 / 课程课时，报名记录写入 <code>unlockInfo</code></td></tr>
+<tr><td><strong>学习资料包</strong></td><td><code>learningPackageArticles</code> / <code>learningPackageLessons</code></td><td>为到场用户准备的课程/文章资料，可在报名表单或回访中触达</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>这是"线下到场 &rarr; 线上学习 &rarr; 复购"转化链路的关键一环，配置时按实际内容选择对应文章/课时即可。</p>
+
+<h3 id="ch2-4">2.4 与活动系列的关系</h3>
+
+<p>活动可归属某个<strong>活动系列</strong>（<code>belongsToSeries</code>），用于组织多场次系列活动（如系列讲座、培训营）：</p>
+
+<ul class="checklist">
+  <li>一个系列下可创建多场活动，通过系列管理聚合查看与排期</li>
+  <li>支持按系列查询活动、批量生成系列场次（<code>generateSeries</code>）</li>
+  <li>系列活动共用分类/讲师/场地等资源标签，便于统一运营</li>
+</ul>
+
+<h3 id="ch2-5">2.5 与资源排期的关系</h3>
+
+<p>讲师（<code>lecturer</code>）与场地（<code>venue</code>）是活动表单中的两个资源关系字段：</p>
+
+<ul class="checklist">
+  <li>讲师/场地均有独立主档（增删改查），支持档期视图与<strong>冲突预检</strong>（同一讲师/场地在同一时段是否已被占用）</li>
+  <li>活动表单从 <code>listLecturers</code> / <code>listVenues</code> 读取下拉选项，选择即建立关系</li>
+  <li>历史数据中存在 <code>venueName</code> 文本字段的活动，已逐步统一为场地关系，以关系为准</li>
+</ul>
+
+<h3 id="ch2-6">2.6 与渠道/角色的关系</h3>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>维度</th><th>字段</th><th>效果</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>渠道作用域</strong></td><td><code>channelScope</code>（all / specific）+ <code>channelIds</code></td><td>限定活动的数据可见渠道，管理接口按渠道隔离</td></tr>
+<tr><td><strong>可见角色</strong></td><td><code>visibleToRoles</code> + 租户开关 <code>roleGate</code></td><td>租户开启 roleGate 且 visibleToRoles 非空时，仅命中角色可见该活动（列表/详情均过滤）；空数组 = 全开放</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="ch2-7">2.7 与 C 端展示的关系</h3>
+
+<p>C 端（<code>h.joho.cn</code> 用户端）通过公开接口消费活动数据：</p>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>C 端能力</th><th>接口</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>活动列表/详情</strong></td><td><code>GET /activities</code> / <code>/activities/:documentId</code></td><td>默认过滤 <code>draft</code> 与 <code>archived</code>，仅展示已发布活动</td></tr>
+<tr><td><strong>费用预览</strong></td><td><code>GET /activities/:documentId/fee</code></td><td>报名前展示所需积分/现金</td></tr>
+<tr><td><strong>报名/取消/签到/评价</strong></td><td><code>POST /my/activity/signup</code>、<code>cancel</code>、<code>checkin</code>、<code>/activities/:documentId/review</code></td><td>C 端用户自助操作</td></tr>
+<tr><td><strong>我的报名</strong></td><td><code>GET /my/activities</code></td><td>我的活动（含候补状态）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>因此运营端"发布活动"（转 <code>signup_open</code>）是 C 端可见的前提；活动结束且归档后 C 端不再展示。</p>
+
+<div class="callout callout-success">
+<div class="callout-title">一句话总结</div>
+<p>活动 = 一个业务实体（<code>activity</code>）挂在资源（讲师/场地/系列）、标签、积分、课程/官网、渠道/角色等多个体系之上。运营者主要打交道的入口是活动表单与资源主档，其余联动由系统自动完成。</p>
+</div>

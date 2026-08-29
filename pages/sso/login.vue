@@ -1,7 +1,8 @@
 <template>
   <view class="sso-login-page">
     <view class="page-header">
-      <text class="page-title">SSO 统一登录</text>
+      <text class="page-title">joho 统一登录</text>
+	  <text class="page-slogan">{{ randomSlogan }}</text>
     </view>
 
     <!-- 微信环境自动跳转中 -->
@@ -50,7 +51,30 @@ const channelCode = ref('')
 const mode = ref('token')
 const oauthError = ref('')
 const isWechatAutoRedirecting = ref(false)
-
+// ==========【新增 20条广告语数组+响应式变量】==========
+const sloganList = [
+  "joho · 连接美好，共创未来",
+  "一站式统一账号，通行所有服务",
+  "一个账号，解锁全部精彩",
+  "安全便捷登录，开启全新体验",
+  "以信任为基石，伴你一路前行",
+  "智慧互联，服务随心可达",
+  "joho相伴，万事简单",
+  "打通数字世界，只需一次登录",
+  "守护你的账号安全，我们全力以赴",
+  "同心同行，共建有温度的数字平台",
+  "便捷通行，智慧生活由此开始",
+  "一份信任，无限服务",
+  "简化登录流程，释放更多可能",
+  "链接资源，赋能每一位使用者",
+  "安心登录，放心使用",
+  "汇聚价值，共享成长",
+  "开启账号之旅，遇见更多精彩",
+  "以人为本，打造人性化数字服务",
+  "跨平台无缝通行，体验无边界服务",
+  "joho，让连接更有价值"
+]
+const randomSlogan = ref('')
 onLoad((options) => {
   appCode.value = options?.app_code || ''
   returnUrl.value = options?.return_url ? decodeURIComponent(options.return_url) : ''
@@ -67,7 +91,8 @@ onLoad((options) => {
     uni.showToast({ title: '缺少 return_url 参数', icon: 'none' })
   }
 })
-
+// ==========【新增：页面加载随机抽取一条标语】==========
+  randomSlogan.value = sloganList[Math.floor(Math.random() * sloganList.length)]
 // 判断微信浏览器环境（与 strapi-course/utils/env.ts 的 isWechatBrowser 逻辑一致）
 const isWechatEnv = computed(() => {
   // #ifdef H5
@@ -171,6 +196,14 @@ function goRegister() {
 }
 .page-header { text-align: center; padding: 30px 0 20px; }
 .page-title { font-size: 22px; font-weight: bold; color: #333; }
+/* ==========【新增标语样式】========== */
+.page-slogan {
+  display:block;
+  margin-top:10px;
+  font-size:14px;
+  color:#666;
+  line-height:1.6;
+}
 .component-container {
   background: #fff;
   border-radius: 12px;

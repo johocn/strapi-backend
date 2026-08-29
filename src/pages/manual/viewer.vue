@@ -309,7 +309,7 @@ function resolveDocPath(href) {
   let path = href.split(/[?#]/)[0]
   if (!path.endsWith('.md') && !path.endsWith('.html')) return null
   if (path.startsWith('/')) path = path.slice(1)
-  if (/^(admin|shao-catalog|user-guide|website|sso-login|ad-site|poster)\//.test(path)) return path
+  if (/^(admin|shao-catalog|user-guide|website|sso-login|ad-site|poster|activity)\//.test(path)) return path
   const dir = currentDoc.value.split('/').slice(0, -1).join('/')
   return dir ? `${dir}/${path}` : path
 }
@@ -331,6 +331,7 @@ function resolveDocPath(href) {
 .markdown-body :deep(h1) { font-size: 40rpx; font-weight: 700; margin: 24rpx 0 16rpx; color: #303133; }
 .markdown-body :deep(h2) { font-size: 34rpx; font-weight: 600; margin: 24rpx 0 12rpx; color: #303133; }
 .markdown-body :deep(h3) { font-size: 30rpx; font-weight: 600; margin: 16rpx 0 8rpx; color: #303133; }
+.markdown-body :deep(h4) { font-size: 28rpx; font-weight: 600; margin: 14rpx 0 6rpx; color: #303133; }
 .markdown-body :deep(p) { font-size: 28rpx; line-height: 1.7; color: #606266; margin: 12rpx 0; }
 .markdown-body :deep(ul), .markdown-body :deep(ol) { padding-left: 40rpx; margin: 12rpx 0; }
 .markdown-body :deep(li) { font-size: 28rpx; line-height: 1.7; color: #606266; }

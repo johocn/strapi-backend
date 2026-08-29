@@ -452,7 +452,7 @@ async function doSendTest() {
   const params = {}
   sendFields.value.forEach((f) => { if (sendParams.value[f.key] !== '' && sendParams.value[f.key] !== undefined) params[f.key] = sendParams.value[f.key] })
   try {
-    const job = await ssoMsgJobApi.sendNow({ user: sendUser.value.id, scene: 'manual', templateCode: form.value.code, params })
+    const job = await ssoMsgJobApi.sendNow({ userId: sendUser.value.id, scene: 'manual', templateCode: form.value.code, params })
     const st = job && job.status
     if (st === 'sent') {
       sendResult.value = { ok: true, msgId: (job && job.wxMsgId) || '' }

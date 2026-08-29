@@ -71,9 +71,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { ssoWxMenuApi } from '../../../api/wechat.js'
-import { useUserStore } from '../../../store/user.js'
-import PageHeader from '../../../components/PageHeader.vue'
+import { ssoWxMenuApi } from '../../api/wechat.js'
+import { useUserStore } from '../../store/user.js'
+import PageHeader from '../../components/PageHeader.vue'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission

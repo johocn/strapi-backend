@@ -1,0 +1,193 @@
+<!-- 线下活动使用手册 — 运营端线下活动全流程操作指南 -->
+<!-- 本文件由 viewer.vue 使用 v-html 渲染，不含外层 html/head/body 标签 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  .nav-root {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    color: #1e293b;
+    background: #f8fafc;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .nav-cover {
+    text-align: center;
+    padding: 48px 20px 36px;
+    margin-bottom: 40px;
+  }
+  .nav-cover h1 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+  .nav-cover .subtitle {
+    font-size: 16px;
+    color: #64748b;
+    margin: 0 0 20px;
+    line-height: 1.6;
+  }
+  .nav-cover .meta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .nav-cover .meta span {
+    background: #f1f5f9;
+    padding: 4px 14px;
+    border-radius: 20px;
+  }
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .nav-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .nav-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #1a56db;
+    border-radius: 4px 0 0 4px;
+  }
+  .nav-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(26,86,219,0.12);
+    border-color: #1a56db;
+  }
+  .nav-card:active {
+    transform: translateY(-1px);
+  }
+  .nav-card .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
+  .nav-card .card-desc {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+  .nav-card .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nav-card .card-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 12px;
+    line-height: 1.5;
+  }
+  .tag-blue   { background: #e0edff; color: #1a56db; }
+  .tag-green  { background: #dcfce7; color: #15803d; }
+  .tag-orange { background: #ffedd5; color: #c2410c; }
+  .tag-purple { background: #f3e8ff; color: #7c3aed; }
+  .tag-cyan   { background: #cffafe; color: #0e7490; }
+  .tag-rose   { background: #ffe4e6; color: #be123c; }
+  .tag-indigo { background: #e0e7ff; color: #4338ca; }
+  .tag-amber  { background: #fef3c7; color: #b45309; }
+  .nav-card .card-arrow {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #94a3b8;
+    transition: all 0.25s ease;
+  }
+  .nav-card:hover .card-arrow {
+    background: #1a56db;
+    color: #fff;
+  }
+  @media (max-width: 640px) {
+    .nav-root { padding: 20px 12px 40px; }
+    .nav-cover { padding: 32px 12px 24px; }
+    .nav-cover h1 { font-size: 28px; }
+    .nav-grid { grid-template-columns: 1fr; }
+    .nav-card { padding: 20px; }
+  }
+</style>
+<div class="nav-root">
+  <div class="nav-cover">
+    <h1>线下活动使用手册</h1>
+    <p class="subtitle">运营端线下活动全流程操作指南 &mdash; 从创建配置到对账归档</p>
+    <div class="meta">
+      <span>版本 v1.0</span>
+      <span>更新日期 2026-08-24</span>
+      <span>适用系统 zhao-point 活动模块</span>
+    </div>
+  </div>
+  <div class="nav-grid">
+    <div class="nav-card" onclick="window._goDoc('activity/ch1-overview.html')">
+      <div class="card-title">手册目的与系统总览</div>
+      <div class="card-desc">手册定位、活动系统是什么、生命周期状态机、角色与权限</div>
+      <div class="card-tags">
+        <span class="card-tag tag-blue">系统总览</span>
+        <span class="card-tag tag-green">状态机</span>
+        <span class="card-tag tag-orange">角色权限</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('activity/ch2-relations.html')">
+      <div class="card-title">与其他设计的关系</div>
+      <div class="card-desc">标签、积分、课程/官网、系列、资源排期、渠道与角色、C 端展示</div>
+      <div class="card-tags">
+        <span class="card-tag tag-purple">标签系统</span>
+        <span class="card-tag tag-cyan">积分</span>
+        <span class="card-tag tag-rose">课程解锁</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('activity/ch3-mechanisms.html')">
+      <div class="card-title">关键机制与方法</div>
+      <div class="card-desc">名额并发、候补递补、计费模式、签到核销、对账结算、分享裂变</div>
+      <div class="card-tags">
+        <span class="card-tag tag-amber">并发控制</span>
+        <span class="card-tag tag-blue">候补递补</span>
+        <span class="card-tag tag-green">对账结算</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+    <div class="nav-card" onclick="window._goDoc('activity/ch4-operation.html')">
+      <div class="card-title">操作指南（按活动全流程）</div>
+      <div class="card-desc">前期准备 &rarr; 创建配置 &rarr; 发布报名 &rarr; 现场签到 &rarr; 结束结算 &rarr; 归档复用</div>
+      <div class="card-tags">
+        <span class="card-tag tag-indigo">全流程</span>
+        <span class="card-tag tag-rose">分阶段</span>
+        <span class="card-tag tag-cyan">操作步骤</span>
+      </div>
+      <div class="card-arrow">&rarr;</div>
+    </div>
+  </div>
+</div>

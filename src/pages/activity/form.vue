@@ -28,7 +28,7 @@
 
         <view class="form-item">
           <text class="form-label">活动描述</text>
-          <textarea v-model="form.description" placeholder="请输入活动描述" class="form-textarea" />
+          <textarea v-model="form.description" placeholder="请输入活动描述" class="form-textarea" maxlength="-1" />
         </view>
 
         <view class="form-item">
@@ -87,6 +87,28 @@
             </picker>
           </view>
         </view>
+        <view class="form-item">
+          <text class="form-label">常用开始时间</text>
+          <view class="time-chips">
+            <text class="time-chip-group">上午</text>
+            <text class="time-chip" v-for="t in MORNING_TIMES" :key="t" @click="pickStartTime(t)">{{ t }}</text>
+            <text class="time-chip-group">下午</text>
+            <text class="time-chip" v-for="t in AFTERNOON_TIMES" :key="t" @click="pickStartTime(t)">{{ t }}</text>
+          </view>
+        </view>
+        <view class="form-item">
+          <text class="form-label">时长</text>
+          <view class="time-chips">
+            <text
+              class="time-chip"
+              :class="{ on: durationMinutes === d.m }"
+              v-for="d in DURATION_OPTIONS"
+              :key="d.m"
+              @click="pickDuration(d.m)"
+            >{{ d.label }}</text>
+          </view>
+        </view>
+        <view v-for="err in timeErrors.activity" :key="err" class="form-error">{{ err }}</view>
       </view>
 
       <view class="form-section">
@@ -288,6 +310,13 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">提前截止（小时）</text>
+          <input type="number" :value="form.signupAdvanceHours" @input="onAdvanceInput" placeholder="0=活动开始时截止，可为负数" class="form-input" />
+          <text v-if="advanceTip()" class="form-tip">{{ advanceTip() }}</text>
+          <view v-for="err in timeErrors.signup" :key="err" class="form-error">{{ err }}</view>
+        </view>
+
+        <view class="form-item">
           <text class="form-label">分享奖励积分（下线报名给分享者的积分）</text>
           <input type="number" v-model="form.shareRewardPoints" placeholder="0=不奖励" class="form-input" />
         </view>
@@ -367,6 +396,12 @@
           <view class="template-insert-btn" @click="openTemplatePicker(form.formConfig.length)">＋ 从模板导入</view>
           <view class="template-insert-btn" @click="addFormFieldAt(form.formConfig.length)">＋ 添加字段</view>
         </view>
+      </view>
+
+      <view class="form-section">
+        <view class="section-title">调查问卷（报名表单下方，选填）</view>
+        <view class="form-tip">开启问卷后可配置「回答调查问卷」通道/条件；报名时可选填，之后可补填解锁权益</view>
+        <ActivityQuestionnaire v-model:questionnaire="form.questionnaire" />
       </view>
 
       <view class="form-section">
@@ -461,129 +496,131 @@
 
       <view class="form-section">
         <view class="section-title">报名奖励配置</view>
-        <view class="form-tip">报名成功后自动发放/解锁奖励；每项奖励可配「附加条件」与「发放方式」，客户可全选或任选权益</view>
+        <view class="form-tip">报名成功自动发放/解锁奖励；先完成「解锁通道」，再按选择方式领取已满足条件的权益</view>
+        <ActivityRewardConfig
+          v-model:rewardConfig="form.rewardConfig"
+          :form-config="form.formConfig"
+          :questionnaire="form.questionnaire" />
+      </view>
 
-        <view class="fee-block">
-          <view class="fee-block-header">
-            <text class="fee-block-title">奖励开关</text>
+      <view class="form-section">
+        <view class="section-title">宣传设置</view>
+
+        <view class="form-item">
+          <text class="form-label">宣传组图</text>
+          <text class="form-tip">C 端宣传页封面默认取第 1 张；为每张填写场景备注，AI 可据此生成针对性文案</text>
+          <view v-for="(img, i) in form.promoAssets" :key="i" class="promo-asset-row">
+            <view class="promo-asset-info">
+              <text class="promo-asset-name">{{ img.name || img.url }}</text>
+              <input type="text" v-model="img.scene" placeholder="场景备注（如：封面主图-亲子互动）" class="form-input" />
+            </view>
+            <text class="link-del" @click="removePromoAsset(i)">删除</text>
           </view>
-          <view class="form-item">
-            <text class="form-label">启用报名奖励</text>
-            <switch :checked="!!form.rewardConfig?.loginEnabled" @change="toggleRewardEnabled" />
+          <view class="link-add" @click="openPromoAssetsPicker">+ 添加宣传组图</view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">配色方案</text>
+          <text class="form-tip">12 套色卡一键选用，可再微调六色值；未选时使用默认配色</text>
+          <view class="palette-grid">
+            <view
+              v-for="p in PROMO_PALETTES"
+              :key="p.key"
+              class="palette-card"
+              :class="{ on: isPaletteOn(p) }"
+              @click="applyPalette(p)"
+            >
+              <view class="palette-swatch">
+                <view class="palette-swatch-main" :style="{ background: p.colors.primary }"></view>
+                <view class="palette-swatch-bg" :style="{ background: p.colors.bg }"></view>
+                <view class="palette-swatch-card" :style="{ background: p.colors.card }"></view>
+                <view class="palette-swatch-accent" :style="{ background: p.colors.accent }"></view>
+              </view>
+              <text class="palette-name">{{ p.name }}</text>
+            </view>
+          </view>
+          <view v-if="form.promoColors" class="palette-preview" :style="{ background: form.promoColors.bg, color: form.promoColors.text }">
+            <view class="palette-preview-chip" :style="{ background: form.promoColors.primary }">主色</view>
+            <view class="palette-preview-chip" :style="{ background: form.promoColors.accent }">强调</view>
+            <view class="palette-preview-card" :style="{ background: form.promoColors.card, color: form.promoColors.textDim }">卡片</view>
+            <text class="palette-preview-text">正文预览</text>
+          </view>
+          <view v-if="form.promoColors" class="palette-editor">
+            <view v-for="(v, k) in form.promoColors" :key="k" class="form-row">
+              <text class="palette-key">{{ colorKeyLabel(k) }}</text>
+              <input type="text" v-model="form.promoColors[k]" class="form-input form-inline" placeholder="#RRGGBB" />
+            </view>
           </view>
         </view>
 
-        <template v-if="form.rewardConfig?.loginEnabled">
-          <view class="fee-block">
-            <view class="fee-block-header">
-              <text class="fee-block-title">信息解锁通道</text>
-              <text class="fee-block-hint">勾选后，对应表单字段将作为奖励「附加条件」的判定依据</text>
+        <view class="form-item">
+          <text class="form-label">页面模块</text>
+          <view v-for="(m, i) in form.promoModules" :key="i" class="promo-module-row">
+            <view class="promo-module-name" @click="toggleModuleConfig(i)">
+              <text>{{ PROMO_MODULE_META[m.type]?.name || m.type }}</text>
+              <text class="promo-module-arrow">{{ openModuleIndex === i ? '▲' : '▼' }}</text>
             </view>
-            <view class="form-row">
-              <view class="form-item half">
-                <text class="form-label">留联系方式</text>
-                <switch :checked="hasInfoChannel('contact')" @change="toggleInfoChannel('contact')" />
-              </view>
-              <view class="form-item half">
-                <text class="form-label">回答调查问卷</text>
-                <switch :checked="hasInfoChannel('survey')" @change="toggleInfoChannel('survey')" />
-              </view>
+            <view class="promo-module-ops">
+              <text class="link-del" @click="moveModule(i, -1)">上移</text>
+              <text class="link-del" @click="moveModule(i, 1)">下移</text>
+              <text class="link-del" @click="removeModule(i)">删除</text>
+            </view>
+            <view v-if="openModuleIndex === i" class="promo-module-config">
+              <template v-if="m.type === 'rich' || m.type === 'custom'">
+                <RichEditor v-model="m.config.html" />
+              </template>
+              <template v-else-if="m.type === 'highlights'">
+                <view v-for="(p, pi) in m.config.points || []" :key="pi" class="form-row">
+                  <input type="text" v-model="m.config.points[pi]" placeholder="亮点内容" class="form-input" />
+                  <text class="link-del" @click="m.config.points.splice(pi, 1)">删除</text>
+                </view>
+                <view class="link-add" @click="(m.config.points ||= []).push('')">+ 添加亮点</view>
+              </template>
+              <template v-else-if="m.type === 'agenda'">
+                <view v-for="(it, ii) in m.config.items || []" :key="ii" class="form-row">
+                  <input type="text" v-model="m.config.items[ii].t" placeholder="时间" class="form-input form-inline" />
+                  <input type="text" v-model="m.config.items[ii].title" placeholder="议程标题" class="form-input form-inline" />
+                  <text class="link-del" @click="m.config.items.splice(ii, 1)">删除</text>
+                </view>
+                <view class="link-add" @click="(m.config.items ||= []).push({ t: '', title: '', desc: '' })">+ 添加条目</view>
+              </template>
+              <template v-else-if="m.type === 'faq'">
+                <view v-for="(it, ii) in m.config.items || []" :key="ii" class="form-row">
+                  <input type="text" v-model="m.config.items[ii].q" placeholder="问题" class="form-input form-inline" />
+                  <input type="text" v-model="m.config.items[ii].a" placeholder="回答" class="form-input form-inline" />
+                  <text class="link-del" @click="m.config.items.splice(ii, 1)">删除</text>
+                </view>
+                <view class="link-add" @click="(m.config.items ||= []).push({ q: '', a: '' })">+ 添加问答</view>
+              </template>
+              <template v-else-if="m.type === 'images'">
+                <view v-for="(img, ii) in m.config.images || []" :key="ii" class="promo-module-image-row">
+                  <text class="promo-module-image-name">{{ img.name || img.url }}</text>
+                  <text class="link-del" @click="m.config.images.splice(ii, 1)">删除</text>
+                </view>
+                <view class="link-add" @click="openImagePicker(m)">+ 添加图片</view>
+              </template>
             </view>
           </view>
+          <view class="link-add" @click="openAddModule = true">+ 添加模块</view>
+        </view>
 
-          <view class="fee-block">
-            <view class="fee-block-header">
-              <text class="fee-block-title">奖励列表</text>
-              <text class="fee-block-hint">基础自动（不进入客户勾选菜单）｜客户自选（全选/任选）</text>
-            </view>
-            <view v-for="(rw, ri) in form.rewardConfig.rewards" :key="ri" class="reward-block">
-              <view class="fee-block-header">
-                <text class="fee-block-title">奖励 {{ ri + 1 }} · {{ rewardTypeName(rw.type) }}</text>
-                <view class="reward-ops">
-                  <text class="btn-link" @click="moveReward(ri, -1)">↑</text>
-                  <text class="btn-link" @click="moveReward(ri, 1)">↓</text>
-                  <text class="btn-link-danger" @click="removeReward(ri)">删除</text>
-                </view>
-              </view>
-              <view class="form-row">
-                <view class="form-item half">
-                  <text class="form-label">名称</text>
-                  <input v-model="rw.name" class="form-input" placeholder="如 报名积分" />
-                </view>
-                <view class="form-item half">
-                  <text class="form-label">类型</text>
-                  <picker mode="selector" :range="rewardTypeLabels" :value="rewardTypeIndex(rw.type)" @change="e => rw.type = rewardTypeValues[Number(e.detail.value)] || 'points'">
-                    <view class="picker-value"><text>{{ rewardTypeName(rw.type) }}</text><text class="picker-arrow">▼</text></view>
-                  </picker>
-                </view>
-              </view>
-              <view class="form-row">
-                <view class="form-item half">
-                  <text class="form-label">发放方式</text>
-                  <picker mode="selector" :range="['基础自动', '客户自选']" :value="rw.mode === 'multi' ? 1 : 0" @change="e => rw.mode = Number(e.detail.value) === 1 ? 'multi' : 'single'">
-                    <view class="picker-value"><text>{{ rw.mode === 'multi' ? '客户自选' : '基础自动' }}</text><text class="picker-arrow">▼</text></view>
-                  </picker>
-                </view>
-                <view class="form-item half">
-                  <text class="form-label">附加条件</text>
-                  <picker mode="selector" :range="conditionLabels" :value="conditionIndex(rw.condition)" @change="e => rw.condition = conditionValues[Number(e.detail.value)]">
-                    <view class="picker-value"><text>{{ conditionLabel(rw.condition) }}</text><text class="picker-arrow">▼</text></view>
-                  </picker>
-                </view>
-              </view>
-
-              <view v-if="rw.type === 'points'" class="form-item">
-                <text class="form-label">积分数量</text>
-                <input type="number" v-model="rw.amount" class="form-input" placeholder="如 50" />
-              </view>
-
-              <view v-else-if="rw.type === 'course_trial'" class="form-item">
-                <text class="form-label">试听课程</text>
-                <view v-if="rw.courseTitle" class="rel-chip">
-                  <text class="rel-chip-name">{{ rw.courseTitle }}</text>
-                  <text class="rel-chip-del" @click="rw.courseId = undefined; rw.courseTitle = ''">✕</text>
-                </view>
-                <view v-else class="link-add" @click="pickCourse(ri)">+ 选择课程</view>
-              </view>
-
-              <view v-else-if="rw.type === 'course_outline'" class="form-item">
-                <text class="form-label">资料类型</text>
-                <picker mode="selector" :range="outlineKindLabels" :value="outlineKindIndex(rw.kind)" @change="e => rw.kind = outlineKindValues[Number(e.detail.value)]">
-                  <view class="picker-value"><text>{{ outlineKindLabel(rw.kind) }}</text><text class="picker-arrow">▼</text></view>
-                </picker>
-                <view v-if="rw.kind === 'article'" class="form-item-inner">
-                  <view v-if="rw.articleTitle" class="rel-chip">
-                    <text class="rel-chip-name">{{ rw.articleTitle }}</text>
-                    <text class="rel-chip-del" @click="rw.articleId = undefined; rw.articleTitle = ''">✕</text>
-                  </view>
-                  <view v-else class="link-add" @click="pickArticle(ri)">+ 选择文章</view>
-                </view>
-                <view v-else-if="rw.kind === 'file'" class="form-item-inner">
-                  <input v-model="rw.link" class="form-input" placeholder="资料下载链接" />
-                </view>
-                <view v-else-if="rw.kind === 'lesson'" class="form-item-inner">
-                  <view v-if="rw.lessonTitle" class="rel-chip">
-                    <text class="rel-chip-name">{{ rw.lessonTitle }}</text>
-                    <text class="rel-chip-del" @click="rw.lessonId = undefined; rw.lessonTitle = ''">✕</text>
-                  </view>
-                  <view v-else class="link-add" @click="pickLesson(ri)">+ 选择课时</view>
-                </view>
-              </view>
-
-              <view v-else-if="rw.type === 'coupon'" class="form-row">
-                <view class="form-item half">
-                  <text class="form-label">优惠券 ID</text>
-                  <input type="number" v-model="rw.couponId" class="form-input" placeholder="zhao-deal 优惠券 id" />
-                </view>
-                <view class="form-item half">
-                  <text class="form-label">优惠券名称</text>
-                  <input v-model="rw.couponName" class="form-input" placeholder="如 满100减20" />
-                </view>
-              </view>
-            </view>
-            <view class="link-add" @click="addReward">+ 添加奖励</view>
+        <view class="form-item">
+          <text class="form-label">联系方式</text>
+          <view class="switch-row">
+            <text>使用站点默认联系方式</text>
+            <switch :checked="!form.promoContact" @change="toggleContactOverride" />
           </view>
-        </template>
+          <template v-if="form.promoContact">
+            <input type="text" v-model="form.promoContact.wechat.id" placeholder="微信号" class="form-input" />
+            <input type="text" v-model="form.promoContact.phone" placeholder="联系电话" class="form-input" />
+            <input type="text" v-model="form.promoContact.notice" placeholder="提示文案（如：无法报名请加顾问微信）" class="form-input" />
+          </template>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">补充资料</text>
+          <text class="form-tip">模板选择已带出建议字段，可在下方「报名表单配置」中增删</text>
+        </view>
       </view>
 
       <view class="form-section">
@@ -681,6 +718,27 @@
         </view>
       </view>
     </view>
+
+    <MediaPicker
+      :visible="promoMediaPicker.visible"
+      accept="image/*"
+      @select="onPromoImagePick"
+      @update:visible="promoMediaPicker.visible = $event"
+    />
+
+    <view class="modal-mask" v-if="openAddModule" @click="openAddModule = false">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">添加模块</text>
+          <text class="modal-close" @click="openAddModule = false">✕</text>
+        </view>
+        <view class="promo-module-add-grid">
+          <view v-for="(meta, type) in PROMO_MODULE_META" :key="type" class="promo-module-add-item" @click="addModule(type)">
+            <text>{{ meta.name }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -689,12 +747,18 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getActivity, createActivity, updateActivity, listSeries, createSeries } from '../../api/activity.js'
 import { articleApi } from '../../api/website.js'
-import { getLessonList, getCourseList } from '../../api/course.js'
+import { getLessonList } from '../../api/course.js'
 import { listLecturers, listVenues, checkSchedule, createLecturer, createVenue } from '../../api/resource.js'
 import { getTagList, getTagGroupList, createTag } from '../../api/tag.js'
 import { getAllRoles } from '../../api/auth.js'
 import { loadSiteConfig, isFeatureEnabled } from '../../utils/config-helper.js'
 import PageHeader from '../../components/PageHeader.vue'
+import ActivityRewardConfig from '../../components/activity-reward-config.vue'
+import ActivityQuestionnaire from '../../components/activity-questionnaire.vue'
+import RichEditor from '../../components/RichEditor.vue'
+import MediaPicker from '../../components/MediaPicker.vue'
+import { PROMO_MODULE_META } from './promo-presets.js'
+import { PROMO_PALETTES } from './promo-palettes.js'
 
 const isEdit = ref(false)
 const activityId = ref('')
@@ -765,6 +829,7 @@ const form = reactive({
   usedCapacity: 0,
   signupStart: '',
   signupEnd: '',
+  signupAdvanceHours: 0,
   pointsCost: 0,
   feeCollectAt: 'signup',
   pricingMode: 'flat',
@@ -781,7 +846,42 @@ const form = reactive({
   preUnlockLessons: [],
   learningPackageArticles: [],
   learningPackageLessons: [],
-  rewardConfig: null
+  rewardConfig: null,
+  questionnaire: null,
+  promoTemplate: 'summit',
+  promoModules: [],
+  promoContact: null,
+  promoColors: null,
+  promoAssets: []
+})
+
+// 快捷开始时间（两位 HH:mm，仅改所选日期的时间部分）
+const MORNING_TIMES = ['08:30', '09:00', '09:30']
+const AFTERNOON_TIMES = ['14:00', '14:30', '15:00']
+// 时长快捷选项（分钟 → 展示文案）
+const DURATION_OPTIONS = [
+  { m: 30, label: '0.5h' },
+  { m: 60, label: '1h' },
+  { m: 90, label: '1.5h' },
+  { m: 120, label: '2h' },
+  { m: 180, label: '3h' },
+]
+// 会议时长（前端状态，不落库）；null 表示未激活（手改 endTime 解除）
+const durationMinutes = ref(null)
+// 实时时间关系校验：{ activity: [], signup: [] }，改动即红字
+const timeErrors = computed(() => {
+  const activity = []
+  const signup = []
+  if (form.startTime && form.endTime && new Date(form.endTime) <= new Date(form.startTime)) {
+    activity.push('活动结束时间必须晚于活动开始时间')
+  }
+  if (form.signupStart && form.signupEnd && new Date(form.signupEnd) <= new Date(form.signupStart)) {
+    signup.push('报名结束时间必须晚于报名开始时间')
+  }
+  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date()) {
+    signup.push('报名开始时间不能早于当前时间')
+  }
+  return { activity, signup }
 })
 
 // 讲师/场地资源选择
@@ -946,9 +1046,86 @@ function onDatetime(key, part, value) {
   const date = part === 'date' ? value : datePart(cur)
   const time = part === 'time' ? value : timePart(cur)
   form[key] = `${date}T${time}`
+  if (key === 'startTime') {
+    if (durationMinutes.value) form.endTime = addMinutes(form.startTime, durationMinutes.value) // 时长激活则 endTime 跟随
+    applySignupAdvance() // 改活动开始 → 按 n 联动报名截止（仅 n>0）
+  }
+  if (key === 'endTime') durationMinutes.value = null // 手改结束 → 解除时长跟随，chip 取消高亮
+  if (key === 'signupEnd') backfillAdvance() // 改报名结束 → 反推 n 并对齐（仅 n>0）
+}
+// 快捷开始时间点选：仅改时间部分（保留已选日期，未选用明天兜底）；时长激活则 endTime 跟随
+function pickStartTime(time) {
+  const date = datePart(form.startTime) || tomorrowDate()
+  form.startTime = `${date}T${time}`
+  if (durationMinutes.value) form.endTime = addMinutes(form.startTime, durationMinutes.value)
+  applySignupAdvance()
+}
+// 时长点选：激活时长，endTime = startTime + 时长
+function pickDuration(mins) {
+  durationMinutes.value = mins
+  if (form.startTime) form.endTime = addMinutes(form.startTime, mins)
 }
 function toLocalDT(v) {
   return v ? `${datePart(v)}T${timePart(v)}` : ''
+}
+// startTime 减去 n 小时后返回本地 "YYYY-MM-DDTHH:mm"
+function minusHours(iso, n) {
+  if (!iso || !Number.isFinite(n)) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  d.setHours(d.getHours() - Math.floor(n))
+  return `${datePart(d)}T${timePart(d)}`
+}
+function nowLocalDT() {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+// iso 增加 mins 分钟后返回本地 "YYYY-MM-DDTHH:mm"；入参非法返回 ''
+function addMinutes(iso, mins) {
+  if (!iso || !Number.isFinite(mins)) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  d.setMinutes(d.getMinutes() + mins)
+  return `${datePart(d)}T${timePart(d)}`
+}
+// 明天（本地）日期 "YYYY-MM-DD"，作为新建默认日与快捷开始时间未选日期的兜底
+function tomorrowDate() {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+// 提前量输入：n>0 时 signupEnd = startTime - n；n<=0 不调整
+function onAdvanceInput(e) {
+  const v = parseInt((e && e.detail && e.detail.value), 10)
+  form.signupAdvanceHours = Number.isFinite(v) ? v : 0
+  applySignupAdvance()
+}
+// 联动（改 startTime 或提前量触发）：
+//  n>0：signupEnd = startTime - n（跟随）
+//  n<=0 且 signupEnd 已设置：不调整（手动管理）
+//  n<=0 且 signupEnd 尚未设置（新建默认）：signupEnd = startTime（活动开始即截止）
+function applySignupAdvance() {
+  if (!form.startTime) return
+  if (form.signupAdvanceHours > 0) {
+    form.signupEnd = minusHours(form.startTime, form.signupAdvanceHours)
+  } else if (!form.signupEnd) {
+    form.signupEnd = form.startTime
+  }
+}
+// 改报名结束时间时反推 n=floor(d)（允许负/0）；n>0 覆盖对齐整数小时，n<=0 保留手设绝对时间
+function backfillAdvance() {
+  if (!form.startTime || !form.signupEnd) return
+  const d = (new Date(form.startTime) - new Date(form.signupEnd)) / 3600000
+  const n = Math.floor(d)
+  form.signupAdvanceHours = n
+  if (n > 0) form.signupEnd = minusHours(form.startTime, n)
+}
+// 报名设置区提示文本（n<=0 且报名截止晚于活动开始时提示）
+function advanceTip() {
+  if (form.signupAdvanceHours > 0 || !form.startTime || !form.signupEnd) return ''
+  return new Date(form.signupEnd) >= new Date(form.startTime)
+    ? '报名截止晚于活动开始时间，提前量不生效（活动开始后仍可报名）'
+    : ''
 }
 
 // 冲突/建议时段的 {"start"|"conflictStart", "end"|"conflictEnd"} 或 {startTime,endTime} → "MM-DD HH:mm ~ HH:mm"
@@ -1187,100 +1364,7 @@ const relIds = (arr) => Array.isArray(arr)
   : []
 
 // ---- 报名奖励配置 ----
-const rewardTypeLabels = ['积分', '课程权益', '资料与文章', '优惠券']
-const rewardTypeValues = ['points', 'course_trial', 'course_outline', 'coupon']
-const conditionLabels = ['无条件', '微信授权登录', '留联系方式', '回答调查问卷']
-const conditionValues = ['none', 'wechat_auth', 'contact', 'survey']
-const outlineKindLabels = ['文章', '文件链接', '课时']
-const outlineKindValues = ['article', 'file', 'lesson']
-
-function rewardTypeName(t) { const i = rewardTypeValues.indexOf(t); return i >= 0 ? rewardTypeLabels[i] : rewardTypeLabels[0] }
-function rewardTypeIndex(t) { const i = rewardTypeValues.indexOf(t); return i >= 0 ? i : 0 }
-function conditionLabel(c) { const i = conditionValues.indexOf(c); return i >= 0 ? conditionLabels[i] : conditionLabels[0] }
-function conditionIndex(c) { const i = conditionValues.indexOf(c); return i >= 0 ? i : 0 }
-function outlineKindLabel(k) { const i = outlineKindValues.indexOf(k); return i >= 0 ? outlineKindLabels[i] : outlineKindLabels[0] }
-function outlineKindIndex(k) { const i = outlineKindValues.indexOf(k); return i >= 0 ? i : 0 }
-
-function toggleRewardEnabled(e) {
-  const on = e?.detail?.value === true || e?.detail?.value === 'true'
-  if (!form.rewardConfig) {
-    form.rewardConfig = on ? { loginEnabled: true, infoChannels: [], rewards: [] } : null
-    return
-  }
-  form.rewardConfig.loginEnabled = on
-  if (!on) { form.rewardConfig.infoChannels = []; form.rewardConfig.rewards = [] }
-}
-
-function hasInfoChannel(ch) { return (form.rewardConfig?.infoChannels || []).some(c => c?.channel === ch) }
-function toggleInfoChannel(ch) {
-  if (!form.rewardConfig) return
-  const arr = Array.isArray(form.rewardConfig.infoChannels) ? form.rewardConfig.infoChannels : []
-  const i = arr.findIndex(c => c?.channel === ch)
-  if (i >= 0) arr.splice(i, 1)
-  else arr.push({ channel: ch, label: ch === 'contact' ? '留联系方式' : '回答调查问卷' })
-}
-function addReward() {
-  if (!form.rewardConfig) return
-  if (!Array.isArray(form.rewardConfig.rewards)) form.rewardConfig.rewards = []
-  form.rewardConfig.rewards.push({ id: `r_${Date.now()}_${form.rewardConfig.rewards.length}`, type: 'points', name: '', mode: 'single', condition: 'none', amount: 50 })
-}
-function removeReward(ri) { form.rewardConfig.rewards.splice(ri, 1) }
-function moveReward(ri, dir) {
-  const arr = form.rewardConfig.rewards
-  const ni = ri + dir
-  if (ni < 0 || ni >= arr.length) return
-  const it = arr.splice(ri, 1)[0]
-  arr.splice(ni, 0, it)
-}
-async function pickCourse(ri) {
-  uni.showLoading({ title: '加载中...' })
-  let list = []
-  try {
-    const res = await getCourseList({ page: 1, pageSize: 500 })
-    list = (res.list || []).map(c => ({ id: c.id, documentId: c.documentId, title: c.title || '' })).filter(c => c.id || c.documentId)
-  } catch (e) { list = [] }
-  uni.hideLoading()
-  if (!list.length) { uni.showToast({ title: '暂无课程', icon: 'none' }); return }
-  uni.showActionSheet({
-    itemList: list.map(c => c.title),
-    success: (res) => {
-      const it = list[res.tapIndex]
-      const rw = form.rewardConfig.rewards[ri]
-      rw.courseId = it.id ?? it.documentId
-      rw.courseTitle = it.title
-    }
-  })
-}
-async function pickArticle(ri) {
-  uni.showLoading({ title: '加载中...' })
-  const list = await ensureRelOptions('article')
-  uni.hideLoading()
-  if (!list.length) { uni.showToast({ title: '暂无文章', icon: 'none' }); return }
-  uni.showActionSheet({
-    itemList: list.map(a => a.title),
-    success: (res) => {
-      const it = list[res.tapIndex]
-      const rw = form.rewardConfig.rewards[ri]
-      rw.articleId = it.id ?? it.documentId
-      rw.articleTitle = it.title
-    }
-  })
-}
-async function pickLesson(ri) {
-  uni.showLoading({ title: '加载中...' })
-  const list = await ensureRelOptions('lesson')
-  uni.hideLoading()
-  if (!list.length) { uni.showToast({ title: '暂无课时', icon: 'none' }); return }
-  uni.showActionSheet({
-    itemList: list.map(l => l.title),
-    success: (res) => {
-      const it = list[res.tapIndex]
-      const rw = form.rewardConfig.rewards[ri]
-      rw.lessonId = it.id ?? it.documentId
-      rw.lessonTitle = it.title
-    }
-  })
-}
+// 奖励配置（通道/选择方式/奖励编辑器）已迁移至 components/activity-reward-config.vue
 /** 奖励项加载归一化：condition 优先，兼容旧 loginRequired/channel */
 const normReward = (r) => {
   if (!r || typeof r !== 'object') return {}
@@ -1299,6 +1383,70 @@ const normReward = (r) => {
     couponId: r.couponId, couponName: r.couponName || '',
   }
 }
+
+// ---- 宣传设置 ----
+const openModuleIndex = ref(-1)
+const openAddModule = ref(false)
+const promoMediaPicker = ref({ visible: false, module: null, target: 'module' })
+
+function mergeSuggestFields(fields) {
+  const cur = Array.isArray(form.formConfig) ? form.formConfig : []
+  for (const f of fields) {
+    if (!cur.some(c => c.key === f.key)) cur.push(f)
+  }
+  form.formConfig = cur
+}
+
+function moveModule(i, dir) {
+  const arr = form.promoModules
+  const j = i + dir
+  if (j < 0 || j >= arr.length) return
+  const [m] = arr.splice(i, 1)
+  arr.splice(j, 0, m)
+  reindexModules()
+}
+
+function removeModule(i) { form.promoModules.splice(i, 1); reindexModules() }
+
+function reindexModules() { form.promoModules.forEach((m, i) => { m.sort = i }) }
+
+function addModule(type) {
+  form.promoModules.push({ type, config: {}, sort: form.promoModules.length })
+  openAddModule.value = false
+}
+
+function toggleModuleConfig(i) { openModuleIndex.value = openModuleIndex.value === i ? -1 : i }
+
+function toggleContactOverride(e) {
+  if (e.detail.value) {
+    if (!form.promoContact) form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', card: null, notice: '' }
+  } else {
+    form.promoContact = null
+  }
+}
+
+function openImagePicker(m) { promoMediaPicker.value = { visible: true, module: m, target: 'module' } }
+function openPromoAssetsPicker() { promoMediaPicker.value = { visible: true, module: null, target: 'promoAssets' } }
+function removePromoAsset(i) { form.promoAssets.splice(i, 1) }
+
+function onPromoImagePick(file) {
+  const p = promoMediaPicker.value
+  if (p.target === 'promoAssets') {
+    form.promoAssets.push({ url: file.url, name: file.name, scene: '', note: '' })
+  } else if (p.module) {
+    (p.module.config.images ||= []).push({ id: file.id, url: file.url, name: file.name })
+  }
+}
+
+// ---- 配色方案 ----
+function isPaletteOn(p) {
+  const c = form.promoColors
+  if (!c || !p) return false
+  return Object.keys(p.colors).every(k => c[k] === p.colors[k])
+}
+function applyPalette(p) { form.promoColors = { ...p.colors } }
+const colorKeyLabels = { primary: '主色', accent: '强调色', bg: '背景色', card: '卡片色', text: '正文色', textDim: '次要文字' }
+function colorKeyLabel(k) { return colorKeyLabels[k] || k }
 
 function toggleVisibleRole(roleName) {
   const idx = form.visibleToRoles.indexOf(roleName)
@@ -1355,6 +1503,12 @@ async function loadDetail() {
       endTime: toLocalDT(data.endTime),
       signupStart: toLocalDT(data.signupStart),
       signupEnd: toLocalDT(data.signupEnd),
+      signupAdvanceHours: data.startTime && data.signupEnd
+        ? (() => {
+            const n = Math.floor((new Date(data.startTime) - new Date(data.signupEnd)) / 3600000)
+            return n
+          })()
+        : 0,
       capacity: data.capacity ?? 100,
       usedCapacity: data.usedCapacity ?? 0,
       pointsCost: Number(data.pointsCost || 0),
@@ -1368,13 +1522,38 @@ async function loadDetail() {
       feeTiers: data.feeTiers || [],
       feeFactors: data.feeFactors || { base: 0, factors: [] },
       formConfig: data.formConfig || [],
+      promoTemplate: data.promoTemplate || 'summit',
+      promoModules: Array.isArray(data.promoModules) ? data.promoModules : [],
+      promoContact: data.promoContact || null,
+      promoColors: data.promoColors && typeof data.promoColors === 'object' ? { ...data.promoColors } : null,
+      promoAssets: Array.isArray(data.promoAssets)
+        ? data.promoAssets.map(a => ({ url: a.url || '', name: a.name || '', scene: a.scene || '', note: a.note || '' }))
+        : [],
       rewardConfig: data.rewardConfig && typeof data.rewardConfig === 'object'
         ? {
             loginEnabled: data.rewardConfig.loginEnabled !== false,
-            infoChannels: Array.isArray(data.rewardConfig.infoChannels) ? data.rewardConfig.infoChannels : [],
+            channel: data.rewardConfig.channel && data.rewardConfig.channel.type
+              ? { type: data.rewardConfig.channel.type, label: data.rewardConfig.channel.label || '' }
+              : (() => {
+                  // 兼容旧 infoChannels：取首个映射（contact/survey 直映，其余默认 contact）
+                  const legacy = Array.isArray(data.rewardConfig.infoChannels)
+                    ? data.rewardConfig.infoChannels.find(c => c?.channel)
+                    : undefined
+                  if (legacy?.channel === 'survey') return { type: 'survey', label: '回答调查问卷' }
+                  return { type: 'contact', label: '留联系方式' }
+                })(),
+            selectMode: data.rewardConfig.selectMode || 'all',
+            selectN: Math.max(1, Number(data.rewardConfig.selectN) || 1),
             rewards: Array.isArray(data.rewardConfig.rewards) ? data.rewardConfig.rewards.map(normReward) : [],
           }
-        : { loginEnabled: false, infoChannels: [], rewards: [] },
+        : null,
+      questionnaire: data.questionnaire && typeof data.questionnaire === 'object'
+        ? {
+            enabled: data.questionnaire.enabled === true,
+            title: data.questionnaire.title || '调查问卷',
+            fields: Array.isArray(data.questionnaire.fields) ? data.questionnaire.fields.map(cloneField) : [],
+          }
+        : null,
       preUnlockArticles: normRel(data.preUnlockArticles),
       preUnlockLessons: normRel(data.preUnlockLessons),
       learningPackageArticles: normRel(data.learningPackageArticles),
@@ -1387,6 +1566,13 @@ async function loadDetail() {
         materials: Array.isArray(data.assets.materials) ? data.assets.materials : [],
       } : { recordingUrl: '', materials: [] }
     })
+    // 编辑回填时长：由 endTime - startTime 反推（分钟），endTime<=startTime 时为 null（不激活）
+    durationMinutes.value = data.startTime && data.endTime
+      ? (() => {
+          const diff = Math.round((new Date(data.endTime) - new Date(data.startTime)) / 60000)
+          return diff > 0 ? diff : null
+        })()
+      : null
     // 回显所属系列（relation 可能是 {documentId}{id} 或数组，归一为 documentId 字符串）
     const seriesRel = data.belongsToSeries || data.series
     form.belongsToSeries = Array.isArray(seriesRel)
@@ -1412,6 +1598,15 @@ async function loadDetail() {
 async function handleSubmit() {
   if (!form.title.trim()) return uni.showToast({ title: '请输入活动标题', icon: 'none' })
   if (!form.capacity || Number(form.capacity) <= 0) return uni.showToast({ title: '请输入有效容量', icon: 'none' })
+  if (form.signupStart && form.signupEnd && new Date(form.signupEnd) <= new Date(form.signupStart)) {
+    return uni.showToast({ title: '报名结束时间必须晚于报名开始时间', icon: 'none' })
+  }
+  if (form.startTime && form.endTime && new Date(form.endTime) <= new Date(form.startTime)) {
+    return uni.showToast({ title: '活动结束时间必须晚于活动开始时间', icon: 'none' })
+  }
+  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date()) {
+    return uni.showToast({ title: '报名开始时间不能早于当前时间', icon: 'none' })
+  }
 
   const submitData = {
     title: form.title,
@@ -1432,6 +1627,7 @@ async function handleSubmit() {
     endTime: form.endTime,
     signupStart: form.signupStart,
     signupEnd: form.signupEnd,
+    signupAdvanceHours: form.signupAdvanceHours,
     checkinMode: form.checkinMode,
     geoEnforced: form.geoEnforced,
     geoRadiusM: Number(form.geoRadiusM) || 0,
@@ -1449,7 +1645,11 @@ async function handleSubmit() {
     rewardConfig: form.rewardConfig && form.rewardConfig.loginEnabled
       ? {
           loginEnabled: true,
-          infoChannels: (form.rewardConfig.infoChannels || []).filter(c => c?.channel),
+          channel: form.rewardConfig.channel && form.rewardConfig.channel.type
+            ? { type: form.rewardConfig.channel.type, label: form.rewardConfig.channel.label || '' }
+            : undefined,
+          selectMode: form.rewardConfig.selectMode || 'all',
+          selectN: Math.max(1, Number(form.rewardConfig.selectN) || 1),
           rewards: (form.rewardConfig.rewards || []).filter(r => r && r.name && r.type).map(r => {
             const base = { id: r.id, type: r.type, name: r.name, mode: r.mode, condition: r.condition }
             if (r.type === 'points') return { ...base, amount: Number(r.amount) || 0 }
@@ -1463,6 +1663,29 @@ async function handleSubmit() {
             return base
           }),
         }
+      : undefined,
+    questionnaire: form.questionnaire && form.questionnaire.enabled && (form.questionnaire.fields || []).length
+      ? {
+          enabled: true,
+          title: form.questionnaire.title || '调查问卷',
+          fields: (form.questionnaire.fields || []).filter(f => f?.key && f?.label).map(f => ({
+            key: f.key, label: f.label, type: f.type, required: f.required === true,
+            options: Array.isArray(f.options) ? f.options : undefined,
+            placeholder: f.placeholder || undefined,
+            min: f.min, max: f.max,
+          })),
+        }
+      : undefined,
+    promoTemplate: form.promoTemplate,
+    promoModules: (form.promoModules || []).map((m, i) => ({
+      type: m.type,
+      config: m.config && Object.keys(m.config).length ? m.config : {},
+      sort: i,
+    })),
+    promoContact: form.promoContact || null,
+    promoColors: form.promoColors || null,
+    promoAssets: Array.isArray(form.promoAssets)
+      ? form.promoAssets.map(a => ({ url: a.url, scene: a.scene || undefined, note: a.note || undefined })).filter(a => a.url)
       : undefined,
     status: form.status
   }
@@ -1533,6 +1756,14 @@ onMounted(async () => {
   await loadSiteConfig()
   roleGate.value = isFeatureEnabled('roleGate')
   if (roleGate.value) loadRoleOptions()
+  if (!isEdit.value) {
+    form.signupStart = nowLocalDT() // 新建默认当前时间，立即开始
+    const start = `${tomorrowDate()}T09:00` // 默认明天 9:00 开始
+    form.startTime = start
+    durationMinutes.value = 90 // 默认 1.5h
+    form.endTime = addMinutes(start, 90) // 默认明天 10:30 结束
+    applySignupAdvance() // n=0 且 signupEnd 空 → signupEnd = startTime（活动开始即截止）
+  }
   loadDetail(); loadSeries(); loadResources(); loadCategories()
 })
 </script>
@@ -1568,6 +1799,11 @@ onMounted(async () => {
 .btn-add { width: 100%; height: 76rpx; border: 1rpx dashed #667eea; color: #667eea; background: transparent; border-radius: 12rpx; font-size: 28rpx; }
 .btn-link-danger { background: transparent; color: #ff4d4f; border: none; font-size: 26rpx; padding: 0; line-height: 1; }
 .form-tip { font-size: 24rpx; color: #999; margin: -8rpx 0 20rpx; }
+.time-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 16rpx; }
+.time-chip { padding: 10rpx 28rpx; border: 1rpx solid #ddd; border-radius: 32rpx; font-size: 26rpx; color: #666; background: #fafbfe; }
+.time-chip.on { color: #fff; border-color: #667eea; background: #667eea; }
+.time-chip-group { font-size: 24rpx; color: #999; }
+.form-error { font-size: 24rpx; color: #ff4d4f; margin: -8rpx 0 20rpx; }
 .radio-row { display: flex; gap: 24rpx; align-items: center; }
 .radio-opt { font-size: 26rpx; color: #999; padding: 6rpx 24rpx; border: 1rpx solid #ddd; border-radius: 20rpx; }
 .radio-opt.on { color: #667eea; border-color: #667eea; background: rgba(102,126,234,.08); }
@@ -1617,4 +1853,38 @@ onMounted(async () => {
 .reward-ops { display: flex; align-items: center; gap: 16rpx; }
 .btn-link { color: #667eea; font-size: 26rpx; padding: 0; line-height: 1; }
 .form-item-inner { margin-top: 12rpx; }
+
+/* ---- 宣传设置 ----*/
+.promo-module-row { border: 1rpx solid #f0f0f0; border-radius: 12rpx; padding: 16rpx 20rpx; margin-bottom: 16rpx; background: #fff; }
+.promo-module-name { display: flex; align-items: center; justify-content: space-between; font-size: 28rpx; color: #333; }
+.promo-module-arrow { font-size: 20rpx; color: #999; }
+.promo-module-ops { display: flex; gap: 16rpx; margin-top: 12rpx; }
+.promo-module-config { border-top: 1rpx dashed #e3e6f0; margin-top: 16rpx; padding-top: 16rpx; }
+.promo-module-image-row { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-bottom: 12rpx; }
+.promo-module-image-name { flex: 1; min-width: 0; font-size: 26rpx; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.promo-asset-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; margin-bottom: 16rpx; }
+.promo-asset-info { flex: 1; min-width: 0; }
+.promo-asset-name { display: block; font-size: 26rpx; color: #666; margin-bottom: 8rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.palette-card { width: calc(25% - 12rpx); box-sizing: border-box; border: 1rpx solid #e3e6f0; border-radius: 12rpx; padding: 12rpx; background: #fff; }
+.palette-card.on { border-color: #667eea; background: rgba(102,126,234,.08); }
+.palette-swatch { display: flex; flex-wrap: wrap; gap: 4rpx; margin-bottom: 8rpx; }
+.palette-swatch-main { width: 100%; height: 40rpx; border-radius: 6rpx; }
+.palette-swatch-bg, .palette-swatch-card, .palette-swatch-accent { width: calc(33.33% - 3rpx); height: 24rpx; border-radius: 6rpx; }
+.palette-name { font-size: 22rpx; color: #333; text-align: center; display: block; }
+.palette-preview { border-radius: 12rpx; padding: 20rpx; margin-top: 16rpx; display: flex; align-items: center; gap: 12rpx; }
+.palette-preview-chip { padding: 6rpx 16rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; }
+.palette-preview-card { padding: 6rpx 16rpx; border-radius: 8rpx; font-size: 22rpx; }
+.palette-preview-text { font-size: 24rpx; }
+.palette-editor { border-top: 1rpx dashed #e3e6f0; margin-top: 16rpx; padding-top: 16rpx; }
+.palette-key { width: 140rpx; font-size: 26rpx; color: #666; flex-shrink: 0; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; font-size: 28rpx; color: #333; }
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: flex; align-items: center; justify-content: center; }
+.modal-content { width: 85%; max-width: 600rpx; background: #fff; border-radius: 20rpx; padding: 30rpx; box-sizing: border-box; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx; }
+.modal-title { font-size: 30rpx; font-weight: bold; color: #333; }
+.modal-close { font-size: 32rpx; color: #999; padding: 0 8rpx; }
+.promo-module-add-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.promo-module-add-item { flex: 1; min-width: 200rpx; text-align: center; line-height: 72rpx; border: 1rpx dashed #c3c8e8; color: #8a93c2; border-radius: 10rpx; font-size: 26rpx; background: #fff; }
+.promo-module-add-item:active { color: #667eea; border-color: #667eea; }
 </style>
