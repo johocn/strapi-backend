@@ -399,9 +399,29 @@
       </view>
 
       <view class="form-section">
-        <view class="section-title">调查问卷（报名表单下方，选填）</view>
-        <view class="form-tip">开启问卷后可配置「回答调查问卷」通道/条件；报名时可选填，之后可补填解锁权益</view>
-        <ActivityQuestionnaire v-model:questionnaire="form.questionnaire" />
+        <view class="section-title">调查问卷</view>
+        <view class="form-tip">开启后默认新增 2 份问卷：活动前问卷（报名后可填，驱动「回答调查问卷」通道/积分）、活动后问卷（签到且活动结束后可填，仅收集反馈）</view>
+        <view class="form-item">
+          <text class="form-label">启用调查问卷</text>
+          <switch :checked="questionnaireMasterOn" @change="toggleQuestionnaireMaster" />
+        </view>
+
+        <template v-if="questionnaireMasterOn">
+          <view class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">活动前问卷</text>
+              <text class="fee-block-hint">报名后可填 · 驱动解锁/积分</text>
+            </view>
+            <ActivityQuestionnaire v-model:questionnaire="form.preQuestionnaire" template-label="活动前问卷" :themes="PRE_QUESTIONNAIRE_THEMES" />
+          </view>
+          <view class="fee-block">
+            <view class="fee-block-header">
+              <text class="fee-block-title">活动后问卷</text>
+              <text class="fee-block-hint">签到且活动结束后可填 · 仅记录反馈</text>
+            </view>
+            <ActivityQuestionnaire v-model:questionnaire="form.questionnaire" template-label="活动后问卷" :themes="POST_QUESTIONNAIRE_THEMES" />
+          </view>
+        </template>
       </view>
 
       <view class="form-section">
@@ -500,7 +520,8 @@
         <ActivityRewardConfig
           v-model:rewardConfig="form.rewardConfig"
           :form-config="form.formConfig"
-          :questionnaire="form.questionnaire" />
+          :questionnaire="form.preQuestionnaire || form.questionnaire"
+          :questionnaire-titles="{ pre: form.preQuestionnaire?.title, post: form.questionnaire?.title }" />
       </view>
 
       <view class="form-section">
@@ -759,6 +780,7 @@ import RichEditor from '../../components/RichEditor.vue'
 import MediaPicker from '../../components/MediaPicker.vue'
 import { PROMO_MODULE_META } from './promo-presets.js'
 import { PROMO_PALETTES } from './promo-palettes.js'
+import { PRE_QUESTIONNAIRE_THEMES, POST_QUESTIONNAIRE_THEMES } from '../../components/activity-questionnaire-themes.js'
 
 const isEdit = ref(false)
 const activityId = ref('')
@@ -846,8 +868,16 @@ const form = reactive({
   preUnlockLessons: [],
   learningPackageArticles: [],
   learningPackageLessons: [],
-  rewardConfig: null,
+  rewardConfig: {
+    loginEnabled: true,
+    channel: { type: 'survey', label: '回答调查问卷' },
+    selectMode: 'all',
+    selectN: 1,
+    // 预置一条 C 端必得的报名积分（无条件，不参与权益 N 选计算，由后端保证归属）
+    rewards: [{ type: 'points', name: '报名积分', mode: 'single', condition: 'none', amount: 10 }],
+  },
   questionnaire: null,
+  preQuestionnaire: null,
   promoTemplate: 'summit',
   promoModules: [],
   promoContact: null,
@@ -878,8 +908,9 @@ const timeErrors = computed(() => {
   if (form.signupStart && form.signupEnd && new Date(form.signupEnd) <= new Date(form.signupStart)) {
     signup.push('报名结束时间必须晚于报名开始时间')
   }
-  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date()) {
-    signup.push('报名开始时间不能早于当前时间')
+  // 报名开始时间不得早于「当前时间-30分钟」（允许最多提前 30 分钟设置）
+  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date(Date.now() - 30 * 60000)) {
+    signup.push('报名开始时间不能早于当前时间前30分钟')
   }
   return { activity, signup }
 })
@@ -1263,6 +1294,34 @@ function cloneField(f) {
     min: f.min, max: f.max
   }
 }
+
+// ===== 双问卷：总开关 + 活动前/活动后默认模板 =====
+// 预设场景主题来自 activity-questionnaire-themes.js；默认取第一套填入
+function cloneQFields(fields) {
+  return (fields || []).map(f => ({ ...cloneField(f), step: f.step }))
+}
+/** 问卷总开关：任一问卷启用即视为开启 */
+const questionnaireMasterOn = computed(() =>
+  form.preQuestionnaire?.enabled === true || form.questionnaire?.enabled === true)
+/** 开启后默认新增 2 份问卷；关闭则仅禁用不删题目 */
+function toggleQuestionnaireMaster(e) {
+  const on = e?.detail?.value === true || e?.detail?.value === 'true'
+  if (on) {
+    if (!form.preQuestionnaire || !form.preQuestionnaire.enabled) {
+      form.preQuestionnaire = { enabled: true, title: '活动前问卷', fields: cloneQFields(PRE_QUESTIONNAIRE_THEMES[0].fields) }
+    } else {
+      form.preQuestionnaire.enabled = true
+    }
+    if (!form.questionnaire || !form.questionnaire.enabled) {
+      form.questionnaire = { enabled: true, title: '活动后问卷', fields: cloneQFields(POST_QUESTIONNAIRE_THEMES[0].fields) }
+    } else {
+      form.questionnaire.enabled = true
+    }
+  } else {
+    if (form.preQuestionnaire) form.preQuestionnaire.enabled = false
+    if (form.questionnaire) form.questionnaire.enabled = false
+  }
+}
 function insertFieldsAt(fi, fields) {
   form.formConfig.splice(fi, 0, ...fields.map(cloneField))
 }
@@ -1554,6 +1613,13 @@ async function loadDetail() {
             fields: Array.isArray(data.questionnaire.fields) ? data.questionnaire.fields.map(cloneField) : [],
           }
         : null,
+      preQuestionnaire: data.preQuestionnaire && typeof data.preQuestionnaire === 'object'
+        ? {
+            enabled: data.preQuestionnaire.enabled === true,
+            title: data.preQuestionnaire.title || '活动前问卷',
+            fields: Array.isArray(data.preQuestionnaire.fields) ? data.preQuestionnaire.fields.map(cloneField) : [],
+          }
+        : null,
       preUnlockArticles: normRel(data.preUnlockArticles),
       preUnlockLessons: normRel(data.preUnlockLessons),
       learningPackageArticles: normRel(data.learningPackageArticles),
@@ -1604,8 +1670,9 @@ async function handleSubmit() {
   if (form.startTime && form.endTime && new Date(form.endTime) <= new Date(form.startTime)) {
     return uni.showToast({ title: '活动结束时间必须晚于活动开始时间', icon: 'none' })
   }
-  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date()) {
-    return uni.showToast({ title: '报名开始时间不能早于当前时间', icon: 'none' })
+  // 报名开始时间不得早于「当前时间-30分钟」（允许最多提前 30 分钟设置）
+  if (!isEdit.value && form.signupStart && new Date(form.signupStart) < new Date(Date.now() - 30 * 60000)) {
+    return uni.showToast({ title: '报名开始时间不能早于当前时间前30分钟', icon: 'none' })
   }
 
   const submitData = {
@@ -1672,7 +1739,19 @@ async function handleSubmit() {
             key: f.key, label: f.label, type: f.type, required: f.required === true,
             options: Array.isArray(f.options) ? f.options : undefined,
             placeholder: f.placeholder || undefined,
-            min: f.min, max: f.max,
+            min: f.min, max: f.max, step: f.step,
+          })),
+        }
+      : undefined,
+    preQuestionnaire: form.preQuestionnaire && form.preQuestionnaire.enabled && (form.preQuestionnaire.fields || []).length
+      ? {
+          enabled: true,
+          title: form.preQuestionnaire.title || '活动前问卷',
+          fields: (form.preQuestionnaire.fields || []).filter(f => f?.key && f?.label).map(f => ({
+            key: f.key, label: f.label, type: f.type, required: f.required === true,
+            options: Array.isArray(f.options) ? f.options : undefined,
+            placeholder: f.placeholder || undefined,
+            min: f.min, max: f.max, step: f.step,
           })),
         }
       : undefined,
