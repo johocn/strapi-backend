@@ -158,6 +158,9 @@ const props = defineProps({
   rewardConfig: { type: Object, default: () => null },
   formConfig: { type: Array, default: () => [] },
   questionnaire: { type: Object, default: () => null },
+  // 活动前/后问卷标题，用于「回答调查问卷」(survey)/「活动后问卷」(post_survey) 条件的显示名跟随问卷命名
+  // 结构例：{ pre: '活动前问卷标题', post: '活动后问卷标题' }，缺失时回退默认名
+  questionnaireTitles: { type: Object, default: () => null },
 })
 const emit = defineEmits(['update:rewardConfig'])
 
@@ -173,7 +176,8 @@ watch(
   (v) => {
     if (!v || v === lastEmitted || v === rc.value) return
     rc.value = normalize(v)
-  }
+  },
+  { immediate: true }
 )
 // 深度回写：组件内任意修改（含裸 v-model：名称/积分数量/链接等）实时同步父组件 form
 watch(
@@ -223,8 +227,11 @@ const normReward = (r) => {
 // ---- 奖励类型/条件/资料类型常量 ----
 const rewardTypeLabels = ['积分', '课程权益', '资料与文章', '优惠券']
 const rewardTypeValues = ['points', 'course_trial', 'course_outline', 'coupon']
-const conditionLabels = ['无条件', '微信授权登录', '关注公众号', '留联系方式', '回答调查问卷']
-const conditionValues = ['none', 'wechat_auth', 'subscribe', 'contact', 'survey']
+const conditionValues = ['none', 'wechat_auth', 'subscribe', 'contact', 'survey', 'post_survey']
+// 「回答调查问卷」(survey) 与「活动后问卷」(post_survey) 的显示名跟随对应问卷标题，缺失时回退默认名
+const preSurveyTitle = computed(() => props.questionnaireTitles?.pre || '活动前问卷')
+const postSurveyTitle = computed(() => props.questionnaireTitles?.post || '活动后问卷')
+const conditionLabels = computed(() => ['无条件', '微信授权登录', '关注公众号', '留联系方式', preSurveyTitle.value, postSurveyTitle.value])
 const outlineKindLabels = ['文章', '文件链接', '课时']
 const outlineKindValues = ['article', 'file', 'lesson']
 const selectModeLabels = ['全选（自动勾选全部可领）', '任选（最多 N 项）', '单选（只选 1 项）']
@@ -239,7 +246,7 @@ const channelOptions = [
 
 function rewardTypeName(t) { const i = rewardTypeValues.indexOf(t); return i >= 0 ? rewardTypeLabels[i] : rewardTypeLabels[0] }
 function rewardTypeIndex(t) { const i = rewardTypeValues.indexOf(t); return i >= 0 ? i : 0 }
-function conditionLabel(c) { const i = conditionValues.indexOf(c); return i >= 0 ? conditionLabels[i] : conditionLabels[0] }
+function conditionLabel(c) { const i = conditionValues.indexOf(c); return i >= 0 ? conditionLabels.value[i] : conditionLabels.value[0] }
 function conditionIndex(c) { const i = conditionValues.indexOf(c); return i >= 0 ? i : 0 }
 function outlineKindLabel(k) { const i = outlineKindValues.indexOf(k); return i >= 0 ? outlineKindLabels[i] : outlineKindLabels[0] }
 function outlineKindIndex(k) { const i = outlineKindValues.indexOf(k); return i >= 0 ? i : 0 }
