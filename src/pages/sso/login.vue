@@ -1,7 +1,8 @@
 <template>
   <view class="sso-login-page">
     <view class="page-header">
-      <text class="page-title">SSO 统一登录</text>
+      <text class="page-title">星枢统一关系中心</text>
+      <text class="page-tagline">{{ tagline }}</text>
     </view>
 
     <!-- 微信环境自动跳转中 -->
@@ -50,6 +51,31 @@ const channelCode = ref('')
 const mode = ref('token')
 const oauthError = ref('')
 const isWechatAutoRedirecting = ref(false)
+
+// 星枢统一关系中心：随机标语（解释核心理念：一个身份串联所有系统）
+const TAGS = [
+  '一个账号，玩转全部系统',
+  '一登录，全平台畅通',
+  '统一身份，串联所有系统',
+  '把散落的系统串成一个整体',
+  '一次登录，处处是你的主场',
+  '星枢，理清你与好友的联结',
+  '一个身份，链接所有业务',
+  '打通各系统，一个身份就够',
+  '账号在手，关系全有',
+  '你来登录，我们连起所有',
+  '所有系统，围绕你一个身份',
+  '星枢，让系统彼此相连',
+  '一键登录，关系自动串联',
+  '统一身份，连接课程与活动',
+  '星枢轴心，转动整个生态',
+  '关系即资产，星枢帮你理',
+  '一个他，联结你全部服务',
+  '登录一次，身份遍行全线',
+  '星枢，你做主的登录中枢',
+  '人人皆一点，处处通星枢',
+]
+const tagline = ref(TAGS[Math.floor(Math.random() * TAGS.length)])
 
 /**
  * 从 URL hash 中解析查询参数（UniApp H5 hash 模式兜底）
@@ -217,6 +243,7 @@ function goRegister() {
 }
 .page-header { text-align: center; padding: 30px 0 20px; }
 .page-title { font-size: 22px; font-weight: bold; color: #333; }
+.page-tagline { display: block; margin-top: 8px; font-size: 13px; color: #8898aa; }
 .component-container {
   background: #fff;
   border-radius: 12px;

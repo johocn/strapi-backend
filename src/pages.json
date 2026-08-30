@@ -575,7 +575,7 @@
     { "path": "pages/sso/profile/list", "style": { "navigationBarTitleText": "用户画像" } },
     { "path": "pages/sso/profile/detail", "style": { "navigationBarTitleText": "画像详情" } },
     { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } },
-    { "path": "pages/sso/login", "style": { "navigationBarTitleText": "SSO 登录" } },
+    { "path": "pages/sso/login", "style": { "navigationBarTitleText": "星枢通行" } },
     { "path": "pages/sso/login-callback", "style": { "navigationBarTitleText": "登录中" } },
     { "path": "pages/sso/register", "style": { "navigationBarTitleText": "注册账号" } },
 
