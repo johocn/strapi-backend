@@ -161,10 +161,10 @@ export function replyActivityMessage(messageDocumentId, reply) {
 
 // 手动授予临时开放课时（body:{ activityId, userId, lessonDocumentId, expiresAt }）
 export function grantTempLessonAuth(payload) {
-  return post(`${V1}/adm/lessons/temp-auth`, payload)
+  return post(`${ADMIN}/lessons/temp-auth`, payload)
 }
 
 // 授权记录列表（?activityDocumentId= 可按活动过滤）
 export function listTempLessonAuth(params = {}) {
-  return get(`${V1}/adm/lessons/temp-auth/list`, params)
+  return get(`${ADMIN}/lessons/temp-auth/list`, params)
 }
