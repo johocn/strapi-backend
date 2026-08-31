@@ -87,8 +87,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { listActivities, getActivity, grantTempLessonAuth, listTempLessonAuth } from '../../api/activity.js'
+import { onLoad } from '@dcloudio/uni-app'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activities = ref([])
@@ -147,9 +148,7 @@ async function loadActivities() {
   }
 }
 
-async function handleActivityChange(e) {
-  const index = Number(e.detail.value)
-  const act = activities.value[index]
+async function applyActivity(act) {
   if (!act) return
   currentActivityId.value = act.documentId || act.id
   currentActivityTitle.value = act.title || ''
@@ -167,6 +166,10 @@ async function handleActivityChange(e) {
     lessonOptions.value = []
   }
   loadAuthList()
+}
+
+async function handleActivityChange(e) {
+  await applyActivity(activities.value[Number(e.detail.value)])
 }
 
 function handleLessonChange(e) {
@@ -230,8 +233,14 @@ async function loadAuthList() {
   }
 }
 
-onMounted(() => {
-  loadActivities()
+onLoad(async (options) => {
+  await loadActivities()
+  const preset = options?.activityId
+  if (preset) {
+    const act = activities.value.find(a => (a.documentId || a.id) === preset)
+    if (act) await applyActivity(act)
+    else uni.showToast({ title: '未找到该活动', icon: 'none' })
+  }
 })
 </script>
 
