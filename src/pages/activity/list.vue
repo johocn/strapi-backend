@@ -58,6 +58,7 @@
           <view class="action-btn" @click="goEdit(item)">编辑</view>
           <view class="action-btn" @click="goDuplicate(item)">一键克隆</view>
           <view class="action-btn" @click="goSignups(item)">到场名单</view>
+          <view class="action-btn" @click="goTempAuth(item)">临时授权</view>
           <view class="action-btn" @click="goScan(item)">扫码核销</view>
           <view class="action-btn" v-if="item.status === 'ended'" @click="confirmArchive(item)">归档</view>
           <view class="action-btn" v-if="item.status === 'archived'" @click="confirmUnarchive(item)">恢复</view>
@@ -239,6 +240,9 @@ function goPromo(item) {
 }
 function goSignups(item) {
   uni.navigateTo({ url: `/pages/activity/signups?id=${item.documentId}` })
+}
+const goTempAuth = (item) => {
+  uni.navigateTo({ url: `/pages/activity/temp-auth?activityId=${item.documentId || item.id}` })
 }
 async function goDuplicate(item) {
   try {
