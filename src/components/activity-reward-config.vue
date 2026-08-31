@@ -29,6 +29,7 @@
             <text class="channel-name">{{ ch.label }}</text>
           </view>
         </view>
+        <view class="channel-tip">附加条件的权益需要解锁通道后领取，没有附加条件的权益报名即可领取</view>
       </view>
 
       <!-- 权益选择方式 -->
@@ -69,11 +70,11 @@
           <view class="form-row">
             <view class="form-item half">
               <text class="form-label">名称</text>
-              <input v-model="rw.name" class="form-input" placeholder="如 报名积分" />
+              <input v-model="rw.name" class="form-input" placeholder="如 积分，可手动修改" />
             </view>
             <view class="form-item half">
               <text class="form-label">类型</text>
-              <picker mode="selector" :range="rewardTypeLabels" :value="rewardTypeIndex(rw.type)" @change="e => rw.type = rewardTypeValues[Number(e.detail.value)] || 'points'">
+              <picker mode="selector" :range="rewardTypeLabels" :value="rewardTypeIndex(rw.type)" @change="e => onTypeChange(rw, Number(e.detail.value))">
                 <view class="picker-value"><text>{{ rewardTypeName(rw.type) }}</text><text class="picker-arrow">▼</text></view>
               </picker>
             </view>
@@ -195,7 +196,23 @@ onMounted(() => {
     if (legacy?.channel === 'survey') rc.value.channel = { type: 'survey', label: '回答调查问卷' }
     else if (legacy?.channel === 'contact') rc.value.channel = { type: 'contact', label: '留联系方式' }
   }
+  // 历史数据回填：课时奖励因早期未存 lessonTitle 导致回显为空，按 lessonId 查回标题
+  ensureLessonTitles()
 })
+/** 课时奖励标题回填：仅处理 lesson 类型且已知 id 但缺 title 的项 */
+async function ensureLessonTitles() {
+  const missing = rc.value.rewards.filter(r => r.type === 'course_outline' && r.kind === 'lesson' && r.lessonId && !r.lessonTitle)
+  if (!missing.length) return
+  let list = []
+  try { const res = await getLessonList({ page: 1, pageSize: 500 }); list = res.list || [] } catch (e) { list = [] }
+  if (!list.length) return
+  let touched = false
+  missing.forEach((r) => {
+    const it = list.find((l) => String(l.id) === String(r.lessonId) || l.documentId === r.lessonId)
+    if (it?.title) { r.lessonTitle = it.title; touched = true }
+  })
+  if (touched) emit('update:rewardConfig', rc.value)
+}
 
 function normalize(v) {
   return {
@@ -206,9 +223,9 @@ function normalize(v) {
     rewards: Array.isArray(v.rewards) ? v.rewards.map(normReward) : [],
   }
 }
-const normReward = (r) => {
+function normReward(r) {
   if (!r || typeof r !== 'object') return {}
-  return {
+  const norm = {
     id: r.id || `r_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     type: r.type || 'points',
     name: r.name || '',
@@ -222,6 +239,9 @@ const normReward = (r) => {
     link: r.link || '',
     couponId: r.couponId, couponName: r.couponName || '',
   }
+  // 名称为空则按「附加条件 + 类型中文」自动补默认名
+  if (!norm.name) norm.name = autoName(norm)
+  return norm
 }
 
 // ---- 奖励类型/条件/资料类型常量 ----
@@ -281,14 +301,30 @@ function conditionTip(c) {
   if (c === 'survey' && !surveyAvailable.value) return '该条件需开启调查问卷并添加题目后方可达成'
   return ''
 }
+/** 自动命名：附加条件 + 类型中文（无条件时仅类型中文） */
+function autoName(rw) {
+  const typeCn = rewardTypeName(rw.type)
+  return rw.condition === 'none' ? typeCn : conditionLabel(rw.condition) + typeCn
+}
 function onConditionChange(rw, idx) {
+  const prevAuto = autoName(rw) // 变动前的期望名
   rw.condition = conditionValues[idx]
+  // 名称未自定义（为空或仍为默认名）才联动改名；客户手动改名则跳过
+  const custom = rw.name && rw.name !== prevAuto
+  if (!custom) rw.name = autoName(rw)
+  emit('update:rewardConfig', rc.value)
+}
+function onTypeChange(rw, idx) {
+  const prevAuto = autoName(rw)
+  rw.type = rewardTypeValues[idx] || 'points'
+  const custom = rw.name && rw.name !== prevAuto
+  if (!custom) rw.name = autoName(rw)
   emit('update:rewardConfig', rc.value)
 }
 
 // ---- 奖励列表操作 ----
 function addReward() {
-  rc.value.rewards.push({ id: `r_${Date.now()}_${rc.value.rewards.length}`, type: 'points', name: '报名积分', mode: 'single', condition: 'none', amount: 50 })
+  rc.value.rewards.push({ id: `r_${Date.now()}_${rc.value.rewards.length}`, type: 'points', name: autoName({ type: 'points', condition: 'none' }), mode: 'single', condition: 'none', amount: 50 })
   emit('update:rewardConfig', rc.value)
 }
 function removeReward(ri) { rc.value.rewards.splice(ri, 1); emit('update:rewardConfig', rc.value) }
@@ -390,4 +426,5 @@ async function pickLesson(ri) {
 .channel-opt.on { border-color: #667eea; color: #667eea; background: #f4f6ff; }
 .channel-dot { font-size: 24rpx; line-height: 1; }
 .channel-name { line-height: 1; }
+.channel-tip { font-size: 22rpx; color: #999; margin-top: 12rpx; line-height: 1.5; }
 </style>

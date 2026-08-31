@@ -23,6 +23,11 @@
       </view>
     </view>
 
+    <!-- 规则列表搜索 -->
+    <view class="rule-search" v-if="showRuleSearch">
+      <input v-model="searchKeyword" type="text" placeholder="搜索任务名/动作/描述" class="search-input" />
+    </view>
+
     <!-- 规则列表 -->
     <view class="rule-list">
       <view v-for="item in filteredList" :key="item.action" class="rule-card">
@@ -85,6 +90,28 @@
             <input type="text" v-model="form.description" placeholder="规则描述" class="form-input" />
           </view>
           <view class="form-item">
+            <text class="form-label">任务标题</text>
+            <input type="text" v-model="form.name" placeholder="任务展示名称" class="form-input" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">图标</text>
+            <input type="text" v-model="form.icon" placeholder="可填 emoji 或图片URL" class="form-input" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">任务链接类型</text>
+            <picker :range="linkTypeOptions" range-key="label" @change="onLinkTypeChange">
+              <view class="picker-value">{{ getLinkTypeLabel(form.linkType) }}</view>
+            </picker>
+          </view>
+          <view class="form-item" v-if="form.linkType !== 'none'">
+            <text class="form-label">已选内容</text>
+            <view v-if="form.linkTitle" class="link-picked">
+              <text class="link-picked-name">{{ form.linkTitle }}</text>
+              <text class="link-picked-del" @click="clearLink">✕</text>
+            </view>
+            <view v-else class="link-add" @click="openContentPicker">+ 选择内容</view>
+          </view>
+          <view class="form-item">
             <text class="form-label">积分数 <text class="required">*</text></text>
             <input type="number" v-model="form.points" placeholder="0" class="form-input" />
           </view>
@@ -115,12 +142,52 @@
         </view>
       </view>
     </view>
+
+    <!-- 内容选择弹窗 -->
+    <view class="modal-mask content-mask" v-if="contentModal" @click="contentModal = false">
+      <view class="modal-content content-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">选择{{ linkTypeCn(pickLinkType) }}</text>
+          <text class="modal-close" @click="contentModal = false">✕</text>
+        </view>
+        <view class="modal-body">
+          <input
+            v-if="contentList.length > 5"
+            v-model="contentSearch"
+            type="text"
+            placeholder="搜索标题"
+            class="content-search"
+          />
+          <view v-if="contentLoading" class="loading"><text>加载中...</text></view>
+          <scroll-view v-else scroll-y class="content-scroll">
+            <view
+              v-for="c in filteredContent"
+              :key="c.documentId"
+              class="content-pick-item"
+              @click="selectContent(c)"
+            >
+              <image v-if="c.cover" :src="c.cover" class="content-pick-thumb" mode="aspectFill" />
+              <view class="content-pick-info">
+                <text class="content-pick-title">{{ c.title || '未命名' }}</text>
+                <text v-if="c.desc" class="content-pick-desc">{{ c.desc }}</text>
+              </view>
+            </view>
+            <view v-if="filteredContent.length === 0" class="empty-state">
+              <text class="empty-text">暂无内容</text>
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getAdminRuleList, createRule, updateRule, deleteRule } from '../../api/points.js'
+import { articleApi } from '../../api/website.js'
+import { getCourseList } from '../../api/course.js'
+import { listActivities } from '../../api/activity.js'
 import { useUserStore } from '../../store/user.js'
 import PageHeader from '../../components/PageHeader.vue'
 
@@ -134,6 +201,20 @@ const isEdit = ref(false)
 const submitting = ref(false)
 const activeGroup = ref('all')
 const onlyEnabled = ref(false)
+const searchKeyword = ref('')
+// 内容选择器
+const contentModal = ref(false)
+const contentList = ref([])
+const contentSearch = ref('')
+const contentLoading = ref(false)
+const pickLinkType = ref('')
+
+const linkTypeOptions = [
+  { value: 'none', label: '不设链接' },
+  { value: 'article', label: '文章' },
+  { value: 'course', label: '课程' },
+  { value: 'activity', label: '活动' },
+]
 
 const taskGroups = [
   { value: 'all', label: '全部' },
@@ -154,6 +235,8 @@ const categories = [
   { value: 'decrease', label: '扣除' },
 ]
 
+const showRuleSearch = computed(() => list.value.length > 5)
+
 const filteredList = computed(() => {
   let result = list.value
   if (activeGroup.value !== 'all') {
@@ -162,7 +245,21 @@ const filteredList = computed(() => {
   if (onlyEnabled.value) {
     result = result.filter(r => r.enabled)
   }
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (kw) {
+    result = result.filter(r =>
+      (r.name || '').toLowerCase().includes(kw) ||
+      (r.action || '').toLowerCase().includes(kw) ||
+      (r.description || '').toLowerCase().includes(kw)
+    )
+  }
   return result
+})
+
+const filteredContent = computed(() => {
+  const kw = contentSearch.value.trim().toLowerCase()
+  if (!kw) return contentList.value
+  return contentList.value.filter(c => (c.title || '').toLowerCase().includes(kw))
 })
 
 const defaultForm = () => ({
@@ -170,6 +267,12 @@ const defaultForm = () => ({
   category: 'increase',
   taskGroup: 'other',
   description: '',
+  name: '',
+  icon: '',
+  linkType: 'none',
+  linkTargetId: '',
+  linkTitle: '',
+  linkThumb: '',
   points: 0,
   limitPerDay: 0,
   limitPerUser: 0,
@@ -185,6 +288,20 @@ function getCategoryLabel(val) {
 }
 function getTaskGroupLabel(val) {
   return taskGroupOptions.find(t => t.value === val)?.label || val
+}
+function getLinkTypeLabel(val) {
+  return linkTypeOptions.find(o => o.value === val)?.label || '不设链接'
+}
+function linkTypeCn(val) {
+  return linkTypeOptions.find(o => o.value === val)?.label || ''
+}
+function onLinkTypeChange(e) {
+  form.value.linkType = linkTypeOptions[e.detail.value].value || 'none'
+  if (form.value.linkType === 'none') {
+    form.value.linkTargetId = ''
+    form.value.linkTitle = ''
+    form.value.linkThumb = ''
+  }
 }
 function onCategoryChange(e) {
   form.value.category = categories[e.detail.value].value
@@ -223,6 +340,12 @@ function openEdit(item) {
     category: item.category || 'increase',
     taskGroup: item.taskGroup || 'other',
     description: item.description || '',
+    name: item.name || '',
+    icon: item.icon || '',
+    linkType: item.linkType || 'none',
+    linkTargetId: item.linkTargetId || '',
+    linkTitle: item.linkTitle || '',
+    linkThumb: item.linkThumb || '',
     points: item.points || 0,
     limitPerDay: item.limitPerDay ?? 0,
     limitPerUser: item.limitPerUser ?? 0,
@@ -235,6 +358,84 @@ function openEdit(item) {
 }
 
 function closeModal() { showModal.value = false }
+
+/* ===== 任务链接内容选择 ===== */
+async function openContentPicker() {
+  const type = form.value.linkType
+  if (!type || type === 'none') {
+    uni.showToast({ title: '请先选择链接类型', icon: 'none' })
+    return
+  }
+  pickLinkType.value = type
+  contentSearch.value = ''
+  contentModal.value = true
+  contentLoading.value = true
+  contentList.value = []
+  try {
+    contentList.value = await loadContentList(type)
+  } catch (e) {
+    uni.showToast({ title: '内容加载失败', icon: 'none' })
+  } finally {
+    contentLoading.value = false
+  }
+}
+
+function linkId(item) {
+  return item.documentId ?? item.id
+}
+function linkCover(item) {
+  return item.coverImage || item.coverUrl || item.cover || ''
+}
+function linkDesc(item) {
+  return item.excerpt || item.description || item.desc || ''
+}
+
+async function loadContentList(type) {
+  if (type === 'article') {
+    const res = await articleApi.list({ page: 1, pageSize: 500 })
+    return (res.list || []).map(a => ({
+      documentId: linkId(a),
+      title: a.title || '',
+      desc: linkDesc(a),
+      cover: linkCover(a),
+    })).filter(c => c.documentId)
+  }
+  if (type === 'course') {
+    const res = await getCourseList({ page: 1, pageSize: 500 })
+    return (res.list || []).map(c => ({
+      documentId: linkId(c),
+      title: c.title || '',
+      desc: linkDesc(c),
+      cover: c.coverUrl || c.coverImage || '',
+    })).filter(c => c.documentId)
+  }
+  if (type === 'activity') {
+    const res = await listActivities({ page: 1, pageSize: 500 })
+    return (res.list || []).map(a => ({
+      documentId: linkId(a),
+      title: a.title || '',
+      desc: linkDesc(a),
+      cover: a.coverUrl || a.coverImage || '',
+    })).filter(c => c.documentId)
+  }
+  return []
+}
+
+function selectContent(item) {
+  form.value.name = item.title
+  form.value.icon = item.cover || form.value.icon
+  if (item.desc) form.value.description = item.desc
+  form.value.linkTargetId = item.documentId
+  form.value.linkTitle = item.title
+  form.value.linkThumb = item.cover || ''
+  contentModal.value = false
+}
+
+function clearLink() {
+  form.value.linkTargetId = ''
+  form.value.linkTitle = ''
+  form.value.linkThumb = ''
+}
 
 async function handleToggle(item) {
   if (submitting.value) return
@@ -261,6 +462,12 @@ async function handleSubmit() {
       category: form.value.category,
       taskGroup: form.value.taskGroup,
       description: form.value.description,
+      name: form.value.name,
+      icon: form.value.icon,
+      linkType: form.value.linkType || 'none',
+      linkTargetId: form.value.linkType === 'none' ? undefined : (form.value.linkTargetId || undefined),
+      linkTitle: form.value.linkType === 'none' ? undefined : (form.value.linkTitle || undefined),
+      linkThumb: form.value.linkType === 'none' ? undefined : (form.value.linkThumb || undefined),
       points: Number(form.value.points) || 0,
       limitPerDay: Number(form.value.limitPerDay) || 0,
       limitPerUser: Number(form.value.limitPerUser) || 0,
@@ -358,6 +565,13 @@ page { background: #f5f5f5; }
 .action-btn.edit { background: #f5f5f5; color: #1989fa; }
 .action-btn.delete { background: #fff0f0; color: #ff4d4f; }
 
+/* 规则列表搜索框 */
+.rule-search { background: #fff; border-radius: 12rpx; padding: 16rpx 20rpx; margin-bottom: 16rpx; }
+.rule-search .search-input, .content-search {
+  width: 100%; height: 72rpx; background: #f5f5f5; border-radius: 8rpx;
+  padding: 0 20rpx; font-size: 28rpx; box-sizing: border-box;
+}
+
 .loading, .empty-state {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; padding: 100rpx 0;
@@ -419,4 +633,35 @@ page { background: #f5f5f5; }
   flex: 1; height: 88rpx; line-height: 88rpx; text-align: center;
   background: #07c160; color: #fff; font-size: 30rpx; border-radius: 8rpx; border: none;
 }
+
+/* 任务链接 */
+.link-add { color: #667eea; font-size: 28rpx; padding: 16rpx 0; }
+.link-picked {
+  display: flex; align-items: center; justify-content: space-between; gap: 12rpx;
+  background: #f4f6ff; border-radius: 8rpx; padding: 16rpx 20rpx;
+}
+.link-picked-name { font-size: 28rpx; color: #667eea; flex: 1; }
+.link-picked-del { color: #999; font-size: 28rpx; padding: 0 8rpx; }
+
+/* 内容选择弹窗 */
+.content-mask { z-index: 2000; }
+.content-modal { width: 92%; max-height: 80vh; }
+.content-search { margin-bottom: 16rpx; }
+.content-scroll { max-height: 55vh; }
+.content-pick-item {
+  display: flex; align-items: center; gap: 16rpx;
+  padding: 16rpx 0; border-bottom: 1rpx solid #f0f0f0;
+}
+.content-pick-item:last-child { border-bottom: none; }
+.content-pick-thumb {
+  width: 120rpx; height: 120rpx; border-radius: 8rpx;
+  background: #f5f5f5; flex-shrink: 0;
+}
+.content-pick-info { flex: 1; min-width: 0; }
+.content-pick-title { font-size: 30rpx; color: #333; display: block; }
+.content-pick-desc {
+  font-size: 24rpx; color: #999; margin-top: 6rpx; display: block;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.content-modal .loading, .content-modal .empty-state { padding: 60rpx 0; }
 </style>
