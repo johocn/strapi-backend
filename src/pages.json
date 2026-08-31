@@ -572,6 +572,7 @@
     { "path": "pages/sso/msg-job/list", "style": { "navigationBarTitleText": "消息任务" } },
     { "path": "pages/sso/sop-rule/list", "style": { "navigationBarTitleText": "SOP自动化规则" } },
     { "path": "pages/sso/sop-rule/edit", "style": { "navigationBarTitleText": "编辑SOP规则" } },
+    { "path": "pages/sso/sop-manual-todo/list", "style": { "navigationBarTitleText": "手动 SOP 待办" } },
     { "path": "pages/sso/profile/list", "style": { "navigationBarTitleText": "用户画像" } },
     { "path": "pages/sso/profile/detail", "style": { "navigationBarTitleText": "画像详情" } },
     { "path": "pages/sso/test-fallback", "style": { "navigationBarTitleText": "降级登录测试" } },
