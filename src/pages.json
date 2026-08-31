@@ -596,6 +596,7 @@
     { "path": "pages/activity/fission", "style": { "navigationBarTitleText": "裂变榜" } },
     { "path": "pages/activity/review", "style": { "navigationBarTitleText": "活动评价" } },
     { "path": "pages/activity/overview", "style": { "navigationBarTitleText": "活动效果" } },
+    { "path": "pages/activity/temp-auth", "style": { "navigationBarTitleText": "临时开放课时授权" } },
     { "path": "pages/activity/ledger", "style": { "navigationBarTitleText": "经营对账" } },
     { "path": "pages/activity/messages", "style": { "navigationBarTitleText": "留言管理" } },
     { "path": "pages/activity/resource-lecturer", "style": { "navigationBarTitleText": "讲师管理" } },

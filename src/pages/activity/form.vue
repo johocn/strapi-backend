@@ -475,6 +475,15 @@
             <view class="link-add" @click="openRelPicker('preUnlockArticles')">+ 选择文章</view>
           </view>
           <view class="form-item">
+            <text class="form-label">临时开放模式</text>
+            <picker mode="selector" :range="tempLessonModeLabels" @change="handleTempLessonModeChange">
+              <view class="picker-value">
+                <text>{{ tempLessonModeLabels[tempLessonModeIndex] }}</text>
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+          <view class="form-item">
             <text class="form-label">解锁课时</text>
             <view v-if="form.preUnlockLessons.length" class="rel-chips">
               <view v-for="(l, li) in form.preUnlockLessons" :key="li" class="rel-chip">
@@ -866,6 +875,7 @@ const form = reactive({
   formConfig: [],
   preUnlockArticles: [],
   preUnlockLessons: [],
+  tempLessonMode: 'none',
   learningPackageArticles: [],
   learningPackageLessons: [],
   rewardConfig: {
@@ -1356,6 +1366,28 @@ const REL_META = {
   learningPackageArticles: { kind: 'article', title: '选择资料文章' },
   learningPackageLessons: { kind: 'lesson', title: '选择资料课时' }
 }
+// ---- 临时开放模式 ----
+const TEMP_LESSON_MODE_OPTIONS = [
+  { value: 'none', label: '关闭' },
+  { value: 'signup', label: '报名即开放' },
+  { value: 'milestone', label: '达标开放' },
+  { value: 'manual', label: '运营手动' },
+  { value: 'mixed', label: '报名+达标+手动' }
+]
+const tempLessonModeLabels = TEMP_LESSON_MODE_OPTIONS.map(o => o.label)
+const tempLessonModeIndex = computed(() => {
+  const idx = TEMP_LESSON_MODE_OPTIONS.findIndex(o => o.value === form.tempLessonMode)
+  return idx === -1 ? 0 : idx
+})
+function handleTempLessonModeChange(e) {
+  const o = TEMP_LESSON_MODE_OPTIONS[Number(e.detail.value)] || TEMP_LESSON_MODE_OPTIONS[0]
+  form.tempLessonMode = o.value
+  // 非 none 模式仅允许绑定 1 个临时课时，超出部分截断
+  if (o.value !== 'none' && form.preUnlockLessons.length > 1) {
+    form.preUnlockLessons = form.preUnlockLessons.slice(0, 1)
+  }
+}
+
 const relPicker = reactive({ visible: false, target: '', title: '', list: [], selected: [] })
 let articleOptions = []
 let lessonOptions = []
@@ -1397,7 +1429,13 @@ function toggleRelPick(it) {
   const id = it.documentId || it.id
   const idx = relPicker.selected.indexOf(id)
   if (idx > -1) relPicker.selected.splice(idx, 1)
-  else relPicker.selected.push(id)
+  else {
+    // 临时开放模式下，解锁课时最多选 1 条
+    if (relPicker.target === 'preUnlockLessons' && form.tempLessonMode !== 'none' && relPicker.selected.length >= 1) {
+      return uni.showToast({ title: '临时开放模式仅可选 1 课时', icon: 'none' })
+    }
+    relPicker.selected.push(id)
+  }
 }
 function confirmRelPicker() {
   const meta = REL_META[relPicker.target]
@@ -1622,6 +1660,7 @@ async function loadDetail() {
         : null,
       preUnlockArticles: normRel(data.preUnlockArticles),
       preUnlockLessons: normRel(data.preUnlockLessons),
+      tempLessonMode: data.tempLessonMode || 'none',
       learningPackageArticles: normRel(data.learningPackageArticles),
       learningPackageLessons: normRel(data.learningPackageLessons),
       category: data.category || '',
@@ -1724,7 +1763,7 @@ async function handleSubmit() {
             if (r.type === 'course_outline') {
               if (r.kind === 'article') return { ...base, kind: 'article', articleId: r.articleId }
               if (r.kind === 'file') return { ...base, kind: 'file', link: r.link }
-              return { ...base, kind: 'lesson', lessonId: r.lessonId }
+              return { ...base, kind: 'lesson', lessonId: r.lessonId, lessonTitle: r.lessonTitle || '' }
             }
             if (r.type === 'coupon') return { ...base, couponId: Number(r.couponId) || 0 }
             return base
@@ -1766,7 +1805,8 @@ async function handleSubmit() {
     promoAssets: Array.isArray(form.promoAssets)
       ? form.promoAssets.map(a => ({ url: a.url, scene: a.scene || undefined, note: a.note || undefined })).filter(a => a.url)
       : undefined,
-    status: form.status
+    status: form.status,
+    tempLessonMode: form.tempLessonMode
   }
   // 清理空 datetime，避免后端校验空字符串
   for (const k of ['startTime', 'endTime', 'signupStart', 'signupEnd']) {
