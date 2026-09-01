@@ -170,6 +170,14 @@
                 </view>
                 <view class="link-add" @click="openImagePicker(m)">+ 从素材库选图</view>
               </template>
+              <template v-else-if="m.type === 'message'">
+                <input type="text" v-model="m.config.title" placeholder="留言模块标题（默认：留言咨询）" class="form-input" />
+                <input type="text" v-model="m.config.btnText" placeholder="按钮文案（默认：去留言）" class="form-input" />
+                <text class="form-tip">配置留言模块展示文案；与悬浮联系方式中的「留言」入口共用同一留言面板。</text>
+              </template>
+              <template v-else-if="m.type === 'floatContact'">
+                <text class="form-tip">在页面右侧悬浮显示联系方式（电话 / 微信客服或二维码 / 留言）。数据源自动复用下方「联系方式」区配置，此处无需额外填写。</text>
+              </template>
               <template v-else-if="m.type === 'info'">
                 <view class="promo-fixed-row"><text class="promo-fixed-label">活动时间</text><text class="promo-fixed-value">{{ fmtTime(form.startTime) }} ~ {{ fmtTime(form.endTime) }}</text></view>
                 <view class="promo-fixed-row"><text class="promo-fixed-label">活动地点</text><text class="promo-fixed-value">{{ form.venueName || '待定场地' }}</text></view>
@@ -204,9 +212,33 @@
             <switch :checked="!form.promoContact" @change="toggleContactOverride" />
           </view>
           <template v-if="form.promoContact">
-            <input type="text" v-model="form.promoContact.wechat.id" placeholder="微信号" class="form-input" />
+            <view class="form-label">微信号</view>
+            <input type="text" v-model="form.promoContact.wechat.id" placeholder="如 joho-service" class="form-input" />
+            <view class="form-label">公众号客服链接</view>
+            <input type="text" v-model="form.promoContact.wechatServiceUrl" placeholder="如 https://kf.weixin.qq.com/..." class="form-input" />
+            <view class="form-label">微信客服二维码</view>
+            <view class="media-select" @click="openPromoQrcodePicker">
+              <image
+                v-if="form.promoContact.wechat.qrcode"
+                :src="form.promoContact.wechat.qrcode"
+                mode="aspectFill"
+                class="media-preview"
+              />
+              <view v-else class="media-placeholder"><text>+ 选择二维码图片</text></view>
+              <text v-if="form.promoContact.wechat.qrcode" class="media-remove" @click.stop="removePromoQrcode">✕</text>
+            </view>
+            <view class="form-label">联系电话</view>
             <input type="text" v-model="form.promoContact.phone" placeholder="联系电话" class="form-input" />
+            <view class="form-label">提示文案</view>
             <input type="text" v-model="form.promoContact.notice" placeholder="提示文案（如：无法报名请加顾问微信）" class="form-input" />
+            <view class="link-add" @click="togglePromoCard">{{ showPromoCard ? '收起咨询名片' : '+ 添加咨询名片' }}</view>
+            <template v-if="showPromoCard">
+              <input type="text" v-model="form.promoContact.card.name" placeholder="顾问姓名" class="form-input" />
+              <input type="text" v-model="form.promoContact.card.title" placeholder="职位" class="form-input" />
+              <input type="text" v-model="form.promoContact.card.company" placeholder="公司" class="form-input" />
+              <input type="text" v-model="form.promoContact.card.phone" placeholder="名片电话" class="form-input" />
+              <input type="text" v-model="form.promoContact.card.wechat" placeholder="名片微信号" class="form-input" />
+            </template>
           </template>
         </view>
       </view>
@@ -280,6 +312,13 @@
       @update:visible="promoMediaPicker.visible = $event"
     />
 
+    <MediaPicker
+      :visible="showPromoQrcodePicker"
+      accept="image/*"
+      @select="onPromoQrcodePicked"
+      @update:visible="showPromoQrcodePicker = $event"
+    />
+
     <view class="modal-mask" v-if="openAddModule" @click="openAddModule = false">
       <view class="modal-content" @click.stop>
         <view class="modal-header">
@@ -314,9 +353,13 @@
               <PromoImages v-else-if="m.type === 'images'" :activity="form" :config="m.config" />
               <PromoRewards v-else-if="m.type === 'rewards'" :rewards="form.rewardConfig" />
               <PromoContact v-else-if="m.type === 'contact'" :contact="form.promoContact" />
-              <PromoMessage v-else-if="m.type === 'message'" :messages="[]" />
+              <PromoMessage v-else-if="m.type === 'message'" :messages="[]" :config="m.config" />
               <PromoFaq v-else-if="m.type === 'faq'" :activity="form" :config="m.config" />
               <PromoCustom v-else-if="m.type === 'custom'" :activity="form" :config="m.config" />
+              <FloatContact
+                v-else-if="m.type === 'floatContact'"
+                :contact="form.promoContact"
+              />
             </block>
             <view v-if="!form.promoModules.length" class="preview-empty">暂无宣传模块，请先添加或生成文案</view>
           </view>
@@ -350,6 +393,7 @@ import PromoContact from '../../components/promo/promo-contact.vue'
 import PromoMessage from '../../components/promo/promo-message.vue'
 import PromoFaq from '../../components/promo/promo-faq.vue'
 import PromoCustom from '../../components/promo/promo-custom.vue'
+import FloatContact from '../../components/promo/float-contact.vue'
 import { PROMO_MODULE_META } from './promo-presets.js'
 import { PROMO_PALETTES } from './promo-palettes.js'
 import { parsePromoImport, buildPromoPrompt, buildCustomHtmlPrompt, sanitizeCustomHtml, CUSTOM_PLACEHOLDERS as PLACEHOLDER_ITEMS } from './promo-import.js'
@@ -364,6 +408,8 @@ const openModuleIndex = ref(-1)
 const openAddModule = ref(false)
 const openPreview = ref(false)
 const promoMediaPicker = ref({ visible: false, module: null })
+const showPromoQrcodePicker = ref(false)
+const showPromoCard = ref(false)
 
 const form = reactive({
   title: '',
@@ -736,10 +782,45 @@ function goEditActivity() {
 // ---- 联系方式 ----
 function toggleContactOverride(e) {
   if (e.detail.value === false) {
-    form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', card: null, notice: '' }
+    form.promoContact = {
+      wechat: { qrcode: '', id: '' },
+      phone: '',
+      wechatServiceUrl: '',
+      card: { name: '', title: '', company: '', phone: '', wechat: '' },
+      notice: '',
+    }
   } else {
     form.promoContact = null
   }
+}
+
+function openPromoQrcodePicker() { showPromoQrcodePicker.value = true }
+function onPromoQrcodePicked(file) {
+  if (!form.promoContact) form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', card: null, notice: '' }
+  if (!form.promoContact.wechat) form.promoContact.wechat = { qrcode: '', id: '' }
+  if (!file || !file.url) { showPromoQrcodePicker.value = false; return }
+  form.promoContact.wechat.qrcode = file.url
+  showPromoQrcodePicker.value = false
+  uni.showToast({ title: '二维码已设置', icon: 'success' })
+}
+function removePromoQrcode() {
+  if (form.promoContact && form.promoContact.wechat) form.promoContact.wechat.qrcode = ''
+}
+function togglePromoCard() {
+  showPromoCard.value = !showPromoCard.value
+}
+
+function sanitizePromoContact(c) {
+  if (!c) return null
+  if (c.wechat && !c.wechat.id && !c.wechat.qrcode) delete c.wechat
+  else if (!c.wechat) c.wechat = undefined
+  for (const k of ['phone','wechatServiceUrl','notice']) if (!c[k]) delete c[k]
+  if (c.card) {
+    const card = c.card
+    for (const k of ['name','title','company','phone','wechat']) if (!card[k]) delete card[k]
+    if (!Object.keys(card).length) c.card = undefined
+  }
+  return (c.phone || c.wechat || c.wechatServiceUrl || c.notice || c.card) ? c : null
 }
 
 // ---- AI 生成 / 粘贴导入 ----
@@ -883,7 +964,7 @@ async function save() {
         config: m.config && Object.keys(m.config).length ? m.config : {},
         sort: i,
       })),
-      promoContact: form.promoContact || null,
+      promoContact: sanitizePromoContact(form.promoContact),
       promoColors: form.promoColors || null,
       // AI 方案生效标记：切换 C 端显示为 promoModules；完全定制 HTML 保留（不清空）便于后续再编辑
       customPromoActive: false,
@@ -938,6 +1019,20 @@ page { background: #f5f5f5; }
 .form-input {
   width: 100%; height: 80rpx; border: 1rpx solid #e3e6f0; border-radius: 8rpx;
   padding: 0 20rpx; font-size: 28rpx; box-sizing: border-box; margin-bottom: 12rpx; background: #fff;
+}
+.media-select {
+  position: relative; width: 160rpx; height: 160rpx;
+  border-radius: 8rpx; overflow: hidden; background: #f5f5f5; margin-bottom: 12rpx;
+}
+.media-preview { width: 100%; height: 100%; }
+.media-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 24rpx; color: #999; border: 2rpx dashed #ddd; border-radius: 8rpx; box-sizing: border-box;
+}
+.media-remove {
+  position: absolute; top: 4rpx; right: 4rpx; width: 36rpx; height: 36rpx;
+  background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%;
+  font-size: 22rpx; text-align: center; line-height: 36rpx;
 }
 .form-textarea {
   width: 100%; height: 200rpx; border: 1rpx solid #e3e6f0; border-radius: 8rpx;
