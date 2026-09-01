@@ -352,15 +352,22 @@
               <PromoAgenda v-else-if="m.type === 'agenda'" :activity="form" :config="m.config" />
               <PromoImages v-else-if="m.type === 'images'" :activity="form" :config="m.config" />
               <PromoRewards v-else-if="m.type === 'rewards'" :rewards="form.rewardConfig" />
-              <PromoContact v-else-if="m.type === 'contact'" :contact="form.promoContact" />
-              <PromoMessage v-else-if="m.type === 'message'" :messages="[]" :config="m.config" />
+              <PromoContact v-else-if="m.type === 'contact'" :contact="form.promoContact || {}" @open-wechat="previewShowWechat = true" @call-phone="previewCallPhone()" />
+              <PromoMessage v-else-if="m.type === 'message'" :messages="previewMessages" :config="m.config" />
               <PromoFaq v-else-if="m.type === 'faq'" :activity="form" :config="m.config" />
               <PromoCustom v-else-if="m.type === 'custom'" :activity="form" :config="m.config" />
               <FloatContact
                 v-else-if="m.type === 'floatContact'"
-                :contact="form.promoContact"
+                :contact="form.promoContact || {}"
+                :in-wechat="false"
+                @open-wechat="previewShowWechat = true"
+                @call-phone="previewCallPhone()"
               />
             </block>
+            <view class="preview-float-msg" @click="previewShowMessage = true">
+              <text class="preview-msg-badge">1</text>
+              <text class="preview-msg-label">留言</text>
+            </view>
             <view v-if="!form.promoModules.length" class="preview-empty">暂无宣传模块，请先添加或生成文案</view>
           </view>
           <view v-else class="promo-page preview-body preview-custom-body">
@@ -368,6 +375,44 @@
             <view v-if="!customPreviewHtml" class="preview-empty">暂无定制文案，请先粘贴或生成 HTML</view>
           </view>
         </scroll-view>
+      </view>
+    </view>
+
+    <!-- 预览示例：微信二维码弹层 -->
+    <view class="modal-mask" v-if="previewShowWechat" @click="previewShowWechat = false">
+      <view class="preview-modal preview-small" @click.stop>
+        <view class="preview-header">
+          <text class="preview-title">微信二维码</text>
+          <text class="preview-close" @click="previewShowWechat = false">✕</text>
+        </view>
+        <view class="preview-qr">
+          <image v-if="previewQrcode" :src="previewQrcode" mode="aspectFit" class="preview-qr-img" />
+          <view v-else class="preview-qr-empty">暂无微信二维码</view>
+        </view>
+        <text class="preview-qr-tip">微信环境长按识别，浏览器扫码或复制微信号</text>
+        <view class="preview-btn-close" @click="previewShowWechat = false">关闭</view>
+      </view>
+    </view>
+
+    <!-- 预览示例：留言弹层 -->
+    <view class="modal-mask" v-if="previewShowMessage" @click="previewShowMessage = false">
+      <view class="preview-modal preview-small" @click.stop>
+        <view class="preview-header">
+          <text class="preview-title">留言示例</text>
+          <text class="preview-close" @click="previewShowMessage = false">✕</text>
+        </view>
+        <scroll-view scroll-y class="preview-msg-list">
+          <view class="preview-msg-item">
+            <text class="preview-msg-role">问</text>
+            <text class="preview-msg-nick">示例客户</text>
+            <text class="preview-msg-content">请问还有名额吗？</text>
+            <view class="preview-msg-reply">
+              <text class="preview-msg-role preview-msg-role--a">答</text>
+              <text class="preview-msg-reply-text">您好，还有少量名额，欢迎报名。</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="preview-btn-close" @click="previewShowMessage = false">关闭</view>
       </view>
     </view>
   </view>
@@ -410,6 +455,13 @@ const openPreview = ref(false)
 const promoMediaPicker = ref({ visible: false, module: null })
 const showPromoQrcodePicker = ref(false)
 const showPromoCard = ref(false)
+const previewShowWechat = ref(false)
+const previewShowMessage = ref(false)
+const previewMessages = [
+  { id: 1, content: '请问还有名额吗？', status: 'replied', reply: '您好，还有少量名额，欢迎报名。', nickname: '示例客户', createdAt: new Date().toISOString(), repliedAt: new Date().toISOString() },
+]
+const previewQrcode = computed(() => (form.promoContact?.wechat?.qrcode) || '')
+function previewCallPhone() { uni.showToast({ title: '预览：运营端拨号不生效', icon: 'none' }) }
 
 const form = reactive({
   title: '',
@@ -1143,6 +1195,39 @@ page { background: #f5f5f5; }
 .custom-visual-box.is-editable:focus{outline:none;}
 .custom-visual-box.is-editable img{cursor:pointer;}
 .visual-empty{padding:80rpx 0;text-align:center;font-size:26rpx;color:#999;background:#f2f3f7;border:1rpx solid #e3e6f0;border-radius:12rpx;}
+
+/* 预览对齐 C 端：悬浮留言入口 + 示例弹层 */
+.preview-float-msg {
+  position: fixed; right: 28rpx; bottom: 48rpx; z-index: 70;
+  width: 92rpx; height: 92rpx; border-radius: 50%;
+  background: var(--c-primary, #667eea); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.18);
+}
+.preview-msg-badge {
+  position: absolute; top: -4rpx; right: -4rpx;
+  min-width: 28rpx; height: 28rpx; padding: 0 6rpx; box-sizing: border-box;
+  border-radius: 14rpx; background: #ff3b30; color: #fff; font-size: 18rpx;
+  line-height: 28rpx; text-align: center;
+}
+.preview-msg-label { font-size: 20rpx; margin-top: 4rpx; }
+.preview-small { width: 84%; max-width: 640rpx; height: auto; max-height: 78vh; padding-bottom: 40rpx; }
+.preview-qr { display: flex; align-items: center; justify-content: center; padding: 40rpx 30rpx 10rpx; }
+.preview-qr-img { width: 320rpx; height: 320rpx; }
+.preview-qr-empty { width: 320rpx; height: 320rpx; display: flex; align-items: center; justify-content: center; background: #f5f6fa; color: #999; font-size: 26rpx; border-radius: 12rpx; }
+.preview-qr-tip { display: block; text-align: center; padding: 0 40rpx 20rpx; font-size: 24rpx; color: var(--c-text-dim, #999); }
+.preview-btn-close { margin: 10rpx 40rpx 0; padding: 18rpx 0; text-align: center; font-size: 28rpx; color: #fff; background: var(--c-primary, #667eea); border-radius: 12rpx; }
+.preview-msg-list { max-height: 400rpx; padding: 24rpx 30rpx; overflow-y: auto; }
+.preview-msg-item { padding: 20rpx; border-radius: 12rpx; background: #f5f6fa; }
+.preview-msg-role {
+  display: inline-block; padding: 4rpx 14rpx; margin-right: 10rpx; border-radius: 8rpx;
+  font-size: 22rpx; color: #fff; background: #4f7cff;
+}
+.preview-msg-role--a { background: #07c160; }
+.preview-msg-nick { font-size: 24rpx; color: #999; }
+.preview-msg-content { display: block; margin-top: 12rpx; font-size: 26rpx; color: #333; }
+.preview-msg-reply { margin-top: 16rpx; padding: 14rpx 16rpx; border-radius: 10rpx; background: #fff; }
+.preview-msg-reply-text { font-size: 26rpx; color: #333; }
 </style>
 
 <style lang="scss">
