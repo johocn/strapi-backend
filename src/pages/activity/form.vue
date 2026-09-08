@@ -822,7 +822,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getActivity, createActivity, updateActivity, listSeries, createSeries, listActivities } from '../../api/activity.js'
-import { articleApi, caseApi, productApi, faqApi, tutorialApi } from '../../api/website.js'
+import { geoArticleApi, caseApi, productApi, faqApi, tutorialApi } from '../../api/website.js'
 import { getLessonList, getCourseList } from '../../api/course.js'
 import { listLecturers, listVenues, checkSchedule, createLecturer, createVenue } from '../../api/resource.js'
 import { getTagList, getTagGroupList, createTag } from '../../api/tag.js'
@@ -1512,15 +1512,19 @@ const normRel = (arr) => Array.isArray(arr)
 const relIds = (arr) => Array.isArray(arr)
   ? arr.map(x => x.id ?? x.documentId).filter(v => v != null)
   : []
-// 相关内容回显：数组 → documentId 数组（兼容字符串与 {documentId}/{id} 对象）
-const relDocs = (arr) => Array.isArray(arr)
-  ? arr.map(x => (x && typeof x === 'object' ? (x.documentId ?? x.id) : x)).filter(v => v != null)
+// 相关内容回显（保留对象）：数组 → {documentId,title,slug,type} 数组（兼容字符串与对象，供勾选态判断与再提交）
+const relOverrideDocs = (arr) => Array.isArray(arr)
+  ? arr.map(x => (x && typeof x === 'object'
+      ? { documentId: x.documentId ?? x.id, title: x.title || '', slug: x.slug || '', type: x.type || '' }
+      : { documentId: x, title: '', slug: '', type: '' }))
+      .filter(x => x.documentId != null)
   : []
 
 // ---- 相关内容配置 ----
 // 7 类可手动指定的相关内容，每类从对应 list API 拉取（页面上按需懒加载）
+// 文章类数据源为 GEO 文章（站内实际内容在 geo-article 表，普通 article 表为空）
 const RELATED_TYPES = [
-  { key: 'articles', label: '文章', api: articleApi.list },
+  { key: 'articles', label: '文章', api: geoArticleApi.list },
   { key: 'cases', label: '案例', api: caseApi.list },
   { key: 'products', label: '产品', api: productApi.list },
   { key: 'faqs', label: 'FAQ', api: faqApi.list },
@@ -1555,13 +1559,14 @@ async function loadRelatedOptions(key) {
 function toggleRelatedPick(key, it) {
   const id = it.documentId || it.id
   const arr = form.relatedOverride[key]
-  const idx = arr.indexOf(id)
+  const idx = arr.findIndex(x => (x && typeof x === 'object' ? (x.documentId ?? x.id) : x) === id)
   if (idx >= 0) arr.splice(idx, 1)
-  else arr.push(id)
+  else arr.push({ documentId: id, title: it.title || it.name || '', slug: it.slug || '', type: it.type || '' })
 }
 
 function isRelatedPicked(key, it) {
-  return form.relatedOverride[key].includes(it.documentId || it.id)
+  const id = it.documentId || it.id
+  return form.relatedOverride[key].some(x => (x && typeof x === 'object' ? (x.documentId ?? x.id) : x) === id)
 }
 
 // ---- 报名奖励配置 ----
@@ -1770,13 +1775,13 @@ async function loadDetail() {
       category: data.category || '',
       tags: (Array.isArray(data.tags) ? data.tags : []).map(t => t.documentId || t),
       relatedOverride: {
-        articles: relDocs(data.relatedOverride?.articles),
-        cases: relDocs(data.relatedOverride?.cases),
-        products: relDocs(data.relatedOverride?.products),
-        faqs: relDocs(data.relatedOverride?.faqs),
-        courses: relDocs(data.relatedOverride?.courses),
-        tutorials: relDocs(data.relatedOverride?.tutorials),
-        activities: relDocs(data.relatedOverride?.activities),
+        articles: relOverrideDocs(data.relatedOverride?.articles),
+        cases: relOverrideDocs(data.relatedOverride?.cases),
+        products: relOverrideDocs(data.relatedOverride?.products),
+        faqs: relOverrideDocs(data.relatedOverride?.faqs),
+        courses: relOverrideDocs(data.relatedOverride?.courses),
+        tutorials: relOverrideDocs(data.relatedOverride?.tutorials),
+        activities: relOverrideDocs(data.relatedOverride?.activities),
       },
       showRelatedSection: data.showRelatedSection !== false,
       visibleToRoles: Array.isArray(data.visibleToRoles) ? data.visibleToRoles : [],
