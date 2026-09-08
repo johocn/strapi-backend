@@ -15,6 +15,28 @@ export const articleApi = {
   batch: (action, documentIds) => post(`${ADMIN_BASE}/articles/batch`, { action, documentIds }).then(extractItem),
 }
 
+// ==================== GEO 文章管理 ====================
+export const geoArticleApi = {
+  list: (params = {}) => get(`${ADMIN_BASE}/geo-articles`, params).then(extractList),
+  detail: (documentId) => get(`${ADMIN_BASE}/geo-articles/${documentId}`).then(extractItem),
+  create: (data) => post(`${ADMIN_BASE}/geo-articles`, { data }).then(extractItem),
+  update: (documentId, data) => put(`${ADMIN_BASE}/geo-articles/${documentId}`, { data }).then(extractItem),
+  delete: (documentId) => del(`${ADMIN_BASE}/geo-articles/${documentId}`).then(extractItem),
+  publish: (documentId) => post(`${ADMIN_BASE}/geo-articles/${documentId}/publish`).then(extractItem),
+  archive: (documentId) => post(`${ADMIN_BASE}/geo-articles/${documentId}/archive`).then(extractItem),
+  batch: (action, documentIds) => post(`${ADMIN_BASE}/geo-articles/batch`, { action, documentIds }).then(extractItem),
+  auditCheck: (documentId) => post(`${ADMIN_BASE}/geo-articles/${documentId}/audit-check`).then(extractItem),
+}
+
+// ==================== 文章作者管理 ====================
+export const authorApi = {
+  list: (params = {}) => get(`${ADMIN_BASE}/authors`, params).then(extractList),
+  detail: (documentId) => get(`${ADMIN_BASE}/authors/${documentId}`).then(extractItem),
+  create: (data) => post(`${ADMIN_BASE}/authors`, { data }).then(extractItem),
+  update: (documentId, data) => put(`${ADMIN_BASE}/authors/${documentId}`, { data }).then(extractItem),
+  delete: (documentId) => del(`${ADMIN_BASE}/authors/${documentId}`).then(extractItem),
+}
+
 // ==================== 线索管理 ====================
 export const leadApi = {
   list: (params = {}) => get(`${ADMIN_BASE}/leads`, params).then(extractList),
@@ -46,16 +68,17 @@ export const seoConfigApi = {
   },
 }
 
-// ==================== 知识图谱（后端路径为 /kg） ====================
+// ==================== 知识图谱（后端路径为 /knowledge-graph） ====================
 export const knowledgeGraphApi = {
-  listEntities: (params = {}) => get(`${ADMIN_BASE}/kg/entities`, params).then(extractList),
-  createEntity: (data) => post(`${ADMIN_BASE}/kg/entities`, { data }).then(extractItem),
-  updateEntity: (documentId, data) => put(`${ADMIN_BASE}/kg/entities/${documentId}`, { data }).then(extractItem),
-  deleteEntity: (documentId) => del(`${ADMIN_BASE}/kg/entities/${documentId}`).then(extractItem),
-  listRelations: (params = {}) => get(`${ADMIN_BASE}/kg/relations`, params).then(extractList),
-  addRelation: (data) => post(`${ADMIN_BASE}/kg/relations`, { data }).then(extractItem),
-  deleteRelation: (documentId) => del(`${ADMIN_BASE}/kg/relations/${documentId}`).then(extractItem),
-  exportGraph: () => get(`${ADMIN_BASE}/kg/export`).then(extractItem),
+  listEntities: (params = {}) => get(`${ADMIN_BASE}/knowledge-graph/entities`, params).then(extractList),
+  createEntity: (data) => post(`${ADMIN_BASE}/knowledge-graph/entities`, { data }).then(extractItem),
+  updateEntity: (documentId, data) => put(`${ADMIN_BASE}/knowledge-graph/entities/${documentId}`, { data }).then(extractItem),
+  deleteEntity: (documentId) => del(`${ADMIN_BASE}/knowledge-graph/entities/${documentId}`).then(extractItem),
+  listRelations: (params = {}) => get(`${ADMIN_BASE}/knowledge-graph/relations`, params).then(extractList),
+  addRelation: (data) => post(`${ADMIN_BASE}/knowledge-graph/relations`, { data }).then(extractItem),
+  deleteRelation: (documentId) => del(`${ADMIN_BASE}/knowledge-graph/relations/${documentId}`).then(extractItem),
+  updateRelation: (documentId, data) => put(`${ADMIN_BASE}/knowledge-graph/relations/${documentId}`, { data }).then(extractItem),
+  exportGraph: () => get(`${ADMIN_BASE}/knowledge-graph/export`).then(extractItem),
 }
 
 // ==================== 第一真值（后端路径为 /first-truths） ====================

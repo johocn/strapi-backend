@@ -151,6 +151,14 @@
           <view class="module-icon">📄</view>
           <view class="module-name">资讯文章</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/geo-article/list')">
+          <view class="module-icon">🧭</view>
+          <view class="module-name">GEO 文章</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/author/list')">
+          <view class="module-icon">👤</view>
+          <view class="module-name">文章作者</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.website-article-category')" @click="navigateTo('/pages/website/article-category/list')">
           <view class="module-icon">📂</view>
           <view class="module-name">文章分类</view>
@@ -665,6 +673,10 @@
         <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/sop-rule/list')">
           <view class="module-icon">⚙️</view>
           <view class="module-name">SOP规则</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-msg')" @click="navigateTo('/pages/sso/sop-manual-todo/list')">
+          <view class="module-icon">📋</view>
+          <view class="module-name">手动SOP待办</view>
         </view>
       </view>
     </view>
