@@ -27,6 +27,11 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">标签</text>
+          <TagSelector v-model="form.tags" :siteId="siteId" label="标签" />
+        </view>
+
+        <view class="form-item">
           <text class="form-label">活动描述</text>
           <textarea v-model="form.description" placeholder="请输入活动描述" class="form-textarea" maxlength="-1" />
         </view>
@@ -721,6 +726,47 @@
           </picker>
         </view>
       </view>
+
+      <view class="form-section">
+        <view class="section-title related-section-header" @click="relatedSectionOpen = !relatedSectionOpen">
+          <text>相关内容配置</text>
+          <text class="related-arrow">{{ relatedSectionOpen ? '收起 ▴' : '展开 ▾' }}</text>
+        </view>
+
+        <template v-if="relatedSectionOpen">
+          <view class="form-item">
+            <text class="form-label">显示相关内容</text>
+            <switch :checked="form.showRelatedSection !== false" @change="form.showRelatedSection = !form.showRelatedSection" />
+            <text class="form-tip">关闭后 C 端活动详情页不展示相关内容区块</text>
+          </view>
+
+          <view class="form-item">
+            <text class="form-label">手动指定相关内容</text>
+            <text class="form-tip">按类型勾选后覆盖默认聚合推荐；全部留空则按活动标签自动聚合</text>
+            <view v-for="cfg in RELATED_TYPES" :key="cfg.key" class="related-type-block">
+              <view class="related-type-header" @click="toggleRelatedPanel(cfg.key)">
+                <text>{{ cfg.label }}</text>
+                <text v-if="form.relatedOverride[cfg.key].length" class="related-type-count">已选 {{ form.relatedOverride[cfg.key].length }}</text>
+                <text class="related-arrow">{{ relatedPanelsOpen[cfg.key] ? '▴' : '▾' }}</text>
+              </view>
+              <view v-if="relatedPanelsOpen[cfg.key]" class="related-type-list">
+                <view
+                  v-for="it in relatedOptions[cfg.key]"
+                  :key="it.documentId || it.id"
+                  class="rel-opt"
+                  @click="toggleRelatedPick(cfg.key, it)"
+                >
+                  <view class="rel-check" :class="{ on: isRelatedPicked(cfg.key, it) }">
+                    <text v-if="isRelatedPicked(cfg.key, it)" class="rel-check-mark">✓</text>
+                  </view>
+                  <text class="rel-opt-name">{{ it.title || it.name || `#${it.id || it.documentId}` }}</text>
+                </view>
+                <view v-if="relatedLoaded[cfg.key] && !relatedOptions[cfg.key].length" class="form-tip rel-empty">暂无可选内容</view>
+              </view>
+            </view>
+          </view>
+        </template>
+      </view>
     </scroll-view>
 
     <view class="bottom-action">
@@ -775,14 +821,16 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivity, createActivity, updateActivity, listSeries, createSeries } from '../../api/activity.js'
-import { articleApi } from '../../api/website.js'
-import { getLessonList } from '../../api/course.js'
+import { getActivity, createActivity, updateActivity, listSeries, createSeries, listActivities } from '../../api/activity.js'
+import { articleApi, caseApi, productApi, faqApi, tutorialApi } from '../../api/website.js'
+import { getLessonList, getCourseList } from '../../api/course.js'
 import { listLecturers, listVenues, checkSchedule, createLecturer, createVenue } from '../../api/resource.js'
 import { getTagList, getTagGroupList, createTag } from '../../api/tag.js'
 import { getAllRoles } from '../../api/auth.js'
 import { loadSiteConfig, isFeatureEnabled } from '../../utils/config-helper.js'
 import PageHeader from '../../components/PageHeader.vue'
+import TagSelector from '../../components/TagSelector.vue'
+import { useUserStore } from '../../store/user.js'
 import ActivityRewardConfig from '../../components/activity-reward-config.vue'
 import ActivityQuestionnaire from '../../components/activity-questionnaire.vue'
 import RichEditor from '../../components/RichEditor.vue'
@@ -793,6 +841,9 @@ import { PRE_QUESTIONNAIRE_THEMES, POST_QUESTIONNAIRE_THEMES } from '../../compo
 
 const isEdit = ref(false)
 const activityId = ref('')
+
+const userStore = useUserStore()
+const siteId = computed(() => userStore.currentSite?.documentId || '')
 
 const seriesList = ref([])
 const seriesNames = computed(() => ['不归属系列', ...seriesList.value.map(s => s.title || '未命名系列')])
@@ -849,6 +900,8 @@ const form = reactive({
   title: '',
   category: '',
   tags: [],
+  relatedOverride: { articles: [], cases: [], products: [], faqs: [], courses: [], tutorials: [], activities: [] },
+  showRelatedSection: true,
   assets: { recordingUrl: '', materials: [] },
   description: '',
   startTime: '',
@@ -1459,6 +1512,57 @@ const normRel = (arr) => Array.isArray(arr)
 const relIds = (arr) => Array.isArray(arr)
   ? arr.map(x => x.id ?? x.documentId).filter(v => v != null)
   : []
+// 相关内容回显：数组 → documentId 数组（兼容字符串与 {documentId}/{id} 对象）
+const relDocs = (arr) => Array.isArray(arr)
+  ? arr.map(x => (x && typeof x === 'object' ? (x.documentId ?? x.id) : x)).filter(v => v != null)
+  : []
+
+// ---- 相关内容配置 ----
+// 7 类可手动指定的相关内容，每类从对应 list API 拉取（页面上按需懒加载）
+const RELATED_TYPES = [
+  { key: 'articles', label: '文章', api: articleApi.list },
+  { key: 'cases', label: '案例', api: caseApi.list },
+  { key: 'products', label: '产品', api: productApi.list },
+  { key: 'faqs', label: 'FAQ', api: faqApi.list },
+  { key: 'courses', label: '课程', api: getCourseList },
+  { key: 'tutorials', label: '教程', api: tutorialApi.list },
+  { key: 'activities', label: '活动', api: listActivities },
+]
+const relatedSectionOpen = ref(true)
+const relatedPanelsOpen = reactive({})
+const relatedLoaded = reactive({})
+const relatedOptions = reactive({ articles: [], cases: [], products: [], faqs: [], courses: [], tutorials: [], activities: [] })
+
+function toggleRelatedPanel(key) {
+  relatedPanelsOpen[key] = !relatedPanelsOpen[key]
+  if (relatedPanelsOpen[key]) loadRelatedOptions(key)
+}
+
+async function loadRelatedOptions(key) {
+  if (relatedLoaded[key]) return
+  const cfg = RELATED_TYPES.find(c => c.key === key)
+  if (!cfg) return
+  relatedLoaded[key] = true
+  try {
+    const res = await cfg.api({ page: 1, pageSize: 200 })
+    relatedOptions[key] = (res?.list || []).filter(it => it.documentId || it.id)
+  } catch (e) {
+    console.warn('[form] 相关内容加载失败', key, e)
+    relatedLoaded[key] = false
+  }
+}
+
+function toggleRelatedPick(key, it) {
+  const id = it.documentId || it.id
+  const arr = form.relatedOverride[key]
+  const idx = arr.indexOf(id)
+  if (idx >= 0) arr.splice(idx, 1)
+  else arr.push(id)
+}
+
+function isRelatedPicked(key, it) {
+  return form.relatedOverride[key].includes(it.documentId || it.id)
+}
 
 // ---- 报名奖励配置 ----
 // 奖励配置（通道/选择方式/奖励编辑器）已迁移至 components/activity-reward-config.vue
@@ -1664,7 +1768,17 @@ async function loadDetail() {
       learningPackageArticles: normRel(data.learningPackageArticles),
       learningPackageLessons: normRel(data.learningPackageLessons),
       category: data.category || '',
-      tags: Array.isArray(data.tags) ? data.tags : [],
+      tags: (Array.isArray(data.tags) ? data.tags : []).map(t => t.documentId || t),
+      relatedOverride: {
+        articles: relDocs(data.relatedOverride?.articles),
+        cases: relDocs(data.relatedOverride?.cases),
+        products: relDocs(data.relatedOverride?.products),
+        faqs: relDocs(data.relatedOverride?.faqs),
+        courses: relDocs(data.relatedOverride?.courses),
+        tutorials: relDocs(data.relatedOverride?.tutorials),
+        activities: relDocs(data.relatedOverride?.activities),
+      },
+      showRelatedSection: data.showRelatedSection !== false,
       visibleToRoles: Array.isArray(data.visibleToRoles) ? data.visibleToRoles : [],
       assets: (data.assets && typeof data.assets === 'object') ? {
         recordingUrl: data.assets.recordingUrl || '',
@@ -1805,6 +1919,16 @@ async function handleSubmit() {
     promoAssets: Array.isArray(form.promoAssets)
       ? form.promoAssets.map(a => ({ url: a.url, scene: a.scene || undefined, note: a.note || undefined })).filter(a => a.url)
       : undefined,
+    relatedOverride: {
+      articles: form.relatedOverride.articles,
+      cases: form.relatedOverride.cases,
+      products: form.relatedOverride.products,
+      faqs: form.relatedOverride.faqs,
+      courses: form.relatedOverride.courses,
+      tutorials: form.relatedOverride.tutorials,
+      activities: form.relatedOverride.activities,
+    },
+    showRelatedSection: form.showRelatedSection !== false,
     status: form.status,
     tempLessonMode: form.tempLessonMode
   }
@@ -1966,6 +2090,12 @@ onMounted(async () => {
 .rel-panel-footer { display: flex; gap: 20rpx; margin-top: 20rpx; }
 .btn-plain { flex: 1; height: 76rpx; border: 1rpx solid #ddd; background: #fff; color: #666; border-radius: 40rpx; font-size: 28rpx; }
 .rel-empty { text-align: center; padding: 40rpx 0; }
+.related-section-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.related-arrow { font-size: 26rpx; color: #999; }
+.related-type-block { margin-top: 20rpx; border: 1rpx solid #eee; border-radius: 12rpx; overflow: hidden; }
+.related-type-header { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 24rpx; background: #fafafa; font-size: 28rpx; color: #333; }
+.related-type-count { margin-left: auto; font-size: 22rpx; color: #667eea; }
+.related-type-list { max-height: 480rpx; overflow-y: auto; padding: 0 24rpx; }
 
 /* ---- 报名奖励配置 ----*/
 .reward-block { border: 1rpx solid #f0f0f0; border-radius: 12rpx; padding: 20rpx; margin-bottom: 20rpx; }
