@@ -110,6 +110,17 @@
             </view>
             <text v-if="truthList.length === 0" class="chip-empty">暂无真值声明，请先在「第一真值」中创建</text>
           </view>
+          <view v-if="selectedTruths.length" class="section-bind">
+            <view v-for="item in selectedTruths" :key="item.id" class="section-bind-row">
+              <text class="section-bind-claim">{{ item.claim }}</text>
+              <picker mode="selector" :range="sectionOptions" @change="(e) => setTruthSection(item, sectionOptions[e.detail.value])">
+                <view class="form-input picker-value">
+                  <text>{{ sectionMap[item.claimKey] || '选择绑定段落' }}</text>
+                  <text class="arrow">▼</text>
+                </view>
+              </picker>
+            </view>
+          </view>
         </view>
 
         <view class="form-item">
@@ -344,7 +355,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import {
   geoArticleApi,
@@ -419,6 +430,7 @@ const form = ref({
   category: null,
   tags: [],
   truthBasis: [],
+  truthBasisSections: [],
   mentionedEntities: [],
   author: null,
   authorName: '',
@@ -565,6 +577,44 @@ function parseJson(str, fallback) {
   }
 }
 
+// 从正文 content 提取 H2/H3 标题作为可绑定段落（含「开篇」「结语」）
+const BASE_SECTIONS = ['开篇', '结语']
+function extractContentSections(content) {
+  const re = /<h([23])[^>]*>(.*?)<\/h\1>/gi
+  const out = []
+  let m
+  while ((m = re.exec(content || '')) !== null) {
+    const text = m[2].replace(/<[^>]+>/g, '').trim()
+    if (text) out.push(text)
+  }
+  return out
+}
+const sectionOptions = computed(() => {
+  const fromBody = extractContentSections(form.value.content || '')
+  return [...BASE_SECTIONS, ...fromBody]
+})
+const sectionMap = ref({})
+watch(() => form.value.truthBasisSections, (list) => {
+  const map = {}
+  for (const s of list || []) if (s && s.claimKey) map[s.claimKey] = s.section
+  sectionMap.value = map
+}, { immediate: true })
+function setTruthSection(item, section) {
+  const key = item.claimKey
+  const list = [...form.value.truthBasisSections]
+  const idx = list.findIndex(s => s && s.claimKey === key)
+  if (section) {
+    const entry = { claimKey: key, section }
+    if (idx >= 0) list[idx] = entry; else list.push(entry)
+  } else if (idx >= 0) {
+    list.splice(idx, 1)
+  }
+  form.value.truthBasisSections = list
+}
+const selectedTruths = computed(() =>
+  truthList.value.filter(t => form.value.truthBasis.includes(t.id))
+)
+
 async function loadDetail() {
   if (!documentId.value) return
   try {
@@ -582,6 +632,7 @@ async function loadDetail() {
       category: item.category?.id ?? null,
       tags: (item.tags || []).map(t => t.id),
       truthBasis: (item.truthBasis || []).map(t => t.id),
+      truthBasisSections: (item.truthBasisSections || []).filter(s => s && s.claimKey),
       mentionedEntities: (item.mentionedEntities || []).map(e => e.id),
       author: item.author?.id ?? null,
       authorName: item.authorName || '',
@@ -883,6 +934,26 @@ page {
 .chip-empty {
   font-size: 24rpx;
   color: #999;
+}
+
+.section-bind {
+  margin-top: 16rpx;
+}
+
+.section-bind-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 12rpx;
+  margin-top: 8rpx;
+  background: #fafafa;
+  border-radius: 8rpx;
+}
+
+.section-bind-claim {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333;
 }
 
 .check-group {
