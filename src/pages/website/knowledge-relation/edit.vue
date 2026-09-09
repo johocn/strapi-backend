@@ -7,9 +7,9 @@
     <scroll-view scroll-y class="form-scroll">
       <view class="form-section">
         <view class="section-title">关系信息</view>
-        <view class="form-item"><text class="form-label">主体 ID *</text><input type="text" v-model="form.subject_id" placeholder="主体实体 ID" class="form-input" /></view>
+        <view class="form-item"><text class="form-label">主体 ID *</text><input type="text" v-model="form.subjectEntityId" placeholder="主体实体 documentId/ID" class="form-input" /></view>
         <view class="form-item"><text class="form-label">谓词 *</text><input type="text" v-model="form.predicate" placeholder="例: belongs_to, related_to" class="form-input" /></view>
-        <view class="form-item"><text class="form-label">客体 ID *</text><input type="text" v-model="form.object_id" placeholder="客体实体 ID" class="form-input" /></view>
+        <view class="form-item"><text class="form-label">客体 ID</text><input type="text" v-model="form.objectEntityId" placeholder="客体实体 documentId/ID（值类关系留空）" class="form-input" /></view>
       </view>
     </scroll-view>
   </view>
@@ -27,7 +27,7 @@ const hasPermission = userStore.hasPermission
 
 const documentId = ref('')
 const isEdit = computed(() => !!documentId.value)
-const form = ref({ subject_id: '', predicate: '', object_id: '' })
+const form = ref({ subjectEntityId: '', predicate: '', objectEntityId: '' })
 
 async function loadDetail() {
   if (!documentId.value) return
@@ -35,13 +35,17 @@ async function loadDetail() {
     const res = await knowledgeGraphApi.listRelations({ 'filters[documentId]': documentId.value })
     const item = res.list?.[0]
     if (item) {
-      form.value = { subject_id: item.subject_id || '', predicate: item.predicate || '', object_id: item.object_id || '' }
+      form.value = {
+        subjectEntityId: item.subjectEntity?.documentId || item.subjectEntity?.id || '',
+        predicate: item.predicate || '',
+        objectEntityId: item.objectEntity?.documentId || item.objectEntity?.id || '',
+      }
     }
   } catch (e) { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 async function handleSubmit() {
-  if (!form.value.subject_id || !form.value.predicate || !form.value.object_id) {
+  if (!form.value.subjectEntityId || !form.value.predicate) {
     uni.showToast({ title: '请填写完整', icon: 'none' }); return
   }
   try {
