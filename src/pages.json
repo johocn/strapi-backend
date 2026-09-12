@@ -461,6 +461,7 @@
     },
     { "path": "pages/website/geo-article/list", "style": { "navigationBarTitleText": "GEO 文章" } },
     { "path": "pages/website/geo-article/edit", "style": { "navigationBarTitleText": "GEO 文章编辑" } },
+    { "path": "pages/website/type-selector", "style": { "navigationBarTitleText": "发布文章" } },
     { "path": "pages/website/author/list", "style": { "navigationBarTitleText": "文章作者" } },
     { "path": "pages/website/author/edit", "style": { "navigationBarTitleText": "作者编辑" } },
     {

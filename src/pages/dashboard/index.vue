@@ -147,13 +147,9 @@
           <view class="module-icon">🏷️</view>
           <view class="module-name">品牌信息</view>
         </view>
-        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/article/list')">
-          <view class="module-icon">📄</view>
-          <view class="module-name">资讯文章</view>
-        </view>
-        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/geo-article/list')">
-          <view class="module-icon">🧭</view>
-          <view class="module-name">GEO 文章</view>
+        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/type-selector')">
+          <view class="module-icon">🚀</view>
+          <view class="module-name">发布文章</view>
         </view>
         <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/author/list')">
           <view class="module-icon">👤</view>
