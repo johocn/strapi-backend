@@ -44,7 +44,7 @@
           <input
             v-model="productCodeInput"
             class="form-input"
-            placeholder="如 LCYSRK006"
+            :placeholder="queryPlaceholder"
             maxlength="50"
           />
         </view>
@@ -137,6 +137,10 @@
               <text class="edit-label">到期日期</text>
               <input v-model="editForm.maturityDate" class="edit-input" placeholder="YYYY-MM-DD" />
             </view>
+            <view class="edit-item">
+              <text class="edit-label">采集网址</text>
+              <input v-model="editForm.navSourceUrl" class="edit-input" placeholder="净值来源网址（客户可自行查阅校验）" />
+            </view>
             <view v-if="editForm.unitNav" class="edit-item">
               <text class="edit-label">单位净值</text>
               <text class="edit-value-readonly">{{ editForm.unitNav }}（{{ editForm.navDate || '' }}）</text>
@@ -148,7 +152,7 @@
         <view class="data-block">
           <view class="block-title">
             <text class="block-tag source">源数据</text>
-            <text class="block-name">{{ collectResult.sourceData?.company || '渤银理财' }}</text>
+            <text class="block-name">{{ collectResult.sourceData?.company || sourceOptions[sourceIndex] }}</text>
           </view>
           <view class="data-list">
             <view class="data-item">
@@ -371,8 +375,8 @@ const overview = ref({})
 const anomalies = ref([])
 
 // ===== 产品采集 =====
-const sourceOptions = ['渤银理财', '杭银理财']
-const sourceValues = ['cbhb', 'hzbank']
+const sourceOptions = ['渤银理财', '杭银理财', '青岛银行', '中国理财网']
+const sourceValues = ['cbhb', 'hzbank', 'qdccb', 'chinawealth']
 const sourceIndex = ref(0)
 const productCodeInput = ref('')
 const collecting = ref(false)
@@ -445,11 +449,19 @@ const editForm = ref({
   benchmark: '',
   issueDate: '',
   maturityDate: '',
+  navSourceUrl: '',
   unitNav: null,
   navDate: '',
 })
 
 const currentSource = computed(() => sourceValues[sourceIndex.value])
+
+/** 查询输入占位提示：中国理财网按登记编码，青岛银行按完整产品代码 */
+const queryPlaceholder = computed(() => {
+  if (currentSource.value === 'chinawealth') return '请输入登记编码'
+  if (currentSource.value === 'qdccb') return '请输入产品代码（含类型后缀，如 CCRSFDKFJZ03A9）'
+  return '如 LCYSRK006'
+})
 
 /** 是否可入库：至少需要产品名称和登记编码（理财网名称可选） */
 const canConfirm = computed(() => {
@@ -500,6 +512,7 @@ function initEditForm(mergedData) {
     benchmark: d.benchmark || '',
     issueDate: d.issueDate || '',
     maturityDate: d.maturityDate || '',
+    navSourceUrl: d.navSourceUrl || '',
     unitNav: d.unitNav || null,
     navDate: d.navDate || '',
   }
@@ -604,6 +617,7 @@ async function handleConfirm() {
       issueDate: editForm.value.issueDate || null,
       maturityDate: editForm.value.maturityDate || null,
       benchmark: editForm.value.benchmark || null,
+      navSourceUrl: editForm.value.navSourceUrl || null,
       remark: '',
       company: companyValue,
       source: currentSource.value,
