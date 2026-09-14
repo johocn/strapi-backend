@@ -50,8 +50,8 @@ export function getCollectStatus() {
   return adminGet(`${ADMIN}/collect/status`).then(extractItem)
 }
 
-export function recalculate() {
-  return adminPost(`${ADMIN}/recalculate`).then(extractItem)
+export function recalculate(data = {}) {
+  return adminPost(`${ADMIN}/recalculate`, data).then(extractItem)
 }
 
 /**
@@ -94,8 +94,8 @@ export function getRiskPeers(params = {}) {
   return adminGet(`${ADMIN}/risk-metrics/peers`, params).then(extractList)
 }
 
-export function recalculateRiskMetric() {
-  return adminPost(`${ADMIN}/recalculate-risk-metric`).then(extractItem)
+export function recalculateRiskMetric(data = {}) {
+  return adminPost(`${ADMIN}/recalculate-risk-metric`, data).then(extractItem)
 }
 
 // ==================== 统计 ====================
@@ -105,6 +105,11 @@ export function getStatsOverview() {
 
 export function getStatsAnomalies(params = {}) {
   return adminGet(`${ADMIN}/stats/anomalies`, params).then(extractList)
+}
+
+// ==================== 净值监察 ====================
+export function getProductMonitor() {
+  return adminGet(`${ADMIN}/monitor/products`).then(extractItem)
 }
 
 // ==================== 合规披露 ====================
