@@ -112,6 +112,10 @@ export function getProductMonitor() {
   return adminGet(`${ADMIN}/monitor/products`).then(extractItem)
 }
 
+export function getAdminCollectConfigs(params = {}) {
+  return adminGet(`${ADMIN}/collect-configs`, params).then(extractList)
+}
+
 // ==================== 合规披露 ====================
 export function getDisclosureList(params = {}) {
   return adminGet(`${ADMIN}/disclosures`, params).then(extractList)

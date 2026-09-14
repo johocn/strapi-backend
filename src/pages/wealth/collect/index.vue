@@ -306,6 +306,26 @@
       </view>
     </view>
 
+    <!-- 批量任务处理中状态条 -->
+    <view v-if="batchTask" class="batch-task-bar">
+      <text class="batch-task-text">{{ batchTask.type === 'collect' ? '批量采集中' : batchTask.type === 'annual' ? '年化重算中' : '风险指标计算中' }}...</text>
+    </view>
+
+    <!-- 最近一次批量操作结果 -->
+    <view v-if="batchResult" class="batch-result">
+      <view class="result-header">
+        <text class="result-title">最近一次批量操作结果</text>
+        <text class="result-close" @click="batchResult = null">×</text>
+      </view>
+      <view class="result-summary">
+        <text>成功 {{ batchResult.successCount }} 个</text>
+        <text v-if="batchResult.failCount > 0" class="fail-text">失败 {{ batchResult.failCount }} 个</text>
+      </view>
+      <view v-for="(item, i) in (batchResult.failDetails || [])" :key="i" class="fail-detail">
+        <text>{{ item.productName }}：{{ item.reason }}</text>
+      </view>
+    </view>
+
     <view class="action-section">
       <view class="section-title">批量采集操作</view>
       <view class="action-row">
@@ -365,6 +385,7 @@ import {
   triggerCollect,
   recalculate,
   recalculateRiskMetric,
+  getAdminCollectConfigs,
   collectProduct,
   confirmCollect,
   getAdminCompanyList,
@@ -686,6 +707,36 @@ const batchCollecting = ref(false)
 const recalculating = ref(false)
 const recalcRisk = ref(false)
 
+// 批量任务轮询
+const batchTask = ref(null) // { type: 'collect' | 'annual' | 'risk', startedAt }
+const batchResult = ref(null) // 最近一次批量操作结果
+const POLL_INTERVAL = 5000
+const POLL_TIMEOUT = 180000
+let pollTimer = null
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+function startPolling(type, isDone, onDone) {
+  batchTask.value = { type, startedAt: Date.now() }
+  stopPolling()
+  pollTimer = setInterval(async () => {
+    try {
+      const done = await isDone()
+      if (done || Date.now() - batchTask.value.startedAt > POLL_TIMEOUT) {
+        stopPolling()
+        batchTask.value = null
+        onDone(done)
+      }
+    } catch (e) {
+      stopPolling()
+      batchTask.value = null
+      uni.showToast({ title: '查询任务状态失败', icon: 'none' })
+    }
+  }, POLL_INTERVAL)
+}
+
 async function loadOverview() {
   try {
     overview.value = await getStatsOverview() || {}
@@ -706,12 +757,14 @@ async function loadAnomalies() {
 async function handleTriggerCollect() {
   batchCollecting.value = true
   try {
-    const result = await triggerCollect({})
-    const msg = result?.successCount != null
-      ? `批量采集完成：成功${result.successCount}，失败${result.failCount}`
-      : '批量采集已触发'
-    uni.showToast({ title: msg, icon: 'success' })
-    setTimeout(() => { loadOverview(); loadAnomalies() }, 2000)
+    await triggerCollect({})
+    uni.showToast({ title: '批量采集任务已触发', icon: 'none' })
+    startPolling('collect',
+      async () => {
+        const list = await getAdminCollectConfigs({ pageSize: 500 })
+        return list.every(c => c.collectStatus !== 'running')
+      },
+      (done) => { refreshBatchResult('collect', done) })
   } catch (e) {
     uni.showToast({ title: e?.message || '触发失败', icon: 'none' })
   } finally {
@@ -723,8 +776,13 @@ async function handleRecalculate() {
   recalculating.value = true
   try {
     await recalculate()
-    uni.showToast({ title: '年化重算完成', icon: 'success' })
-    loadOverview()
+    uni.showToast({ title: '年化重算任务已触发', icon: 'none' })
+    startPolling('annual',
+      async () => {
+        const res = await getProductMonitor()
+        return res.list.every(p => p.annualStatus === 'ok')
+      },
+      (done) => { refreshBatchResult('annual', done) })
   } catch (e) {
     uni.showToast({ title: '重算失败', icon: 'none' })
   } finally {
@@ -735,13 +793,51 @@ async function handleRecalculate() {
 async function handleRecalcRisk() {
   recalcRisk.value = true
   try {
-    await recalculateRiskMetric()
-    uni.showToast({ title: '风险指标重算完成', icon: 'success' })
+    await recalculateRiskMetric({ type: 'all' })
+    uni.showToast({ title: '风险指标任务已触发', icon: 'none' })
+    startPolling('risk',
+      async () => {
+        const res = await getProductMonitor()
+        return res.list.every(p => p.riskStatus === 'ok')
+      },
+      (done) => { refreshBatchResult('risk', done) })
   } catch (e) {
     uni.showToast({ title: '重算失败', icon: 'none' })
   } finally {
     recalcRisk.value = false
   }
+}
+
+async function refreshBatchResult(type, done) {
+  if (!done) {
+    uni.showToast({ title: '任务仍在处理，可稍后刷新查看', icon: 'none' })
+    return
+  }
+  const monitor = await getProductMonitor()
+  const configs = await getAdminCollectConfigs({ pageSize: 500 })
+  const failDetails = []
+  if (type === 'collect') {
+    for (const c of configs) {
+      if (c.collectStatus === 'failed') {
+        failDetails.push({ productName: c.product?.productName || `产品${c.product?.id}`, reason: c.failReason || '采集失败' })
+      }
+    }
+  } else {
+    for (const p of monitor.list) {
+      const status = type === 'annual' ? p.annualStatus : p.riskStatus
+      if (status !== 'ok') {
+        failDetails.push({ productName: p.productName, reason: status === 'danger' ? '无计算数据' : '未同步到最新净值日期' })
+      }
+    }
+  }
+  batchResult.value = {
+    successCount: (type === 'collect' ? configs.length : monitor.list.length) - failDetails.length,
+    failCount: failDetails.length,
+    failDetails,
+  }
+  loadOverview()
+  loadAnomalies()
+  uni.showToast({ title: `批量${type === 'collect' ? '采集' : type === 'annual' ? '年化' : '风险指标'}完成`, icon: 'success' })
 }
 
 function formatPercent(val) {
@@ -958,6 +1054,31 @@ page { background: #f5f5f5; }
   background: #1890ff; color: #fff;
 }
 .action-btn.nav-collect[disabled] { opacity: 0.5; }
+
+/* 批量任务状态条 */
+.batch-task-bar {
+  background: #e6f7ff; border-radius: 12rpx; padding: 20rpx 24rpx;
+  margin-bottom: 20rpx; border: 1rpx solid #bae7ff;
+}
+.batch-task-text { font-size: 26rpx; color: #1890ff; }
+
+/* 最近一次批量操作结果 */
+.batch-result {
+  background: #f6ffed; border-radius: 12rpx; padding: 24rpx;
+  margin-bottom: 20rpx; border: 1rpx solid #b7eb8f;
+}
+.result-close {
+  font-size: 36rpx; color: #999; padding: 0 8rpx; line-height: 1;
+}
+.result-summary {
+  display: flex; gap: 24rpx; font-size: 28rpx; color: #333;
+  margin-bottom: 12rpx; font-weight: bold;
+}
+.fail-text { color: #f5222d; }
+.fail-detail {
+  font-size: 24rpx; color: #999; padding: 6rpx 0;
+  word-break: break-all;
+}
 
 /* 批量操作区 */
 .action-section, .anomaly-section {
