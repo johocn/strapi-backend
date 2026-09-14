@@ -122,6 +122,7 @@ async function doCollect(item) {
   try {
     await triggerCollect({ productId: item.id })
     uni.showToast({ title: '采集任务已触发', icon: 'none' })
+    loadMonitor()
   } catch (e) {
     uni.showToast({ title: '触发失败', icon: 'none' })
   } finally {

@@ -320,6 +320,8 @@
       <view class="result-summary">
         <text>成功 {{ batchResult.successCount }} 个</text>
         <text v-if="batchResult.failCount > 0" class="fail-text">失败 {{ batchResult.failCount }} 个</text>
+        <text v-if="batchResult.insertCount !== undefined" class="insert-text">新增 {{ batchResult.insertCount }} 条</text>
+        <text v-if="batchResult.updateCount !== undefined" class="update-text">更新 {{ batchResult.updateCount }} 条</text>
       </view>
       <view v-for="(item, i) in (batchResult.failDetails || [])" :key="i" class="fail-detail">
         <text>{{ item.productName }}：{{ item.reason }}</text>
@@ -816,11 +818,24 @@ async function refreshBatchResult(type, done) {
   const monitor = await getProductMonitor()
   const configs = await getAdminCollectConfigs({ pageSize: 500 })
   const failDetails = []
+  let insertTotal = 0
+  let updateTotal = 0
+  let noNewNav = false
   if (type === 'collect') {
     for (const c of configs) {
+      insertTotal += c.lastInsertCount || 0
+      updateTotal += c.lastUpdateCount || 0
       if (c.collectStatus === 'failed') {
         failDetails.push({ productName: c.product?.productName || `产品${c.product?.id}`, reason: c.failReason || '采集失败' })
       }
+    }
+    if (!insertTotal && !updateTotal && failDetails.length === 0) {
+      const maxNavDate = monitor.list.reduce((max, p) => {
+        const d = p.latestNav?.navDate
+        return d && d > max ? d : max
+      }, '')
+      noNewNav = true
+      uni.showToast({ title: `数据源暂无新净值（最新 ${maxNavDate}）`, icon: 'none' })
     }
   } else {
     for (const p of monitor.list) {
@@ -834,10 +849,13 @@ async function refreshBatchResult(type, done) {
     successCount: (type === 'collect' ? configs.length : monitor.list.length) - failDetails.length,
     failCount: failDetails.length,
     failDetails,
+    ...(type === 'collect' ? { insertCount: insertTotal, updateCount: updateTotal } : {}),
   }
   loadOverview()
   loadAnomalies()
-  uni.showToast({ title: `批量${type === 'collect' ? '采集' : type === 'annual' ? '年化' : '风险指标'}完成`, icon: 'success' })
+  if (!noNewNav) {
+    uni.showToast({ title: `批量${type === 'collect' ? '采集' : type === 'annual' ? '年化' : '风险指标'}完成`, icon: 'success' })
+  }
 }
 
 function formatPercent(val) {
@@ -1075,6 +1093,8 @@ page { background: #f5f5f5; }
   margin-bottom: 12rpx; font-weight: bold;
 }
 .fail-text { color: #f5222d; }
+.insert-text { color: #07c160; }
+.update-text { color: #1677ff; }
 .fail-detail {
   font-size: 24rpx; color: #999; padding: 6rpx 0;
   word-break: break-all;
