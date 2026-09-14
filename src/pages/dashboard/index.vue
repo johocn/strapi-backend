@@ -444,6 +444,10 @@
           <view class="module-icon">📡</view>
           <view class="module-name">净值采集</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/monitor/index')">
+          <view class="module-icon">🛡️</view>
+          <view class="module-name">净值监察</view>
+        </view>
         <view class="module-item" @click="navigateTo('/pages/wealth/metrics/index')">
           <view class="module-icon">📈</view>
           <view class="module-name">指标看板</view>
