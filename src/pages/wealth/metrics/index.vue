@@ -56,24 +56,38 @@
       <view class="risk-section">
         <view class="section-title">风险指标</view>
         <view class="risk-grid">
-          <view class="risk-card">
-            <text class="risk-label">波动率</text>
-            <text class="risk-value">{{ formatPercent(metrics.volatility) }}</text>
-          </view>
-          <view class="risk-card">
-            <text class="risk-label">最大回撤</text>
-            <text class="risk-value down">{{ formatPercent(metrics.maxDrawdown) }}</text>
-          </view>
-          <view class="risk-card">
-            <text class="risk-label">Calmar 比率</text>
-            <text class="risk-value">{{ formatNumber(metrics.calmarRatio) }}</text>
-          </view>
-          <view class="risk-card">
-            <text class="risk-label">同类排名</text>
-            <text class="risk-value" :class="getRankClass(metrics.peerRankPercentile)">
-              前 {{ formatPercent(metrics.peerRankPercentile) }}
-            </text>
-          </view>
+          <template v-if="isMoneyType">
+            <view class="risk-card">
+              <text class="risk-label">收益波动率</text>
+              <text class="risk-value">{{ formatPercent(metrics.volatility) }}</text>
+            </view>
+            <view class="risk-card">
+              <text class="risk-label">收益稳定度</text>
+              <text class="risk-value">{{ formatPercent(metrics.incomeStability) }}</text>
+            </view>
+            <view class="risk-card">
+              <text class="risk-label">同类排名</text>
+              <text class="risk-value" :class="getRankClass(metrics.rankPercentile)">
+                前 {{ formatPercent(metrics.rankPercentile) }}
+              </text>
+            </view>
+          </template>
+          <template v-else>
+            <view class="risk-card">
+              <text class="risk-label">波动率</text>
+              <text class="risk-value">{{ formatPercent(metrics.volatility) }}</text>
+            </view>
+            <view class="risk-card">
+              <text class="risk-label">最大回撤</text>
+              <text class="risk-value down">{{ formatPercent(metrics.maxDrawdown) }}</text>
+            </view>
+            <view class="risk-card">
+              <text class="risk-label">同类排名</text>
+              <text class="risk-value" :class="getRankClass(metrics.rankPercentile)">
+                前 {{ formatPercent(metrics.rankPercentile) }}
+              </text>
+            </view>
+          </template>
         </view>
       </view>
 
@@ -118,6 +132,11 @@ const selectedProductName = computed(() => {
   return products.value.find(p => p.id === selectedProductId.value)?.productName || ''
 })
 const selectedProductId = ref(null)
+const selectedProductType = computed(() => {
+  if (!selectedProductId.value) return ''
+  return products.value.find(p => p.id === selectedProductId.value)?.productType || ''
+})
+const isMoneyType = computed(() => ['money-fund', 'money-wealth'].includes(selectedProductType.value))
 
 const periods = [
   { key: 'd1', label: '1日' },
@@ -143,10 +162,6 @@ const maxAbsValue = computed(() => {
 function formatPercent(val) {
   if (val === null || val === undefined) return '--'
   return (val * 100).toFixed(2) + '%'
-}
-function formatNumber(val) {
-  if (val === null || val === undefined) return '--'
-  return Number(val).toFixed(2)
 }
 function formatDateShort(dateStr) {
   if (!dateStr) return ''
