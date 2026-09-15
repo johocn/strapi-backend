@@ -398,8 +398,8 @@ const overview = ref({})
 const anomalies = ref([])
 
 // ===== 产品采集 =====
-const sourceOptions = ['渤银理财', '杭银理财', '青岛银行', '中国理财网']
-const sourceValues = ['cbhb', 'hzbank', 'qdccb', 'chinawealth']
+const sourceOptions = ['渤银理财', '杭银理财', '青岛银行', '中国理财网', '南银理财', '宁银理财']
+const sourceValues = ['cbhb', 'hzbank', 'qdccb', 'chinawealth', 'nanyin', 'ningyin']
 const sourceIndex = ref(0)
 const productCodeInput = ref('')
 const collecting = ref(false)
@@ -483,6 +483,7 @@ const currentSource = computed(() => sourceValues[sourceIndex.value])
 const queryPlaceholder = computed(() => {
   if (currentSource.value === 'chinawealth') return '请输入登记编码'
   if (currentSource.value === 'qdccb') return '请输入产品代码（含类型后缀，如 CCRSFDKFJZ03A9）'
+  if (currentSource.value === 'ningyin') return '请输入产品代码（如 ZGN2660096E）'
   return '如 LCYSRK006'
 })
 
