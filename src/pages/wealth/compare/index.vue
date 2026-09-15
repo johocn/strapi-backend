@@ -62,10 +62,10 @@
           v-for="item in compareResult"
           :key="item.productId"
           class="table-cell"
-          :class="getCellClass(item.annualSnapshot?.annualizedReturn, 'annual', true)"
+          :class="getCellClass(item.annualSnapshot?.[annualField], 'annual', true)"
         >
-          {{ formatPercent(item.annualSnapshot?.annualizedReturn) }}
-          <text v-if="getMark(item.annualSnapshot?.annualizedReturn, 'annual', true)" class="mark">{{ getMark(item.annualSnapshot?.annualizedReturn, 'annual', true) }}</text>
+          {{ formatPercent(item.annualSnapshot?.[annualField]) }}
+          <text v-if="getMark(item.annualSnapshot?.[annualField], 'annual', true)" class="mark">{{ getMark(item.annualSnapshot?.[annualField], 'annual', true) }}</text>
         </view>
       </view>
 
@@ -75,10 +75,10 @@
           v-for="item in compareResult"
           :key="item.productId"
           class="table-cell"
-          :class="getCellClass(item.annualSnapshot?.y1Return, 'y1annual', true)"
+          :class="getCellClass(item.annualSnapshot?.annual1y, 'y1annual', true)"
         >
-          {{ formatPercent(item.annualSnapshot?.y1Return) }}
-          <text v-if="getMark(item.annualSnapshot?.y1Return, 'y1annual', true)" class="mark">{{ getMark(item.annualSnapshot?.y1Return, 'y1annual', true) }}</text>
+          {{ formatPercent(item.annualSnapshot?.annual1y) }}
+          <text v-if="getMark(item.annualSnapshot?.annual1y, 'y1annual', true)" class="mark">{{ getMark(item.annualSnapshot?.annual1y, 'y1annual', true) }}</text>
         </view>
       </view>
 
@@ -127,10 +127,10 @@
           v-for="item in compareResult"
           :key="item.productId"
           class="table-cell"
-          :class="getCellClass(item.peerRankPercentile, 'rank', true)"
+          :class="getCellClass(item.riskMetric?.rankPercentile, 'rank', false)"
         >
-          前 {{ formatPercent(item.peerRankPercentile) }}
-          <text v-if="getMark(item.peerRankPercentile, 'rank', true)" class="mark">{{ getMark(item.peerRankPercentile, 'rank', true) }}</text>
+          前 {{ formatPercent(item.riskMetric?.rankPercentile) }}
+          <text v-if="getMark(item.riskMetric?.rankPercentile, 'rank', false)" class="mark">{{ getMark(item.riskMetric?.rankPercentile, 'rank', false) }}</text>
         </view>
       </view>
 
@@ -193,13 +193,17 @@ const periods = [
 ]
 const period = ref('m1')
 const periodLabel = computed(() => periods.find(p => p.key === period.value)?.label || '')
+// 对比周期 → 年化快照字段（后端 annualSnapshot 结构）
+const periodAnnualFieldMap = { m1: 'annual1m', m3: 'annual3m', m6: 'annual6m', y1: 'annual1y' }
+const annualField = computed(() => periodAnnualFieldMap[period.value] || 'annual1m')
 
 const typeMap = {
   'bank-wealth': '银行理财',
   'stock-fund': '股票基金',
   'bond-fund': '债券基金',
   'mixed-fund': '混合基金',
-  'money-fund': '货币基金'
+  'money-fund': '货币基金',
+  'money-wealth': '货币理财'
 }
 
 function getTypeLabel(type) { return typeMap[type] || type || '--' }
@@ -237,12 +241,12 @@ function removeProduct(p) {
 function getValues(field, subField) {
   if (!compareResult.value) return []
   return compareResult.value.map(item => {
-    if (field === 'annual') return item.annualSnapshot?.annualizedReturn
-    if (field === 'y1annual') return item.annualSnapshot?.y1Return
+    if (field === 'annual') return item.annualSnapshot?.[annualField.value]
+    if (field === 'y1annual') return item.annualSnapshot?.annual1y
     if (field === 'drawdown') return item.riskMetric?.maxDrawdown
     if (field === 'volatility') return item.riskMetric?.volatility
     if (field === 'calmar') return item.riskMetric?.calmarRatio
-    if (field === 'rank') return item.peerRankPercentile
+    if (field === 'rank') return item.riskMetric?.rankPercentile
     return null
   })
 }

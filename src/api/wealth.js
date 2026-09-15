@@ -3,8 +3,8 @@ import { extractList, extractItem } from '../utils/format.js'
 
 // 后台路径前缀：/zhao-wealth/v1/admin（zhao-wealth 插件 admin-api 路由，与其他 zhao-* 插件保持一致）
 const ADMIN = '/zhao-wealth/v1/admin'
-// C 端路径前缀：/v1/wealth（zhao-wealth 插件 content-api 路由）
-const V1 = '/v1/wealth'
+// C 端路径前缀：/zhao-wealth/v1/wealth（zhao-wealth 插件 content-api 路由，与 admin 前缀一致，均为 /api/zhao-wealth/ 下挂载）
+const V1 = '/zhao-wealth/v1/wealth'
 
 // ==================== 公司管理 ====================
 export function getAdminCompanyList(params = {}) {
@@ -83,11 +83,11 @@ export function updateRecommendConfig(id, data) {
 
 // ==================== 风险指标 ====================
 export function getRiskMetrics(productId, params = {}) {
-  return adminGet(`${ADMIN}/risk-metrics/aggregate`, { product: productId, ...params }).then(extractItem)
+  return adminGet(`${ADMIN}/risk-metrics/aggregate`, { productId, ...params }).then(extractItem)
 }
 
 export function getRiskTrend(productId, params = {}) {
-  return adminGet(`${ADMIN}/risk-metrics/trend`, { product: productId, ...params }).then(extractItem)
+  return adminGet(`${ADMIN}/risk-metrics/trend`, { productId, ...params }).then(extractItem)
 }
 
 export function getRiskPeers(params = {}) {
@@ -157,11 +157,6 @@ export function deleteAdminHolding(id) {
 // ==================== C 端持仓盈亏时序（后台持仓详情用） ====================
 export function getHoldingProfitTrend(id, params = {}) {
   return adminGet(`${ADMIN}/holdings/${id}/profit-trend`, params).then(extractItem)
-}
-
-// ==================== 客户自选 ====================
-export function getCustomerProductList(params = {}) {
-  return adminGet(`${ADMIN}/customer-products`, params).then(extractList)
 }
 
 // ==================== C 端接口（对比页用） ====================
