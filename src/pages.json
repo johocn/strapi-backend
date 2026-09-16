@@ -606,6 +606,7 @@
     { "path": "pages/activity/temp-auth", "style": { "navigationBarTitleText": "临时开放课时授权" } },
     { "path": "pages/activity/ledger", "style": { "navigationBarTitleText": "经营对账" } },
     { "path": "pages/activity/messages", "style": { "navigationBarTitleText": "留言管理" } },
+    { "path": "pages/activity/consultation-messages", "style": { "navigationBarTitleText": "咨询留言管理" } },
     { "path": "pages/activity/resource-lecturer", "style": { "navigationBarTitleText": "讲师管理" } },
     { "path": "pages/activity/resource-venue", "style": { "navigationBarTitleText": "场地管理" } },
     { "path": "pages/activity/resource-schedule", "style": { "navigationBarTitleText": "档期视图" } },

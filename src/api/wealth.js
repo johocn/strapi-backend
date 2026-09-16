@@ -167,3 +167,20 @@ export function compareProducts(productIds, period = 'm1') {
 export function getDisclosure(productType) {
   return get(`${V1}/disclosure`, { productType }).then(extractItem)
 }
+
+// ==================== 预约咨询管理 ====================
+// 列表（?status=pending|replied|all&submitType=phone|wechat|message|all&page=&pageSize=）
+export function getAdminConsultations(params = {}) {
+  return adminGet(`${ADMIN}/consultations`, params).then(extractList)
+}
+// 回复（body:{reply}）
+export function replyConsultation(id, reply) {
+  return adminPost(`${ADMIN}/consultations/${id}/reply`, { reply })
+}
+// 微信二维码配置
+export function getAdminConsultConfig() {
+  return adminGet(`${ADMIN}/consult-config`)
+}
+export function updateAdminConsultConfig(data) {
+  return adminPut(`${ADMIN}/consult-config`, data)
+}
