@@ -42,6 +42,7 @@
       <view v-for="item in pagedList" :key="item.documentId || item.id" class="activity-card">
         <view class="card-header">
           <text class="card-title">{{ item.title || '-' }}</text>
+          <text v-if="item.type && item.type !== '其他'" class="type-badge">{{ item.type }}</text>
           <text class="status-badge" :class="statusClass(item.status)">{{ statusText(item.status) }}</text>
         </view>
         <view class="card-meta">
@@ -342,6 +343,7 @@ page { background: #f5f5f5; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
 .card-title { font-size: 30rpx; font-weight: bold; color: #333; flex: 1; margin-right: 12rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; }
+.type-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; background: #f6ffed; color: #52c41a; margin-left: 12rpx; }
 .status-badge.draft { background: #f5f5f5; color: #999; }
 .status-badge.open { background: #e6f7ff; color: #1890ff; }
 .status-badge.ongoing { background: #fff7e6; color: #fa8c16; }
