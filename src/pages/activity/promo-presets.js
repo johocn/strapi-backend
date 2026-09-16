@@ -10,7 +10,8 @@ export const PROMO_MODULE_META = {
   images: { name: '图片墙', needConfig: true },
   rewards: { name: '报名权益', needConfig: false },
   contact: { name: '联系方式', needConfig: false },
-  message: { name: '客服留言', needConfig: false },
+  message: { name: '客服留言', needConfig: true },
   faq: { name: '常见问题', needConfig: true },
   custom: { name: '自定义块', needConfig: true },
+  floatContact: { name: '悬浮联系方式', needConfig: false },
 }
