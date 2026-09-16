@@ -151,6 +151,30 @@
                 </view>
                 <view class="link-add" @click="(m.config.items ||= []).push({ t: '', title: '', desc: '' })">+ 添加条目</view>
               </template>
+              <template v-else-if="m.type === 'tour'">
+                <input type="text" v-model="form.meetupPoint" placeholder="集合地点（如：人民广场地铁站1号口）" class="form-input" />
+                <view class="form-row">
+                  <input type="number" v-model="form.minParticipants" placeholder="成团人数（0=不限）" class="form-input form-inline" />
+                </view>
+                <textarea v-model="form.costIncludes" placeholder="费用包含（如：往返大巴+景区门票+1晚住宿+2正1早）" class="form-textarea"></textarea>
+                <textarea v-model="form.costExcludes" placeholder="费用不含（如：个人消费、旅游意外险）" class="form-textarea"></textarea>
+                <view class="form-tip">集合地点 / 成团人数 / 费用说明保存在活动字段中（C 端行程模块自动读取）。</view>
+                <view v-for="(d, di) in m.config.days || []" :key="di" class="tour-config-day">
+                  <view class="form-row">
+                    <input type="number" v-model="m.config.days[di].day" placeholder="第几天（1）" class="form-input form-inline tour-day-num" />
+                    <input type="text" v-model="m.config.days[di].title" placeholder="当日主题（选填）" class="form-input form-inline" />
+                    <text class="link-del" @click="m.config.days.splice(di, 1)">删除本天</text>
+                  </view>
+                  <view v-for="(s, si) in m.config.days[di].stops || []" :key="si" class="form-row">
+                    <input type="text" v-model="m.config.days[di].stops[si].time" placeholder="时间（08:00）" class="form-input form-inline tour-stop-time" />
+                    <input type="text" v-model="m.config.days[di].stops[si].title" placeholder="站点标题" class="form-input form-inline" />
+                    <input type="text" v-model="m.config.days[di].stops[si].desc" placeholder="描述（可选）" class="form-input form-inline" />
+                    <text class="link-del" @click="m.config.days[di].stops.splice(si, 1)">删除</text>
+                  </view>
+                  <view class="link-add" @click="(m.config.days[di].stops ||= []).push({ time: '', title: '', desc: '' })">+ 添加站点</view>
+                </view>
+                <view class="link-add" @click="(m.config.days ||= []).push({ day: (m.config.days || []).length + 1, title: '', stops: [] })">+ 添加一天</view>
+              </template>
               <template v-else-if="m.type === 'faq'">
                 <view v-for="(it, ii) in m.config.items || []" :key="ii" class="form-row">
                   <input type="text" v-model="m.config.items[ii].q" placeholder="问题" class="form-input form-inline" />
@@ -350,6 +374,7 @@
               <PromoHighlights v-else-if="m.type === 'highlights'" :activity="form" :config="m.config" />
               <PromoSpeakers v-else-if="m.type === 'speakers'" :activity="form" :config="m.config" />
               <PromoAgenda v-else-if="m.type === 'agenda'" :activity="form" :config="m.config" />
+              <PromoTour v-else-if="m.type === 'tour'" :activity="form" :config="m.config" />
               <PromoImages v-else-if="m.type === 'images'" :activity="form" :config="m.config" />
               <PromoRewards v-else-if="m.type === 'rewards'" :rewards="form.rewardConfig" />
               <PromoContact v-else-if="m.type === 'contact'" :contact="form.promoContact || {}" @open-wechat="previewShowWechat = true" @call-phone="previewCallPhone()" />
@@ -432,6 +457,7 @@ import PromoRich from '../../components/promo/promo-rich.vue'
 import PromoHighlights from '../../components/promo/promo-highlights.vue'
 import PromoSpeakers from '../../components/promo/promo-speakers.vue'
 import PromoAgenda from '../../components/promo/promo-agenda.vue'
+import PromoTour from '../../components/promo/promo-tour.vue'
 import PromoImages from '../../components/promo/promo-images.vue'
 import PromoRewards from '../../components/promo/promo-rewards.vue'
 import PromoContact from '../../components/promo/promo-contact.vue'
@@ -1111,6 +1137,9 @@ page { background: #f5f5f5; }
 
 .link-add { color: #667eea; font-size: 26rpx; padding: 12rpx 0; }
 .link-del { color: #ff4d4f; font-size: 26rpx; padding: 4rpx 8rpx; }
+.tour-config-day { border: 2rpx solid #f0f0f0; border-radius: 12rpx; padding: 16rpx; margin-bottom: 16rpx; }
+.tour-day-num { width: 120rpx; }
+.tour-stop-time { width: 150rpx; }
 
 .promo-fixed-row { display: flex; gap: 16rpx; padding: 10rpx 0; }
 .promo-fixed-label { width: 140rpx; flex-shrink: 0; font-size: 26rpx; color: #999; }

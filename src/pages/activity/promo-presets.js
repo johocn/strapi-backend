@@ -6,6 +6,7 @@ export const PROMO_MODULE_META = {
   highlights: { name: '亮点列表', needConfig: true },
   speakers: { name: '嘉宾讲师', needConfig: false },
   agenda: { name: '议程大纲', needConfig: true },
+  tour: { name: '行程安排', needConfig: true },
   images: { name: '图片墙', needConfig: true },
   rewards: { name: '报名权益', needConfig: false },
   contact: { name: '联系方式', needConfig: false },
