@@ -28,13 +28,16 @@
         </view>
 
         <view class="form-item">
-          <text class="form-label">作者</text>
-          <input 
-            type="text" 
-            v-model="form.author" 
-            placeholder="请输入作者名称"
-            class="form-input"
-          />
+          <text class="form-label">讲师</text>
+          <view class="picker-create-row">
+            <picker class="picker-grow" mode="selector" :range="lecturerNames" @change="handleLecturerChange">
+              <view class="picker-value">
+                <text :class="['picker-placeholder', { empty: !lecturerId }]">{{ currentLecturerName || '请选择讲师' }}</text>
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+            <view class="quick-create" @click="quickCreateLecturer">＋新建</view>
+          </view>
         </view>
       </view>
 
@@ -714,6 +717,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { getCourseDetail, createCourse, updateCourse, getCourseCategoryList } from '../../api/course.js'
 import { getChannelList } from '../../api/channel.js'
 import { getAllRoles } from '../../api/auth.js'
+import { listLecturers, createLecturer } from '../../api/resource.js'
 import { loadSiteConfig, isFeatureEnabled, clearConfigCache } from '../../utils/config-helper.js'
 import { useUserStore } from '../../store/user.js'
 import MediaPicker from '../../components/MediaPicker.vue'
@@ -834,6 +838,62 @@ const channelList = ref([])
 const showChannelPicker = ref(false)
 const showPointChannelPicker = ref(false)
 const showSequenceTagPicker = ref(false)
+
+// 讲师（作者）下拉：复用活动页讲师资源
+const lecturerList = ref([])
+const lecturerId = ref('')
+const activeLecturers = computed(() => lecturerList.value.filter(r => !r.disabled))
+const lecturerNames = computed(() => ['请选择讲师', ...activeLecturers.value.map(r => r.name || `讲师#${r.id}`)])
+const currentLecturerName = computed(() => {
+  if (!lecturerId.value) return ''
+  const it = lecturerList.value.find(r => String(r.id) === String(lecturerId.value))
+  return it ? (it.name || `讲师#${lecturerId.value}`) : ''
+})
+
+async function loadLecturers() {
+  try {
+    const l = await listLecturers({ page: 1, pageSize: 500, includeDisabled: 'true' })
+    lecturerList.value = l.list || []
+  } catch (e) {
+    lecturerList.value = []
+  }
+}
+
+function handleLecturerChange(e) {
+  const idx = Number(e.detail.value)
+  const row = activeLecturers.value[idx - 1]
+  lecturerId.value = idx === 0 || !row ? '' : String(row.id)
+  form.author = row ? row.name : ''
+}
+
+function quickCreateLecturer() {
+  uni.showModal({
+    title: '新建讲师',
+    editable: true,
+    placeholderText: '讲师姓名',
+    success: async (res) => {
+      if (!res.confirm || !res.content) return
+      const name = String(res.content).trim()
+      if (!name) return uni.showToast({ title: '讲师名称不能为空', icon: 'none' })
+      uni.showLoading({ title: '创建中...' })
+      try {
+        const created = await createLecturer({ name })
+        uni.hideLoading()
+        if (!created) return uni.showToast({ title: '创建失败', icon: 'none' })
+        await loadLecturers()
+        const it = lecturerList.value.find(r => String(r.id ?? r.documentId) === String(created.id ?? created.documentId))
+        if (it) {
+          lecturerId.value = String(it.id)
+          form.author = it.name
+        }
+        uni.showToast({ title: '创建成功', icon: 'success' })
+      } catch (e) {
+        uni.hideLoading()
+        uni.showToast({ title: e.message || '讲师创建失败', icon: 'none' })
+      }
+    }
+  })
+}
 const quizRetryCountOptions = ['no_retry', 'retry_1', 'retry_2', 'retry_3', 'retry_4']
 const quizRetryCountLabels = ['不允许复答', '可复答1次', '可复答2次', '可复答3次', '可复答4次']
 const quizRetryCountIndex = ref(0)
@@ -1187,6 +1247,11 @@ async function loadCourseDetail() {
       console.log('[DEBUG] data.channelIds exists:', 'channelIds' in data)
       console.log('[DEBUG] data.channelIds value:', data?.channelIds)
       Object.assign(form, data)
+      // 讲师回显：author 为字符串，命中讲师名则预选
+      if (form.author) {
+        const it = lecturerList.value.find(r => r.name === form.author)
+        if (it) lecturerId.value = String(it.id)
+      }
       // 接口可能返回 featureFlags=null，assign 会覆盖响应式对象，这里强制补回完整结构
       ensureFeatureFlags()
       // 布尔/枚举字段接口可能返回 null（存量数据），assign 会污染默认值，null 时回退默认
@@ -1477,6 +1542,7 @@ onMounted(async () => {
   await loadRoleOptions()
   await loadCategories()
   await loadChannels()
+  await loadLecturers()
   await loadCourseDetail()
 })
 </script>
@@ -1610,6 +1676,31 @@ onMounted(async () => {
 .picker-arrow {
   font-size: 20rpx;
   color: #999;
+}
+
+.picker-create-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.picker-create-row .picker-grow {
+  flex: 1;
+}
+
+.picker-placeholder {
+  color: #333;
+}
+
+.picker-placeholder.empty {
+  color: #999;
+}
+
+.quick-create {
+  flex-shrink: 0;
+  color: #667eea;
+  font-size: 28rpx;
+  white-space: nowrap;
 }
 
 .tag-area {

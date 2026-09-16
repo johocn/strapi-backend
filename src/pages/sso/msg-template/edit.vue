@@ -28,6 +28,14 @@
       </view>
 
       <view class="form-item">
+        <text class="form-label">从公众号获取模板</text>
+        <view class="pick-ops">
+          <view class="btn-add" @click="openFromLibrary">从模板库添加</view>
+          <view class="btn-add" @click="openPickExisting">选用已有模板</view>
+        </view>
+      </view>
+
+      <view class="form-item">
         <text class="form-label">模板内容</text>
         <textarea class="form-textarea" v-model="form.content" placeholder="消息正文，可用 {key} 引用下方参数字段" :maxlength="500" />
       </view>
@@ -197,6 +205,49 @@
         <view class="send-footer">
           <view class="btn-add" @click="sendVisible = false">取消</view>
           <button class="btn-save small" @click="doSendTest" :disabled="sending">{{ sending ? '发送中...' : '发送' }}</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="send-mask" v-if="libVisible" @click="libVisible = false">
+      <view class="send-modal" @click.stop>
+        <view class="send-modal-header">
+          <text class="send-modal-title">从模板库添加</text>
+          <text class="ab-modal-close" @click="libVisible = false">✕</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">模板库编号 <text class="required">*</text></text>
+          <input class="form-input" v-model="libForm.templateIdShort" placeholder="如 3493" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">关键词名列表（可选，逗号分隔）</text>
+          <input class="form-input" v-model="libForm.keywordNames" placeholder="类目模板按顺序填，如：时间,地点" />
+        </view>
+        <view class="send-footer">
+          <view class="btn-add" @click="libVisible = false">取消</view>
+          <button class="btn-save small" @click="doFromLibrary" :disabled="libLoading">{{ libLoading ? '添加中...' : '添加并填充' }}</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="send-mask" v-if="pickVisible" @click="pickVisible = false">
+      <view class="send-modal" @click.stop>
+        <view class="send-modal-header">
+          <text class="send-modal-title">选用公众号已有模板</text>
+          <text class="ab-modal-close" @click="pickVisible = false">✕</text>
+        </view>
+        <view v-if="pickLoading" class="version-empty">加载中...</view>
+        <view v-else-if="pickList.length === 0" class="version-empty">公众号未添加模板</view>
+        <view v-else class="pick-list">
+          <view v-for="(t, i) in pickList" :key="t.template_id || i" class="pick-item" :class="{ active: pickActive === i }" @click="pickActive = i">
+            <text class="pick-title">{{ t.title || '未命名' }}</text>
+            <text class="pick-id">{{ t.template_id }}</text>
+            <text class="pick-content">{{ (t.content || '').slice(0, 40) }}</text>
+          </view>
+        </view>
+        <view class="send-footer">
+          <view class="btn-add" @click="pickVisible = false">取消</view>
+          <button class="btn-save small" :disabled="pickList.length === 0" @click="pickOne">选中并填充</button>
         </view>
       </view>
     </view>
@@ -467,6 +518,60 @@ async function doSendTest() {
   }
 }
 
+// ===== 从公众号获取模板 =====
+const libVisible = ref(false)
+const libLoading = ref(false)
+const libForm = ref({ templateIdShort: '', keywordNames: '' })
+const pickVisible = ref(false)
+const pickLoading = ref(false)
+const pickList = ref([])
+const pickActive = ref(0)
+function parseFieldsFromContent(content) {
+  const fields = []; const re = /\{\{(\w+)\.DATA\}\}/g; let mm
+  while ((mm = re.exec(content || ''))) fields.push(mm[1])
+  return Array.from(new Set(fields))
+}
+function applyFromLibrary(r) {
+  if (!r || !r.templateId) { uni.showToast({ title: '未获得模板ID', icon: 'none' }); return }
+  form.value.wxTemplateId = r.templateId
+  if (r.content) form.value.content = r.content
+  const fields = Array.isArray(r.fields) && r.fields.length ? r.fields : parseFieldsFromContent(r.content)
+  form.value.wxTemplateFields = fields.length ? fields.map((name) => ({ key: '', name })) : [{ key: '', name: '' }]
+}
+function openFromLibrary() {
+  libVisible.value = true
+}
+async function doFromLibrary() {
+  const id = libForm.value.templateIdShort.trim()
+  if (!id) { uni.showToast({ title: '请填写模板库编号', icon: 'none' }); return }
+  libLoading.value = true
+  try {
+    const r = await ssoMsgTemplateApi.addFromLibrary({ templateIdShort: id, keywordNameList: libForm.value.keywordNames.split(/[,，、]/).map((s) => s.trim()).filter(Boolean) })
+    applyFromLibrary(r)
+    uni.showToast({ title: '已添加并填充', icon: 'success' })
+    libVisible.value = false
+  } catch (e) {
+    uni.showModal({ title: '添加失败', content: (e && (e.data && e.data.error || e.message)) || '添加失败', showCancel: false })
+  } finally { libLoading.value = false }
+}
+async function openPickExisting() {
+  pickVisible.value = true; pickLoading.value = true; pickList.value = []; pickActive.value = 0
+  try { pickList.value = await ssoMsgTemplateApi.wxPrivateTemplates() }
+  catch (e) { uni.showToast({ title: '拉取模板列表失败', icon: 'none' }) }
+  finally { pickLoading.value = false }
+}
+function pickOne() {
+  const t = pickList.value[pickActive.value]
+  if (!t) return
+  form.value.wxTemplateId = t.template_id
+  if (t.content) {
+    form.value.content = t.content
+    const fields = parseFieldsFromContent(t.content)
+    if (fields.length) form.value.wxTemplateFields = fields.map((name) => ({ key: '', name }))
+  }
+  uni.showToast({ title: '已选用', icon: 'success' }); pickVisible.value = false
+}
+
 onLoad((query) => {
   if (query.documentId) {
     documentId.value = query.documentId
@@ -557,4 +662,12 @@ page { background: #f5f5f5; }
 .send-result.ok { background: #f0fff4; color: #07c160; }
 .send-result.fail { background: #fff0f0; color: #ff4d4f; word-break: break-all; }
 .send-footer { display: flex; align-items: center; justify-content: flex-end; gap: 20rpx; margin-top: 24rpx; }
+
+.pick-ops { display: flex; gap: 16rpx; }
+.pick-list { max-height: 50vh; overflow-y: auto; margin-top: 12rpx; }
+.pick-item { padding: 16rpx; border: 1rpx solid #e5e5e5; border-radius: 8rpx; margin-bottom: 12rpx; display: flex; flex-direction: column; gap: 4rpx; }
+.pick-item.active { border-color: #1677ff; background: #e6f4ff; }
+.pick-title { font-size: 28rpx; font-weight: bold; color: #333; }
+.pick-id { font-size: 22rpx; color: #1677ff; word-break: break-all; }
+.pick-content { font-size: 22rpx; color: #999; }
 </style>

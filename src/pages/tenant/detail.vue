@@ -28,6 +28,35 @@
           <text class="form-label">客服链接</text>
           <input class="form-input" placeholder="如：https://work.weixin.qq.com/..." v-model="formData.customerServiceUrl" />
         </view>
+        <view class="form-item">
+          <text class="form-label">联系方式·客服</text>
+          <text class="form-hint">宣传活动页联系方式模块（电话/二维码/公众号客服），活动级未配置时回落此处</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">客服电话</text>
+          <input class="form-input" placeholder="如：400-888-8888" v-model="formData.kfPhone" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">客服微信号</text>
+          <input class="form-input" placeholder="如：joho-service" v-model="formData.kfWechatId" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">客服二维码</text>
+          <view class="media-select" @click="openMediaPicker('kfQrcode')">
+            <image v-if="formData.kfQrcodeUrl" :src="formData.kfQrcodeUrl" mode="aspectFill" class="media-preview" />
+            <view v-else class="media-placeholder"><text>+ 选择二维码图片</text></view>
+            <text v-if="formData.kfQrcodeUrl" class="media-remove" @click.stop="removeMedia('kfQrcode')">✕</text>
+          </view>
+        </view>
+        <view class="form-item">
+          <text class="form-label">公众号客服链接</text>
+          <input class="form-input" placeholder="如：https://kf.weixin.qq.com/..." v-model="formData.kfWechatServiceUrl" />
+          <text class="form-hint">配置后微信环境点「客服」跳转此链接；未配则展示二维码</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">客服提示文案</text>
+          <input class="form-input" placeholder="如：工作时间 9:00-18:00" v-model="formData.kfNotice" />
+        </view>
       </view>
 
       <view class="form-section">
@@ -689,6 +718,13 @@ const formData = reactive({
   siteDescription: '',
   icpNumber: '',
   customerServiceUrl: '',
+  // 宣传页联系方式（promoContact，站点默认，活动级未配时回落）
+  kfPhone: '',
+  kfWechatId: '',
+  kfQrcodeId: null,
+  kfQrcodeUrl: '',
+  kfWechatServiceUrl: '',
+  kfNotice: '',
   logoId: null,
   logoUrl: '',
   faviconId: null,
@@ -821,6 +857,14 @@ async function loadTenantDetail() {
       registerEnabled: ec.registerEnabled ?? false,
       inviteCodeRequired: ec.inviteCodeRequired ?? false
     }
+    // 回填宣传页联系方式（promoContact，活动级未配时回落站点默认）
+    const promo = data.promoContact || ec.promoContact || {}
+    formData.kfPhone = promo.phone || ''
+    formData.kfWechatId = promo.wechat?.id || ''
+    formData.kfQrcodeUrl = promo.wechat?.qrcode ? getMediaUrl(promo.wechat.qrcode) : ''
+    formData.kfQrcodeId = promo.wechat?.qrcode?.id ?? null
+    formData.kfWechatServiceUrl = promo.wechatServiceUrl || ''
+    formData.kfNotice = promo.notice || ''
     if (data.logo) {
       formData.logoId = data.logo.id
       formData.logoUrl = data.logo ? getMediaUrl(data.logo) : ''
@@ -1093,6 +1137,7 @@ function onMediaSelected(file) {
   else if (t === 'favicon') { formData.faviconId = file.id; formData.faviconUrl = file.url }
   else if (t === 'shareImage') { formData.shareImageId = file.id; formData.shareImageUrl = file.url }
   else if (t === 'posterDefaultUserAvatar') { formData.posterDefaultUserAvatarId = file.id; formData.posterDefaultUserAvatarUrl = file.url }
+  else if (t === 'kfQrcode') { formData.kfQrcodeId = file.id; formData.kfQrcodeUrl = file.url }
   showMediaPicker.value = false
 }
 
@@ -1101,6 +1146,7 @@ function removeMedia(target) {
   else if (target === 'favicon') { formData.faviconId = null; formData.faviconUrl = '' }
   else if (target === 'shareImage') { formData.shareImageId = null; formData.shareImageUrl = '' }
   else if (target === 'posterDefaultUserAvatar') { formData.posterDefaultUserAvatarId = null; formData.posterDefaultUserAvatarUrl = '' }
+  else if (target === 'kfQrcode') { formData.kfQrcodeId = null; formData.kfQrcodeUrl = '' }
 }
 
 async function loadGlobalConfig() {
@@ -1188,6 +1234,24 @@ async function saveTenant(goBack = false) {
     ...cleanedOriginal,
     ...formData.authConfig
   }
+
+  // 组装宣传页联系方式（promoContact）：空值不写入，避免旧配置被清空
+  const pc = {
+    phone: formData.kfPhone?.trim() || undefined,
+    wechat: {
+      id: formData.kfWechatId?.trim() || undefined,
+      qrcode: formData.kfQrcodeUrl || undefined,
+    },
+    wechatServiceUrl: formData.kfWechatServiceUrl?.trim() || undefined,
+    notice: formData.kfNotice?.trim() || undefined,
+  }
+  const pw = { ...pc.wechat }
+  if (!pw.id) delete pw.id
+  if (!pw.qrcode) delete pw.qrcode
+  pc.wechat = Object.keys(pw).length ? pw : undefined
+  for (const k of ['phone', 'wechatServiceUrl', 'notice']) if (!pc[k]) delete pc[k]
+  const hasPc = !!(pc.phone || pc.wechat || pc.wechatServiceUrl || pc.notice)
+  mergedExtraConfig.promoContact = hasPc ? pc : undefined
 
   const data = {
     siteName: formData.siteName,

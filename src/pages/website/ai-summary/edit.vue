@@ -40,7 +40,7 @@ async function loadDetail() {
     if (item) {
       form.value = {
         targetType: item.targetType || '', targetId: item.targetId || '',
-        summary: item.summary || '', status: item.status || '',
+        summary: item.contentText || (item.content ? JSON.stringify(item.content) : ''), status: item.status || '',
       }
     }
   } catch (e) { uni.showToast({ title: '加载失败', icon: 'none' }) }

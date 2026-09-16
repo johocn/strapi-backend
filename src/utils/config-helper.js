@@ -1,6 +1,9 @@
+import { shallowRef } from 'vue'
 import { getPublicConfig } from '../api/config.js'
 
-let cachedConfig = null
+// 响应式缓存：config 异步加载完成后触发依赖它的 computed 重新计算
+// （原为普通变量，isModuleVisible 读取它时 Vue 感知不到更新，导致层2授权检查恒为初始空值）
+const cachedConfig = shallowRef(null)
 // 接口不可访问时的弹窗节流（30秒内只提示一次）
 let lastUnavailableNotify = 0
 const UNAVAILABLE_NOTIFY_INTERVAL = 30 * 1000
@@ -48,13 +51,13 @@ function notifyServiceUnavailable() {
 }
 
 export async function loadSiteConfig(siteId) {
-  if (cachedConfig && !siteId) return cachedConfig
+  if (cachedConfig.value && !siteId) return cachedConfig.value
 
   try {
     const params = siteId ? { siteId } : {}
     const res = await getPublicConfig(params)
-    cachedConfig = res ?? getDefaultConfig()
-    return cachedConfig
+    cachedConfig.value = res ?? getDefaultConfig()
+    return cachedConfig.value
   } catch (e) {
     console.warn('[config-helper] Failed to load config:', e)
     notifyServiceUnavailable()
@@ -171,20 +174,20 @@ const FEATURE_TO_MODULE = {
 export function isFeatureEnabled(key) {
   // 1. 检查粗粒度模块总开关
   const moduleKey = FEATURE_TO_MODULE[key]
-  if (moduleKey && cachedConfig?.featureFlags?.[moduleKey] === false) {
+  if (moduleKey && cachedConfig.value?.featureFlags?.[moduleKey] === false) {
     return false
   }
   // 2. 检查细粒度开关（兼容 featureFlags 嵌套和 points 顶层两种结构）
-  return cachedConfig?.featureFlags?.[key] === true ||
-         cachedConfig?.points?.[key] === true
+  return cachedConfig.value?.featureFlags?.[key] === true ||
+         cachedConfig.value?.points?.[key] === true
 }
 
 export function clearConfigCache() {
-  cachedConfig = null
+  cachedConfig.value = null
 }
 
 export function getConfigValue(key, defaultValue = null) {
-  return cachedConfig?.[key] ?? defaultValue
+  return cachedConfig.value?.[key] ?? defaultValue
 }
 
 /**
@@ -204,11 +207,11 @@ export function isModuleVisible(moduleKey, userRoles = [], currentTenantDocId = 
   if (userRoles.includes('admin')) return true
 
   // 层 2：当前租户授权检查（后端预计算的布尔值）
-  const isGranted = cachedConfig?.moduleGrantedForCurrentTenant?.[moduleKey] ?? false
+  const isGranted = cachedConfig.value?.moduleGrantedForCurrentTenant?.[moduleKey] ?? false
   if (!isGranted) return false
 
   // 层 3：租户级角色可见性
-  const visibility = cachedConfig?.moduleVisibility ?? DEFAULT_MODULE_VISIBILITY
+  const visibility = cachedConfig.value?.moduleVisibility ?? DEFAULT_MODULE_VISIBILITY
   const allowedRoles = visibility[moduleKey] ?? DEFAULT_MODULE_VISIBILITY[moduleKey] ?? []
   if (userRoles.length === 0 || userRoles.every(r => r === 'user')) return false
   return userRoles.some(role => allowedRoles.includes(role))
@@ -218,5 +221,5 @@ export function isModuleVisible(moduleKey, userRoles = [], currentTenantDocId = 
  * 判断某模块是否被全局授权给当前租户（前端 UI 灰显用）
  */
 export function isModuleGloballyGranted(moduleKey, currentTenantDocId = '') {
-  return cachedConfig?.moduleGrantedForCurrentTenant?.[moduleKey] ?? false
+  return cachedConfig.value?.moduleGrantedForCurrentTenant?.[moduleKey] ?? false
 }

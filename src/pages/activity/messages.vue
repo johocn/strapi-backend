@@ -28,7 +28,8 @@
     <view class="msg-list" v-if="!loading && rows.length > 0">
       <view v-for="row in rows" :key="row.documentId || row.id" class="msg-card">
         <view class="msg-head">
-          <text class="msg-user">{{ row.user?.username || row.user?.name || row.nickname || '匿名用户' }}</text>
+          <text class="msg-no">#{{ row.id ?? '' }}</text>
+          <text class="msg-user">{{ row.user?.nickname || row.user?.username || row.nickname || '匿名用户' }}</text>
           <text class="status-badge" :class="statusClass(row.status)">{{ statusText(row.status) }}</text>
         </view>
         <view class="msg-meta">
@@ -36,11 +37,21 @@
           <text class="msg-time">{{ formatTime(row.createdAt || row.created_at) }}</text>
         </view>
         <view class="msg-body">
+          <view class="msg-label-row">
+            <text class="msg-q">问</text>
+            <text class="msg-label-time">{{ formatTime(row.createdAt || row.created_at) }}</text>
+          </view>
           <text class="msg-content">{{ row.message || row.content || '（无内容）' }}</text>
         </view>
         <view class="msg-reply" v-if="row.reply">
-          <text class="reply-label">回复：</text>
-          <text class="reply-text">{{ row.reply }}</text>
+          <text class="msg-a">答</text>
+          <view class="reply-main">
+            <view class="msg-label-row">
+              <text class="admin-label">管理员</text>
+              <text class="msg-label-time">{{ formatTime(row.repliedAt || row.replied_at) }}</text>
+            </view>
+            <text class="reply-text">{{ row.reply }}</text>
+          </view>
         </view>
         <view class="card-actions" v-if="row.status !== 'replied'">
           <view class="action-btn" @click="openReply(row)">回复</view>
@@ -198,6 +209,7 @@ page { background: #f5f5f5; }
 .msg-list { display: flex; flex-direction: column; gap: 16rpx; }
 .msg-card { background: #fff; border-radius: 12rpx; padding: 24rpx; }
 .msg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; gap: 16rpx; }
+.msg-no { font-size: 26rpx; color: #999; flex-shrink: 0; }
 .msg-user { font-size: 30rpx; font-weight: bold; color: #333; flex: 1; }
 .status-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; }
 .status-badge.open { background: #e6f7ff; color: #1890ff; }
@@ -207,10 +219,16 @@ page { background: #f5f5f5; }
 .msg-activity { font-size: 24rpx; color: #999; }
 .msg-time { font-size: 24rpx; color: #999; }
 .msg-body { padding: 16rpx 0; border-top: 1rpx solid #f0f0f0; }
+.msg-label-row { display: flex; align-items: center; gap: 12rpx; margin-bottom: 8rpx; }
+.msg-q, .msg-a { flex-shrink: 0; min-width: 44rpx; padding: 2rpx 12rpx; border-radius: 8rpx; font-size: 22rpx; text-align: center; }
+.msg-q { background: rgba(64, 158, 255, 0.12); color: #409eff; }
+.msg-a { background: rgba(7, 193, 96, 0.14); color: #07c160; }
+.admin-label { font-size: 24rpx; color: #07c160; font-weight: 600; }
+.msg-label-time { font-size: 22rpx; color: #999; }
 .msg-content { font-size: 28rpx; color: #333; line-height: 1.6; }
-.msg-reply { display: flex; align-items: flex-start; gap: 8rpx; padding-top: 12rpx; }
-.reply-label { font-size: 26rpx; color: #667eea; flex-shrink: 0; }
-.reply-text { font-size: 26rpx; color: #666; line-height: 1.6; flex: 1; }
+.msg-reply { display: flex; align-items: flex-start; gap: 12rpx; padding-top: 12rpx; }
+.reply-main { flex: 1; }
+.reply-text { font-size: 26rpx; color: #666; line-height: 1.6; }
 .card-actions { display: flex; gap: 10rpx; border-top: 1rpx solid #f0f0f0; padding-top: 16rpx; margin-top: 16rpx; }
 .action-btn {
   flex: 1; padding: 12rpx 0; border-radius: 8rpx; font-size: 26rpx; text-align: center;

@@ -349,6 +349,39 @@
         </view>
       </view>
 
+      <!-- 联系方式（promoContact，运营配置才显示，未配不回落到活动项） -->
+      <view class="form-section-title">联系方式（宣传页浮动/联系方式模块）</view>
+      <view class="form-card">
+        <view class="form-item">
+          <text class="form-label">联系电话</text>
+          <input v-model="promoForm.phone" class="form-input" placeholder="如 400-888-8888" />
+          <text class="form-hint">宣传页「电话」按钮号码</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">微信号</text>
+          <input v-model="promoForm.wechatId" class="form-input" placeholder="如 joho-service" />
+          <text class="form-hint">未上传二维码时展示微信号</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">微信二维码</text>
+          <view class="media-select" @click="openPromoQrcode">
+            <image v-if="promoForm.qrcodeUrl" :src="promoForm.qrcodeUrl" mode="aspectFill" class="media-preview" />
+            <view v-else class="media-placeholder"><text>+ 选择二维码图片</text></view>
+            <text v-if="promoForm.qrcodeUrl" class="media-remove" @click.stop="removePromoQrcode">✕</text>
+          </view>
+        </view>
+        <view class="form-item">
+          <text class="form-label">公众号客服链接</text>
+          <input v-model="promoForm.wechatServiceUrl" class="form-input" placeholder="如 https://kf.weixin.qq.com/..." />
+          <text class="form-hint">配置后，微信环境浮动点「客服」跳转此链接；未配则展示二维码</text>
+        </view>
+        <view class="form-item">
+          <text class="form-label">提示文案</text>
+          <input v-model="promoForm.notice" class="form-input" placeholder="如 工作时间 9:00-18:00" />
+          <text class="form-hint">联系方式模块底部提示，可留空</text>
+        </view>
+      </view>
+
       <!-- 安全设置 -->
       <view class="form-section-title">安全设置</view>
       <view class="form-card">
@@ -546,6 +579,16 @@ const form = ref({
   debugMode: false,
 })
 
+// 宣传页联系方式（promoContact），运营配置才显示
+const promoForm = ref({
+  phone: '',
+  wechatId: '',
+  qrcodeUrl: '',
+  qrcodeId: null,
+  wechatServiceUrl: '',
+  notice: '',
+})
+
 function onAuthModeChange(e) {
   authModeIndex.value = e.detail.value
   form.value.authMode = authModes[authModeIndex.value]
@@ -566,6 +609,7 @@ function onMediaSelected(file) {
   if (t === 'logo') { form.value.logoId = file.id; form.value.logoUrl = file.url }
   else if (t === 'favicon') { form.value.faviconId = file.id; form.value.faviconUrl = file.url }
   else if (t === 'shareImage') { form.value.shareImageId = file.id; form.value.shareImageUrl = file.url }
+  else if (t === 'promoQrcode') { promoForm.value.qrcodeId = file.id; promoForm.value.qrcodeUrl = file.url }
   showMediaPicker.value = false
 }
 
@@ -574,6 +618,37 @@ function removeMedia(target) {
   if (target === 'logo') { form.value.logoId = null; form.value.logoUrl = '' }
   else if (target === 'favicon') { form.value.faviconId = null; form.value.faviconUrl = '' }
   else if (target === 'shareImage') { form.value.shareImageId = null; form.value.shareImageUrl = '' }
+}
+
+// 宣传页联系方式（promoContact）组装：活动级未配时后端回落站点默认，未配置为空对象则不显示
+function buildPromoContact() {
+  const c = {
+    phone: promoForm.value.phone || undefined,
+    wechat: {
+      id: promoForm.value.wechatId || undefined,
+      qrcode: promoForm.value.qrcodeUrl || undefined,
+    },
+    wechatServiceUrl: promoForm.value.wechatServiceUrl || undefined,
+    notice: promoForm.value.notice || undefined,
+  }
+  // 清理空字段
+  const w = { ...c.wechat }
+  if (!w.id) delete w.id
+  if (!w.qrcode) delete w.qrcode
+  if (Object.keys(w).length === 0) c.wechat = undefined
+  else c.wechat = w
+  for (const k of ['phone', 'wechatServiceUrl', 'notice']) if (!c[k]) delete c[k]
+  return (c.phone || c.wechat || c.wechatServiceUrl || c.notice) ? c : undefined
+}
+
+function openPromoQrcode() {
+  mediaPickerTarget.value = 'promoQrcode'
+  showMediaPicker.value = true
+}
+
+function removePromoQrcode() {
+  promoForm.value.qrcodeUrl = ''
+  promoForm.value.qrcodeId = null
 }
 
 async function loadConfig() {
@@ -640,6 +715,17 @@ async function loadConfig() {
       }
       authModeIndex.value = Math.max(0, authModes.indexOf(form.value.authMode))
       channelScopeIndex.value = Math.max(0, channelScopes.indexOf(form.value.defaultChannelScope))
+
+      // 宣传页联系方式（promoContact）：活动级未配时回落站点默认
+      const pc = data.promoContact || {}
+      promoForm.value = {
+        phone: pc.phone || '',
+        wechatId: pc.wechat?.id || '',
+        qrcodeUrl: pc.wechat?.qrcode ? getMediaUrl(pc.wechat.qrcode) : '',
+        qrcodeId: pc.wechat?.qrcode?.id ?? null,
+        wechatServiceUrl: pc.wechatServiceUrl || '',
+        notice: pc.notice || '',
+      }
     }
     // 保存模板约束
     if (data?._meta?.fieldConstraints) {
@@ -670,8 +756,9 @@ async function handleSave() {
     }
     saving.value = true
     try {
+      const payload = { ...form.value, promoContact: buildPromoContact() }
       await put(`/zhao-channel/v1/admin/channels/${currentChannel.value.id}/config`, {
-        data: { extraConfig: form.value }
+        data: { extraConfig: payload }
       })
       uni.showToast({ title: '保存成功', icon: 'success' })
     } catch (e) {
@@ -736,6 +823,7 @@ async function handleSave() {
       sessionTimeout: (form.value.sessionTimeout === '' || form.value.sessionTimeout == null) ? 120 : Number(form.value.sessionTimeout),
       maintenanceMode: form.value.maintenanceMode,
       debugMode: form.value.debugMode,
+      promoContact: buildPromoContact(),
     }
     await updateSiteConfig(data)
     uni.showToast({ title: '保存成功', icon: 'success' })

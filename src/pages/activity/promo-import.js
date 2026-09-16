@@ -9,10 +9,23 @@ const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 export function stripCodeBlock(raw) {
   let s = String(raw ?? '')
   s = s.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '')
-  const i = s.indexOf('{')
-  const j = s.lastIndexOf('}')
-  if (i < 0 || j < 0 || j <= i) return s
-  return s.slice(i, j + 1)
+  // 从首个 “{” 起做括号配对（跳过字符串与转义内的括号），取配对的完整根对象。
+  // 这样 AI 输出 JSON 后再追加任何含 { } 的解说文字都不会被误截进 JSON。
+  const start = s.indexOf('{')
+  if (start >= 0) {
+    let depth = 0, inStr = false, esc = false
+    for (let i = start; i < s.length; i++) {
+      const ch = s[i]
+      if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue }
+      if (ch === '"') { inStr = true; continue }
+      if (ch === '{') depth++
+      else if (ch === '}') { depth--; if (depth === 0) return s.slice(start, i + 1) }
+    }
+    // 未配到闭合（AI 漏右括号）→ 退化为旧策略
+    const j = s.lastIndexOf('}')
+    if (j > start) return s.slice(start, j + 1)
+  }
+  return s
 }
 
 export function normalizeModuleConfig(type, config) {
