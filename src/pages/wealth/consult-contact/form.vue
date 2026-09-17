@@ -98,7 +98,6 @@ const pickerField = ref('enterprise')
 const mapReady = ref(false)
 let map = null
 let marker = null
-let geocoder = null
 
 onLoad(async (query) => {
   if (query.id) {
@@ -130,11 +129,11 @@ onUnload(() => { map = null; marker = null })
 function initMap() {
   const el = document.getElementById('consult-map')
   if (!el) return
-  if (window.qq && window.qq.maps) { setupMap(el); return }
-  if (document.getElementById('qqmap-sdk')) return
+  if (window.TMap) { setupMap(el); return }
+  if (document.getElementById('qqmap-gl-sdk')) return
   const s = document.createElement('script')
-  s.id = 'qqmap-sdk'
-  s.src = `https://map.qq.com/api/js?v=2.exp&key=${TENCENT_MAP_KEY}`
+  s.id = 'qqmap-gl-sdk'
+  s.src = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`
   s.onload = () => setupMap(el)
   s.onerror = () => uni.showToast({ title: '地图加载失败，请检查网络或域名白名单', icon: 'none' })
   document.head.appendChild(s)
@@ -143,33 +142,35 @@ function initMap() {
 function setupMap(el) {
   const lat = Number(form.value.latitude) || 36.0671
   const lng = Number(form.value.longitude) || 120.3826
-  const center = new qq.maps.LatLng(lat, lng)
-  map = new qq.maps.Map(el, { center, zoom: 13 })
-  if (form.value.latitude && form.value.longitude) placeMarker(center)
-  geocoder = new qq.maps.Geocoder()
-  qq.maps.event.addListener(map, 'click', (e) => {
-    placeMarker(e.latLng)
-    form.value.latitude = e.latLng.getLat().toFixed(6)
-    form.value.longitude = e.latLng.getLng().toFixed(6)
-    reverseGeocode(e.latLng)
+  map = new TMap.Map(el, { center: new TMap.LatLng(lat, lng), zoom: 13 })
+  if (form.value.latitude && form.value.longitude) placeMarker(lat, lng)
+  map.on('click', (e) => {
+    const lat = e.latLng.getLat()
+    const lng = e.latLng.getLng()
+    placeMarker(lat, lng)
+    form.value.latitude = lat.toFixed(6)
+    form.value.longitude = lng.toFixed(6)
+    reverseGeocode(lat, lng)
   })
   mapReady.value = true
 }
 
-function placeMarker(latLng) {
-  if (marker) marker.setMap(null)
-  marker = new qq.maps.Marker({ position: latLng, map })
+function placeMarker(lat, lng) {
+  const geometry = { id: 'loc', position: new TMap.LatLng(lat, lng) }
+  if (marker) marker.setGeometries([geometry])
+  else marker = new TMap.MultiMarker({ map, geometries: [geometry] })
 }
 
-function reverseGeocode(latLng) {
-  if (!geocoder) return
-  geocoder.getAddress({ location: latLng }, (res) => {
-    if (res && res.detail && res.detail.addressComponents) {
-      const c = res.detail.addressComponents
-      const city = c.city || c.province || ''
+function reverseGeocode(lat, lng) {
+  const geocoder = new TMap.service.Geocoder()
+  geocoder
+    .getAddress({ location: { lat, lng } })
+    .then((res) => {
+      const ac = (res && res.result && (res.result.address_components || res.result.address_component)) || {}
+      const city = ac.city || ac.province || ''
       if (city) form.value.city = city
-    }
-  })
+    })
+    .catch(() => {})
 }
 
 async function searchUsers() {
