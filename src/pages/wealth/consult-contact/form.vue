@@ -31,6 +31,12 @@
       <text class="form-label">城市</text>
       <input class="form-input" v-model="form.city" placeholder="如：青岛" />
     </view>
+    <view class="form-group">
+      <text class="form-label">网点位置（点击地图选点，自动填充经纬度）</text>
+      <view id="consult-map" class="map-container"></view>
+      <text v-if="!mapReady" class="map-tip">地图加载中…</text>
+      <text v-else class="map-tip">点击地图标记网点位置，经纬度自动回填，城市可自动识别</text>
+    </view>
     <view class="form-row">
       <view class="form-group half">
         <text class="form-label">纬度（同城就近排序用）</text>
@@ -64,11 +70,13 @@
 
 <script setup>
 import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onReady, onUnload } from '@dcloudio/uni-app'
 import { getConsultContactList, createConsultContact, updateConsultContact } from '../../../api/wealth.js'
 import { getSsoUserOptions } from '../../../api/sso.js'
 import PageHeader from '../../../components/PageHeader.vue'
 import MediaPicker from '../../../components/MediaPicker.vue'
+
+const TENCENT_MAP_KEY = 'HUSBZ-P7VEV-M3OPP-5OYDB-U6UDS-WCBIJ'
 
 const id = ref(null)
 const form = ref({
@@ -86,6 +94,11 @@ const selectedUser = ref(null)
 
 const showPicker = ref(false)
 const pickerField = ref('enterprise')
+
+const mapReady = ref(false)
+let map = null
+let marker = null
+let geocoder = null
 
 onLoad(async (query) => {
   if (query.id) {
@@ -110,6 +123,54 @@ onLoad(async (query) => {
     }
   }
 })
+
+onReady(() => initMap())
+onUnload(() => { map = null; marker = null })
+
+function initMap() {
+  const el = document.getElementById('consult-map')
+  if (!el) return
+  if (window.qq && window.qq.maps) { setupMap(el); return }
+  if (document.getElementById('qqmap-sdk')) return
+  const s = document.createElement('script')
+  s.id = 'qqmap-sdk'
+  s.src = `https://map.qq.com/api/js?v=2.exp&key=${TENCENT_MAP_KEY}`
+  s.onload = () => setupMap(el)
+  s.onerror = () => uni.showToast({ title: '地图加载失败，请检查网络或域名白名单', icon: 'none' })
+  document.head.appendChild(s)
+}
+
+function setupMap(el) {
+  const lat = Number(form.value.latitude) || 36.0671
+  const lng = Number(form.value.longitude) || 120.3826
+  const center = new qq.maps.LatLng(lat, lng)
+  map = new qq.maps.Map(el, { center, zoom: 13 })
+  if (form.value.latitude && form.value.longitude) placeMarker(center)
+  geocoder = new qq.maps.Geocoder()
+  qq.maps.event.addListener(map, 'click', (e) => {
+    placeMarker(e.latLng)
+    form.value.latitude = e.latLng.getLat().toFixed(6)
+    form.value.longitude = e.latLng.getLng().toFixed(6)
+    reverseGeocode(e.latLng)
+  })
+  mapReady.value = true
+}
+
+function placeMarker(latLng) {
+  if (marker) marker.setMap(null)
+  marker = new qq.maps.Marker({ position: latLng, map })
+}
+
+function reverseGeocode(latLng) {
+  if (!geocoder) return
+  geocoder.getAddress({ location: latLng }, (res) => {
+    if (res && res.detail && res.detail.addressComponents) {
+      const c = res.detail.addressComponents
+      const city = c.city || c.province || ''
+      if (city) form.value.city = city
+    }
+  })
+}
 
 async function searchUsers() {
   const kw = (userKeyword.value || '').trim()
@@ -182,5 +243,7 @@ async function save() {
 .user-picked { margin-top: 8rpx; font-size: 24rpx; color: #2b6de8; }
 .qr-preview { width: 240rpx; height: 240rpx; border-radius: 8rpx; }
 .qr-upload { width: 240rpx; height: 240rpx; border: 1rpx dashed #bbb; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; color: #999; font-size: 26rpx; text-align: center; padding: 0 20rpx; box-sizing: border-box; }
+.map-container { width: 100%; height: 520rpx; border-radius: 8rpx; overflow: hidden; border: 1rpx solid #ddd; background: #f5f6f7; }
+.map-tip { display: block; margin-top: 8rpx; font-size: 22rpx; color: #999; }
 .submit-btn { background: #2b6de8; color: #fff; border-radius: 44rpx; margin-top: 40rpx; }
 </style>
