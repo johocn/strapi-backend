@@ -186,8 +186,12 @@ export function updateAdminConsultConfig(data) {
 }
 
 // ==================== 服务人联系方式配置 ====================
+// 后端列表返回 { code, data: { list, pagination } }（与 extractList 识别的 records 结构不同，单独解析）
 export function getConsultContactList(params = {}) {
-  return adminGet(`${ADMIN}/consult-contacts`, params).then(extractList)
+  return adminGet(`${ADMIN}/consult-contacts`, params).then((res) => ({
+    list: (res && res.data && Array.isArray(res.data.list)) ? res.data.list : [],
+    pagination: (res && res.data && res.data.pagination) || {},
+  }))
 }
 export function createConsultContact(data) {
   return adminPost(`${ADMIN}/consult-contacts`, data).then(extractItem)
