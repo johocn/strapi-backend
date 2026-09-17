@@ -143,7 +143,11 @@ function setupMap(el) {
   const lat = Number(form.value.latitude) || 36.0671
   const lng = Number(form.value.longitude) || 120.3826
   map = new TMap.Map(el, { center: new TMap.LatLng(lat, lng), zoom: 13 })
-  if (form.value.latitude && form.value.longitude) placeMarker(lat, lng)
+  if (form.value.latitude && form.value.longitude) {
+    placeMarker(lat, lng)
+  } else {
+    locateDefault()
+  }
   map.on('click', (e) => {
     const lat = e.latLng.getLat()
     const lng = e.latLng.getLng()
@@ -153,6 +157,18 @@ function setupMap(el) {
     reverseGeocode(lat, lng)
   })
   mapReady.value = true
+}
+
+function locateDefault() {
+  uni.getLocation({
+    type: 'gcj02',
+    success: (res) => {
+      if (!form.value.latitude && !form.value.longitude && map) {
+        map.setCenter(new TMap.LatLng(res.latitude, res.longitude))
+      }
+    },
+    fail: () => {},
+  })
 }
 
 function placeMarker(lat, lng) {
@@ -165,7 +181,7 @@ function reverseGeocode(lat, lng) {
   if (!window.TMap || !TMap.service || !TMap.service.Geocoder) return
   const geocoder = new TMap.service.Geocoder()
   geocoder
-    .getAddress({ location: { lat, lng } })
+    .getAddress({ location: new TMap.LatLng(lat, lng) })
     .then((res) => {
       const ac = (res && res.result && (res.result.address_components || res.result.address_component)) || {}
       const city = ac.city || ac.province || ''
