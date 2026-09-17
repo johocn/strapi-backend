@@ -184,3 +184,17 @@ export function getAdminConsultConfig() {
 export function updateAdminConsultConfig(data) {
   return adminPut(`${ADMIN}/consult-config`, data)
 }
+
+// ==================== 服务人联系方式配置 ====================
+export function getConsultContactList(params = {}) {
+  return adminGet(`${ADMIN}/consult-contacts`, params).then(extractList)
+}
+export function createConsultContact(data) {
+  return adminPost(`${ADMIN}/consult-contacts`, data).then(extractItem)
+}
+export function updateConsultContact(id, data) {
+  return adminPut(`${ADMIN}/consult-contacts/${id}`, data).then(extractItem)
+}
+export function deleteConsultContact(id) {
+  return adminDel(`${ADMIN}/consult-contacts/${id}`).then(extractItem)
+}

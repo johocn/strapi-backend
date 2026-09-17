@@ -594,6 +594,8 @@
     { "path": "pages/wealth/holding/detail", "style": { "navigationBarTitleText": "持仓详情" } },
     { "path": "pages/wealth/disclosure/index", "style": { "navigationBarTitleText": "披露管理" } },
     { "path": "pages/wealth/monitor/index", "style": { "navigationBarTitleText": "净值监察" } },
+    { "path": "pages/wealth/consult-contact/index", "style": { "navigationBarTitleText": "服务人配置" } },
+    { "path": "pages/wealth/consult-contact/form", "style": { "navigationBarTitleText": "服务人编辑" } },
     { "path": "pages/activity/list", "style": { "navigationBarTitleText": "线下活动" } },
     { "path": "pages/activity/calendar", "style": { "navigationBarTitleText": "活动日历" } },
     { "path": "pages/activity/form", "style": { "navigationBarTitleText": "活动编辑" } },
