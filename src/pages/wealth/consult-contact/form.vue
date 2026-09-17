@@ -133,7 +133,7 @@ function initMap() {
   if (document.getElementById('qqmap-gl-sdk')) return
   const s = document.createElement('script')
   s.id = 'qqmap-gl-sdk'
-  s.src = `https://map.qq.com/api/gljs?v=1.exp&key=${TENCENT_MAP_KEY}`
+  s.src = `https://map.qq.com/api/gljs?v=1.exp&libraries=service&key=${TENCENT_MAP_KEY}`
   s.onload = () => setupMap(el)
   s.onerror = () => uni.showToast({ title: '地图加载失败，请检查网络或域名白名单', icon: 'none' })
   document.head.appendChild(s)
@@ -162,6 +162,7 @@ function placeMarker(lat, lng) {
 }
 
 function reverseGeocode(lat, lng) {
+  if (!window.TMap || !TMap.service || !TMap.service.Geocoder) return
   const geocoder = new TMap.service.Geocoder()
   geocoder
     .getAddress({ location: { lat, lng } })
