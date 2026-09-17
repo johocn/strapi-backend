@@ -464,6 +464,10 @@
           <view class="module-icon">📋</view>
           <view class="module-name">披露管理</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/consult-contact/index')">
+          <view class="module-icon">🧑‍💼</view>
+          <view class="module-name">服务人配置</view>
+        </view>
       </view>
     </view>
 
