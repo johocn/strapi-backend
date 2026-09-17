@@ -3,9 +3,9 @@
     <PageHeader title="服务人配置" desc="选择邀请人并维护网点/城市/联系方式" />
 
     <view class="form-group">
-      <text class="form-label">服务人（邀请人）<text class="req">*</text></text>
+      <text class="form-label">服务人（邀请人）</text>
       <view class="user-picker" @click="focusSearch = true">
-        <input v-model="userKeyword" class="form-input" placeholder="搜索用户名/手机号/邮箱" @input="searchUsers" @focus="focusSearch = true" />
+        <input v-model="userKeyword" class="form-input" placeholder="搜索用户名/手机号/邮箱，不选则为全局默认服务人员" @input="searchUsers" @focus="focusSearch = true" />
       </view>
       <view v-if="focusSearch && userOptions.length" class="user-dropdown">
         <view v-for="u in userOptions" :key="u.id" class="user-row" :class="{ active: selectedUser && selectedUser.id === u.id }" @click="pickUser(u)">
@@ -13,6 +13,7 @@
         </view>
       </view>
       <view v-if="selectedUser" class="user-picked">已选: {{ selectedUser.username || selectedUser.mobile || selectedUser.email || ('#' + selectedUser.id) }}（#{{ selectedUser.id }}）</view>
+      <text class="form-tip">选服务人=仅该服务人邀请的客户展示；不选=全局默认服务人员（所有无推荐人客户展示）</text>
     </view>
 
     <view class="form-group">
@@ -118,7 +119,7 @@ onLoad(async (query) => {
         personalWechatId: item.personalWechatId || '',
       }
       phonesText.value = (Array.isArray(item.branchPhones) ? item.branchPhones : []).join('\n')
-      selectedUser.value = { id: item.inviterId }
+      if (item.inviterId) selectedUser.value = { id: item.inviterId }
     }
   }
 })
@@ -221,9 +222,8 @@ function onQrSelect(media) {
 }
 
 async function save() {
-  if (!form.value.inviterId) { uni.showToast({ title: '请选择服务人', icon: 'none' }); return }
   const payload = {
-    inviterId: form.value.inviterId,
+    inviterId: form.value.inviterId ?? null,
     nickname: form.value.nickname || null,
     branchName: form.value.branchName || null,
     city: form.value.city || null,
@@ -259,6 +259,7 @@ async function save() {
 .user-row { padding: 14rpx 16rpx; font-size: 26rpx; color: #333; border-bottom: 1rpx solid #f0f0f0; }
 .user-row.active { color: #2b6de8; }
 .user-picked { margin-top: 8rpx; font-size: 24rpx; color: #2b6de8; }
+.form-tip { display: block; margin-top: 8rpx; font-size: 22rpx; color: #999; }
 .qr-preview { width: 240rpx; height: 240rpx; border-radius: 8rpx; }
 .qr-upload { width: 240rpx; height: 240rpx; border: 1rpx dashed #bbb; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; color: #999; font-size: 26rpx; text-align: center; padding: 0 20rpx; box-sizing: border-box; }
 .map-container { width: 100%; height: 520rpx; border-radius: 8rpx; overflow: hidden; border: 1rpx solid #ddd; background: #f5f6f7; }

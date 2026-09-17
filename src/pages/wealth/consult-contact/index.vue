@@ -12,8 +12,11 @@
     <view class="config-list" v-if="list.length">
       <view class="config-card" v-for="item in list" :key="item.id">
         <view class="card-top">
-          <text class="card-title">{{ item.nickname || ('服务人#' + item.inviterId) }}</text>
-          <text class="card-city" v-if="item.city">{{ item.city }}</text>
+          <text class="card-title">{{ item.nickname || (item.inviterId ? ('服务人#' + item.inviterId) : '全局默认服务人员') }}</text>
+          <view class="card-tags">
+            <text class="card-tag global" v-if="!item.inviterId">全局默认</text>
+            <text class="card-tag" v-if="item.city">{{ item.city }}</text>
+          </view>
         </view>
         <view class="card-info" v-if="item.branchName">网点：{{ item.branchName }}</view>
         <view class="card-info" v-if="item.branchPhones && item.branchPhones.length">电话：{{ item.branchPhones.join(' / ') }}</view>
@@ -64,7 +67,7 @@ function goForm(item) {
 function remove(item) {
   uni.showModal({
     title: '确认删除',
-    content: `删除服务人「${item.nickname || item.inviterId}」的配置？`,
+    content: `删除「${item.nickname || (item.inviterId ? ('服务人#' + item.inviterId) : '全局默认服务人员')}」的配置？`,
     success: async (res) => {
       if (!res.confirm) return
       try {
@@ -86,7 +89,9 @@ function remove(item) {
 .config-card { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 20rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05); }
 .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; }
 .card-title { font-size: 30rpx; font-weight: 600; color: #333; }
-.card-city { font-size: 24rpx; color: #2b6de8; background: #eef3ff; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.card-tags { display: flex; align-items: center; gap: 8rpx; }
+.card-tag { font-size: 22rpx; color: #2b6de8; background: #eef3ff; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.card-tag.global { color: #e64340; background: #fdecec; }
 .card-info { font-size: 26rpx; color: #666; margin-bottom: 8rpx; }
 .card-actions { display: flex; justify-content: flex-end; gap: 16rpx; margin-top: 16rpx; }
 .btn-danger { background: #fdecec; color: #e64340; border: none; }
