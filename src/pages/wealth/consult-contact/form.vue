@@ -26,7 +26,7 @@
     </view>
     <view class="form-group">
       <text class="form-label">网点电话（可多个，回车分隔）</text>
-      <textarea class="form-input" v-model="phonesText" placeholder="0532-88886666&#10;13800000000" />
+      <textarea class="form-textarea" v-model="phonesText" placeholder="0532-88886666&#10;13800000000" />
     </view>
     <view class="form-group">
       <text class="form-label">城市</text>
@@ -218,7 +218,7 @@ function openPicker(field) {
 function onQrSelect(media) {
   const isEnterprise = pickerField.value === 'enterprise'
   form.value[isEnterprise ? 'enterpriseWechatQr' : 'personalWechatQr'] = media.url
-  form.value[`${isEnterprise ? 'enterprise' : 'personal'}WechatIdTmp`] = media.id
+  form.value[`${isEnterprise ? 'enterprise' : 'personal'}WechatQrTmp`] = media.id
 }
 
 async function save() {
@@ -251,9 +251,10 @@ async function save() {
 .form-group { margin-bottom: 28rpx; }
 .form-row { display: flex; gap: 20rpx; }
 .form-group.half { flex: 1; }
-.form-label { display: block; font-size: 26rpx; color: #333; margin-bottom: 12rpx; }
+.form-label { display: block; font-size: 26rpx; color: #333; line-height: 1.4; margin-bottom: 14rpx; }
 .req { color: #e64340; }
-.form-input { border: 1rpx solid #ddd; border-radius: 8rpx; padding: 14rpx 16rpx; font-size: 28rpx; min-height: 44rpx; width: 100%; box-sizing: border-box; }
+.form-input { border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 28rpx; height: 76rpx; line-height: 76rpx; width: 100%; box-sizing: border-box; }
+.form-textarea { border: 1rpx solid #ddd; border-radius: 8rpx; padding: 16rpx 20rpx; font-size: 28rpx; line-height: 1.5; height: 160rpx; width: 100%; box-sizing: border-box; }
 .user-picker { position: relative; }
 .user-dropdown { border: 1rpx solid #ddd; border-radius: 8rpx; margin-top: 8rpx; max-height: 400rpx; overflow-y: auto; background: #fff; z-index: 10; position: relative; }
 .user-row { padding: 14rpx 16rpx; font-size: 26rpx; color: #333; border-bottom: 1rpx solid #f0f0f0; }
