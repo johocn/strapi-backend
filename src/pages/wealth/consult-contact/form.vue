@@ -53,14 +53,14 @@
       <text class="form-label">企业微信二维码</text>
       <image v-if="form.enterpriseWechatQr" class="qr-preview" :src="form.enterpriseWechatQr" mode="aspectFit" @click="openPicker('enterprise')" />
       <view v-else class="qr-upload" @click="openPicker('enterprise')">选择企业微信二维码</view>
-      <input class="form-input" v-model="form.enterpriseWechatId" placeholder="企业微信号（选填）" style="margin-top: 12rpx;" />
+      <input class="form-input qr-input" v-model="form.enterpriseWechatId" placeholder="企业微信号（选填）" />
     </view>
 
     <view class="form-group">
       <text class="form-label">个人微信二维码</text>
       <image v-if="form.personalWechatQr" class="qr-preview" :src="form.personalWechatQr" mode="aspectFit" @click="openPicker('personal')" />
       <view v-else class="qr-upload" @click="openPicker('personal')">选择个人微信二维码</view>
-      <input class="form-input" v-model="form.personalWechatId" placeholder="个人微信号（选填）" style="margin-top: 12rpx;" />
+      <input class="form-input qr-input" v-model="form.personalWechatId" placeholder="个人微信号（选填）" />
     </view>
 
     <button class="submit-btn" @click="save">保存</button>
@@ -248,22 +248,23 @@ async function save() {
 
 <style scoped>
 .form-container { padding: 24rpx; }
-.form-group { margin-bottom: 28rpx; }
+.form-group { margin-bottom: 32rpx; }
 .form-row { display: flex; gap: 20rpx; }
 .form-group.half { flex: 1; }
-.form-label { display: block; font-size: 26rpx; color: #333; line-height: 1.4; margin-bottom: 14rpx; }
+.form-label { display: block; font-size: 26rpx; color: #333; line-height: 1.4; margin-bottom: 16rpx; }
 .req { color: #e64340; }
 .form-input { border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 28rpx; height: 76rpx; line-height: 76rpx; width: 100%; box-sizing: border-box; }
 .form-textarea { border: 1rpx solid #ddd; border-radius: 8rpx; padding: 16rpx 20rpx; font-size: 28rpx; line-height: 1.5; height: 160rpx; width: 100%; box-sizing: border-box; }
+.qr-input { margin-top: 20rpx; }
 .user-picker { position: relative; }
-.user-dropdown { border: 1rpx solid #ddd; border-radius: 8rpx; margin-top: 8rpx; max-height: 400rpx; overflow-y: auto; background: #fff; z-index: 10; position: relative; }
+.user-dropdown { border: 1rpx solid #ddd; border-radius: 8rpx; margin-top: 10rpx; max-height: 400rpx; overflow-y: auto; background: #fff; z-index: 10; position: relative; }
 .user-row { padding: 14rpx 16rpx; font-size: 26rpx; color: #333; border-bottom: 1rpx solid #f0f0f0; }
 .user-row.active { color: #2b6de8; }
-.user-picked { margin-top: 8rpx; font-size: 24rpx; color: #2b6de8; }
-.form-tip { display: block; margin-top: 8rpx; font-size: 22rpx; color: #999; }
+.user-picked { margin-top: 10rpx; font-size: 24rpx; color: #2b6de8; }
+.form-tip { display: block; margin-top: 10rpx; font-size: 22rpx; color: #999; }
 .qr-preview { width: 240rpx; height: 240rpx; border-radius: 8rpx; }
 .qr-upload { width: 240rpx; height: 240rpx; border: 1rpx dashed #bbb; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; color: #999; font-size: 26rpx; text-align: center; padding: 0 20rpx; box-sizing: border-box; }
 .map-container { width: 100%; height: 520rpx; border-radius: 8rpx; overflow: hidden; border: 1rpx solid #ddd; background: #f5f6f7; }
-.map-tip { display: block; margin-top: 8rpx; font-size: 22rpx; color: #999; }
-.submit-btn { background: #2b6de8; color: #fff; border-radius: 44rpx; margin-top: 40rpx; }
+.map-tip { display: block; margin-top: 10rpx; font-size: 22rpx; color: #999; }
+.submit-btn { background: #2b6de8; color: #fff; border-radius: 44rpx; margin-top: 48rpx; }
 </style>
