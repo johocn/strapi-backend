@@ -1,8 +1,23 @@
 <template>
   <view class="sso-login-page">
     <view class="page-header">
-      <text class="page-title">星枢统一关系中心</text>
-      <text class="page-tagline">{{ taglineStatic }}</text>
+      <!-- <text class="page-title">星枢统一关系中心</text>
+      <text class="page-tagline">{{ taglineStatic }}</text> -->
+	  <!-- 正常渲染组件（含降级表单）：非微信自动跳转中、且无 OAuth 错误时显示 -->
+      <view class="component-container" v-if="!isWechatAutoRedirecting && !oauthError">
+	    <wx-sso-login
+	      :app-code="appCode"
+	      :redirect-uri="redirectUri"
+	      :invite-code="inviteCode"
+	      :channel-code="channelCode"
+	      :fallback-mode="mode"
+	      :fallback-enabled="true"
+	      :auto-redirect="isWechatEnv"
+	      @success="onSuccess"
+	      @error="onError"
+	      @redirect="onRedirect"
+	    />
+	  </view>
     </view>
 
     <!-- 微信环境自动跳转中：统一品牌门面 -->
@@ -14,22 +29,6 @@
     <!-- 错误提示（OAuth 失败回跳） -->
     <view v-else-if="oauthError" class="error-state">
       <view class="error-text">⚠ {{ oauthError }}</view>
-    </view>
-
-    <!-- 正常渲染组件（含降级表单） -->
-    <view class="component-container" v-else>
-      <wx-sso-login
-        :app-code="appCode"
-        :redirect-uri="redirectUri"
-        :invite-code="inviteCode"
-        :channel-code="channelCode"
-        :fallback-mode="mode"
-        :fallback-enabled="true"
-        :auto-redirect="isWechatEnv"
-        @success="onSuccess"
-        @error="onError"
-        @redirect="onRedirect"
-      />
     </view>
 
     <view class="footer">
