@@ -42,7 +42,7 @@ export function getSlogan() {
 /** 状态阶段 → 胶囊文案 */
 export const SSO_STATUS = {
   verify: '校验中…',
-  login: '正在登录…',
+  login: '正在登录中…',
   process: '正在处理登录信息…',
   redirect: '正在跳转目标页面…',
   done: '登录完成，正在返回…',

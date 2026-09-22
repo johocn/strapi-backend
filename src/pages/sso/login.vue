@@ -1,10 +1,10 @@
 <template>
   <view class="sso-login-page">
-    <view class="page-header">
+    <view class="page-header" v-if="!isWechatAutoRedirecting">
       <text class="page-title">星枢统一关系中心</text>
       <text class="page-tagline">{{ taglineStatic }}</text>
       <!-- 正常渲染组件（含降级表单）：非微信自动跳转中、且无 OAuth 错误时显示 -->
-      <view class="component-container" v-if="!isWechatAutoRedirecting && !oauthError">
+      <view class="component-container" v-if="!oauthError">
 	    <wx-sso-login
 	      :app-code="appCode"
 	      :redirect-uri="redirectUri"
@@ -20,13 +20,14 @@
 	  </view>
     </view>
 
-    <!-- 微信环境自动跳转中：统一品牌门面 -->
+    <!-- 微信环境自动跳转中：统一品牌门面（紧凑靠上，标题+广告语由门面渲染） -->
     <sso-loading-facade
       v-if="isWechatAutoRedirecting"
-      :status-text="SSO_STATUS.redirect"
+      compact
+      :status-text="SSO_STATUS.login"
     />
 
-    <!-- 错误提示（OAuth 失败回跳） -->
+    <!-- 错误提示（OAuth 失败回跳）：非微信跳转态 -->
     <view v-else-if="oauthError" class="error-state">
       <view class="error-text">⚠ {{ oauthError }}</view>
     </view>
