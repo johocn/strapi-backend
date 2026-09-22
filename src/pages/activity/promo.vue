@@ -356,10 +356,10 @@
               <PromoMessage v-else-if="m.type === 'message'" :messages="previewMessages" :config="m.config" />
               <PromoFaq v-else-if="m.type === 'faq'" :activity="form" :config="m.config" />
               <PromoCustom v-else-if="m.type === 'custom'" :activity="form" :config="m.config" />
-              <FloatContact
+              <!-- floatContact 预览块：仓库无 float-contact.vue，复用 promo-contact.vue 渲染，修复 build:h5 阻断 -->
+              <PromoContact
                 v-else-if="m.type === 'floatContact'"
                 :contact="form.promoContact || {}"
-                :in-wechat="false"
                 @open-wechat="previewShowWechat = true"
                 @call-phone="previewCallPhone()"
               />
@@ -435,10 +435,8 @@ import PromoAgenda from '../../components/promo/promo-agenda.vue'
 import PromoImages from '../../components/promo/promo-images.vue'
 import PromoRewards from '../../components/promo/promo-rewards.vue'
 import PromoContact from '../../components/promo/promo-contact.vue'
-import PromoMessage from '../../components/promo/promo-message.vue'
 import PromoFaq from '../../components/promo/promo-faq.vue'
 import PromoCustom from '../../components/promo/promo-custom.vue'
-import FloatContact from '../../components/promo/float-contact.vue'
 import { PROMO_MODULE_META } from './promo-presets.js'
 import { PROMO_PALETTES } from './promo-palettes.js'
 import { parsePromoImport, buildPromoPrompt, buildCustomHtmlPrompt, sanitizeCustomHtml, CUSTOM_PLACEHOLDERS as PLACEHOLDER_ITEMS } from './promo-import.js'
