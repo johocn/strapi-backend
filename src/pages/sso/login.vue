@@ -1,9 +1,9 @@
 <template>
   <view class="sso-login-page">
     <view class="page-header">
-      <!-- <text class="page-title">星枢统一关系中心</text>
-      <text class="page-tagline">{{ taglineStatic }}</text> -->
-	  <!-- 正常渲染组件（含降级表单）：非微信自动跳转中、且无 OAuth 错误时显示 -->
+      <text class="page-title">星枢统一关系中心</text>
+      <text class="page-tagline">{{ taglineStatic }}</text>
+      <!-- 正常渲染组件（含降级表单）：非微信自动跳转中、且无 OAuth 错误时显示 -->
       <view class="component-container" v-if="!isWechatAutoRedirecting && !oauthError">
 	    <wx-sso-login
 	      :app-code="appCode"
@@ -220,15 +220,23 @@ function goRegister() {
   min-height: 100vh;
   background: #f5f5f5;
 }
-.page-header { text-align: center; padding: 30px 0 20px; }
-.page-title { font-size: 22px; font-weight: bold; color: #333; }
-.page-tagline { display: block; margin-top: 8px; font-size: 13px; color: #8898aa; }
+.page-header { text-align: center; padding: 36px 0 24px; }
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+  letter-spacing: 1px;
+  background: linear-gradient(120deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.page-tagline { display: block; margin-top: 10px; font-size: 13px; color: #8898aa; }
 .component-container {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(102,126,234,0.08);
 }
 .footer { text-align: center; padding: 20px 0; }
 .footer-text { font-size: 14px; color: #666; }
