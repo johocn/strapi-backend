@@ -24,6 +24,7 @@
             </picker>
             <view class="quick-create" @click="quickCreateCategory">＋新建</view>
           </view>
+          <text class="link-add" @click="form.category = PROMO_CATEGORY_PRESET">设为「商户促销」</text>
         </view>
 
         <view class="form-item">
@@ -589,6 +590,26 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">活动目的</text>
+          <textarea v-model="form.purpose" placeholder="本次活动想达成的目的（如：清库存、引流到店、新品试吃）" class="form-textarea" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">促销商品清单（仅宣传展示，不接商城）</text>
+          <view v-for="(g, gi) in form.goodsList || []" :key="gi" class="form-row">
+            <input type="text" v-model="form.goodsList[gi].name" placeholder="商品名称" class="form-input form-inline" />
+            <input type="text" v-model="form.goodsList[gi].promoPrice" placeholder="促销价" class="form-input form-inline" />
+            <input type="text" v-model="form.goodsList[gi].originPrice" placeholder="原价（划线）" class="form-input form-inline" />
+            <input type="text" v-model="form.goodsList[gi].unit" placeholder="单位（如 斤/份）" class="form-input form-inline" />
+            <input type="text" v-model="form.goodsList[gi].limitPerPerson" placeholder="每人限购" class="form-input form-inline" />
+            <input type="text" v-model="form.goodsList[gi].desc" placeholder="说明（可选）" class="form-input form-inline" />
+            <text class="link-del" @click="removeGoods(gi)">删除</text>
+          </view>
+          <view class="link-add" @click="addGoods">+ 添加商品</view>
+          <text class="form-tip">促销价/原价皆缺的商品不会在 C 端展示；价格以到店为准。</text>
+        </view>
+
+        <view class="form-item">
           <text class="form-label">页面模块</text>
           <view v-for="(m, i) in form.promoModules" :key="i" class="promo-module-row">
             <view class="promo-module-name" @click="toggleModuleConfig(i)">
@@ -601,7 +622,21 @@
               <text class="link-del" @click="removeModule(i)">删除</text>
             </view>
             <view v-if="openModuleIndex === i" class="promo-module-config">
-              <template v-if="m.type === 'rich' || m.type === 'custom'">
+              <template v-if="m.type === 'goods'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：促销商品）" class="form-input" />
+                <input type="text" v-model="m.config.notice" placeholder="免责文案（默认：价格以到店为准）" class="form-input" />
+                <text class="form-tip">商品清单在上方「促销商品清单」区维护。</text>
+              </template>
+              <template v-else-if="m.type === 'purpose'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动目的）" class="form-input" />
+                <text class="form-tip">活动目的正文在上方「活动目的」区维护。</text>
+              </template>
+              <template v-else-if="m.type === 'notice'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动说明）" class="form-input" />
+                <RichEditor v-model="m.config.html" />
+                <text class="form-tip">正文读取「活动介绍」，此处为补充规则。</text>
+              </template>
+              <template v-else-if="m.type === 'rich' || m.type === 'custom'">
                 <RichEditor v-model="m.config.html" />
               </template>
               <template v-else-if="m.type === 'highlights'">
@@ -839,6 +874,13 @@ import { PROMO_MODULE_META } from './promo-presets.js'
 import { PROMO_PALETTES } from './promo-palettes.js'
 import { PRE_QUESTIONNAIRE_THEMES, POST_QUESTIONNAIRE_THEMES } from '../../components/activity-questionnaire-themes.js'
 
+// 促销商品清单操作（仅宣传展示，不接商城 SKU）
+function addGoods() {
+  if (!Array.isArray(form.goodsList)) form.goodsList = []
+  form.goodsList.push({ name: '', image: '', originPrice: null, promoPrice: null, unit: '', limitPerPerson: null, desc: '' })
+}
+function removeGoods(i) { form.goodsList.splice(i, 1) }
+
 const isEdit = ref(false)
 const activityId = ref('')
 
@@ -849,7 +891,8 @@ const seriesList = ref([])
 const seriesNames = computed(() => ['不归属系列', ...seriesList.value.map(s => s.title || '未命名系列')])
 const seriesIndex = ref(0)
 
-// 活动分类：option 来自 activity-category 分组标签
+// 活动分类：option 来自 activity-category 分组标签；「商户促销」为内置预设，无需后台先建标签
+const PROMO_CATEGORY_PRESET = '商户促销'
 const categoryList = ref([])
 const categoryNames = computed(() => ['不填分类', ...categoryList.value.map(t => t.name || '')])
 
@@ -899,6 +942,8 @@ function quickCreateCategory() {
 const form = reactive({
   title: '',
   category: '',
+  purpose: '',
+  goodsList: [],
   tags: [],
   relatedOverride: { articles: [], cases: [], products: [], faqs: [], courses: [], tutorials: [], activities: [] },
   showRelatedSection: true,
@@ -1773,6 +1818,8 @@ async function loadDetail() {
       learningPackageArticles: normRel(data.learningPackageArticles),
       learningPackageLessons: normRel(data.learningPackageLessons),
       category: data.category || '',
+      purpose: data.purpose || '',
+      goodsList: Array.isArray(data.goodsList) ? data.goodsList : [],
       tags: (Array.isArray(data.tags) ? data.tags : []).map(t => t.documentId || t),
       relatedOverride: {
         articles: relOverrideDocs(data.relatedOverride?.articles),
@@ -1836,6 +1883,8 @@ async function handleSubmit() {
   const submitData = {
     title: form.title,
     category: form.category || undefined,
+    purpose: form.purpose || undefined,
+    goodsList: (form.goodsList || []).filter(g => g && (g.name || g.promoPrice != null || g.originPrice != null)),
     tags: Array.isArray(form.tags) && form.tags.length ? form.tags : undefined,
     assets: (form.assets?.recordingUrl || (form.assets?.materials && form.assets.materials.length))
       ? {
