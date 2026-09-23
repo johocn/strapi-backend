@@ -580,6 +580,9 @@ const form = reactive({
   shareRewardPoints: 0,
   formConfig: [],
   rewardConfig: null,
+  // 促销内容：只读回填，用于预览 goods / purpose 模块（编辑入口在活动编辑页）
+  purpose: '',
+  goodsList: [],
   promoTemplate: 'summit',
   promoColors: null,
   promoModules: [],
@@ -776,6 +779,9 @@ async function loadDetail() {
       type: data.type || '',
       category: data.category || '',
       description: data.description || '',
+      // 促销内容随活动回填，供预览 goods / purpose 模块读取（保存时不回写）
+      purpose: data.purpose || '',
+      goodsList: Array.isArray(data.goodsList) ? data.goodsList : [],
       startTime: data.startTime || '',
       endTime: data.endTime || '',
       venueName: data.venueName || '',
