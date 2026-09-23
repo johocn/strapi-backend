@@ -14,4 +14,7 @@ export const PROMO_MODULE_META = {
   faq: { name: '常见问题', needConfig: true },
   custom: { name: '自定义块', needConfig: true },
   floatContact: { name: '悬浮联系方式', needConfig: false },
+  goods: { name: '促销商品', needConfig: true },
+  purpose: { name: '活动目的', needConfig: true },
+  notice: { name: '活动说明', needConfig: true },
 }
