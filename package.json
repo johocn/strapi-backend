@@ -8,7 +8,8 @@
     "license": "MIT",
     "scripts": {
         "dev:h5": "uni",
-        "build:h5": "uni build"
+        "build:h5": "uni build",
+        "test": "node --test tests/"
     },
     "dependencies": {
         "@dcloudio/uni-app": "^3.0.0-alpha-5020320260731001",

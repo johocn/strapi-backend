@@ -3,7 +3,7 @@
 
 import { PROMO_PALETTES } from './promo-palettes.js'
 
-const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom"]
+const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "goods", "purpose", "notice"]
 const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 
 export function stripCodeBlock(raw) {
@@ -51,8 +51,52 @@ export function normalizeModuleConfig(type, config) {
     const title = typeof c.title === 'string' ? c.title : undefined
     delete c.items
     if (title) c.title = title
+  } else if (type === 'goods') {
+    // 商品清单本体在 activity.goodsList，config 仅保留可选标题与免责文案
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    if (typeof c.notice === 'string' && c.notice.trim()) o.notice = c.notice.trim()
+    return o
+  } else if (type === 'purpose') {
+    // 活动目的正文在 activity.purpose，config 仅保留可选标题
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    return o
+  } else if (type === 'notice') {
+    // 正文读 activity.description，config.html 为运营补充规则
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    if (typeof c.html === 'string' && c.html.trim()) o.html = c.html
+    return o
   }
   return c
+}
+
+// 归一化促销商品清单：丢弃非对象项与「原价/促销价皆缺」的项；单侧有价则单侧展示
+export function normalizeGoodsList(raw) {
+  if (!Array.isArray(raw)) return []
+  const toPrice = v => {
+    if (v === undefined || v === null || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }
+  const out = []
+  for (const it of raw) {
+    if (!it || typeof it !== 'object' || Array.isArray(it)) continue
+    const originPrice = toPrice(it.originPrice)
+    const promoPrice = toPrice(it.promoPrice)
+    if (originPrice === null && promoPrice === null) continue
+    out.push({
+      name: typeof it.name === 'string' ? it.name.trim() : '',
+      image: typeof it.image === 'string' ? it.image : '',
+      originPrice,
+      promoPrice,
+      unit: typeof it.unit === 'string' ? it.unit.trim() : '',
+      limitPerPerson: toPrice(it.limitPerPerson),
+      desc: typeof it.desc === 'string' ? it.desc.trim() : '',
+    })
+  }
+  return out
 }
 
 export function normalizePromoModules(pm) {
@@ -72,6 +116,12 @@ export function normalizePromoModules(pm) {
 
 export function defaultPromoModules() {
   return ["cover", "info", "rich", "highlights", "agenda", "rewards", "contact", "faq", "message"]
+    .map((type, i) => ({ type, config: {}, sort: i + 1 }))
+}
+
+// 促销类默认模块序（运营选 promoTemplate=sale 时套用）
+export function defaultSalePromoModules() {
+  return ["cover", "goods", "purpose", "notice", "info", "contact"]
     .map((type, i) => ({ type, config: {}, sort: i + 1 }))
 }
 
