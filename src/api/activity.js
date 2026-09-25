@@ -118,7 +118,7 @@ export function getShareLeaderboard(params = {}) {
   return get(`${ADMIN}/activity-share/leaderboard`, params)
 }
 
-// 评价看板（返回 { rows, summary, pagination }；?activityDId= 可筛活动；start/end 过滤未实现）
+// 评价看板（返回 { rows, summary, pagination }；?activityDId= 可筛活动，?start=&end= 按评价时间区间过滤）
 export function getActivityReviews(params = {}) {
   return get(`${ADMIN}/activity-reviews`, params)
 }
