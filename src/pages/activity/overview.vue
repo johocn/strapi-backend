@@ -90,6 +90,7 @@ const statusOptions = [
   { label: '报名中', value: 'signup_open' },
   { label: '进行中', value: 'ongoing' },
   { label: '已结束', value: 'ended' },
+  { label: '已归档', value: 'archived' },
 ]
 
 // 促销视图：只看 promoTemplate=sale 的商户促销活动
