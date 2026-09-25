@@ -45,6 +45,11 @@ export function unarchiveActivity(documentId) {
   return post(`${ADMIN}/activities/${documentId}/unarchive`).then(extractItem)
 }
 
+// 关闭活动（结束并触发活动后 SOP：回放/复购/未到场回访待办 + 生成首张 auto 经营台账快照）
+export function closeActivity(documentId) {
+  return post(`${ADMIN}/activities/${documentId}/close`).then(extractItem)
+}
+
 // 报名名单（active=已报名 / cancelled=已取消；attendedAt 有值=已到场）
 export function getActivitySignups(documentId) {
   return get(`${ADMIN}/activities/${documentId}/signups`).then(extractList)

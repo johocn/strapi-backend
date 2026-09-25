@@ -72,6 +72,7 @@
           <view class="action-btn" @click="goSignups(item)">到场名单</view>
           <view class="action-btn" @click="goTempAuth(item)">临时授权</view>
           <view class="action-btn" @click="goScan(item)">扫码核销</view>
+          <view class="action-btn warning" v-if="item.status === 'ongoing'" @click="confirmClose(item)">关闭活动</view>
           <view class="action-btn" v-if="item.status === 'ended'" @click="confirmArchive(item)">归档</view>
           <view class="action-btn" v-if="item.status === 'archived'" @click="confirmUnarchive(item)">恢复</view>
           <view class="action-btn danger" @click="confirmDelete(item)">删除</view>
@@ -113,7 +114,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { listActivities, deleteActivity, duplicateActivity, archiveActivity, unarchiveActivity } from '../../api/activity.js'
+import { listActivities, deleteActivity, duplicateActivity, archiveActivity, unarchiveActivity, closeActivity } from '../../api/activity.js'
 import { listLecturers, listVenues } from '../../api/resource.js'
 import { getTagList } from '../../api/tag.js'
 import PageHeader from '../../components/PageHeader.vue'
@@ -294,6 +295,23 @@ async function handleDelete() {
   }
 }
 
+function confirmClose(item) {
+  uni.showModal({
+    title: '关闭活动',
+    content: `确定关闭「${item.title}」吗？关闭后将按到场情况触发回放/复购/未到场回访待办，并生成一张经营台账快照。`,
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        await closeActivity(item.documentId)
+        uni.showToast({ title: '已关闭', icon: 'success' })
+        loadData()
+      } catch (e) {
+        uni.showToast({ title: '关闭失败', icon: 'none' })
+      }
+    }
+  })
+}
+
 function confirmArchive(item) {
   uni.showModal({
     title: '归档活动',
@@ -373,6 +391,7 @@ page { background: #f5f5f5; }
 .action-btn { flex: 1; padding: 12rpx 0; border-radius: 8rpx; font-size: 26rpx; text-align: center; background: #f5f5f5; color: #333; font-weight: bold; }
 .action-btn.promo { background: #eef2ff; color: #6366f1; }
 .action-btn.danger { background: #fff1f0; color: #ff4d4f; }
+.action-btn.warning { background: #fff7e6; color: #d46b08; }
 
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
