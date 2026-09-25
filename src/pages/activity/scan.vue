@@ -7,18 +7,21 @@
       <view class="scan-box" @click="startScan">
         <view class="scan-icon">📷</view>
         <text class="scan-text">点击扫码</text>
-        <text class="scan-hint">扫描用户到场二维码（格式 activity:{activityId}:{userId}）</text>
+        <text class="scan-hint">扫描用户到场二维码（服务端签发票据）</text>
       </view>
     </view>
 
-    <!-- 手动输入用户ID核销（兜底） -->
+    <!-- 手动输入用户ID核销（兜底，必须填理由，留审计） -->
     <view class="manual-section">
-      <view class="section-title">手动输入用户ID核销</view>
+      <view class="section-title">手动输入用户ID核销（需填理由）</view>
       <view class="input-row">
-        <input class="code-input" v-model="userId" type="number" placeholder="请输入用户ID" @confirm="handleScanCheckin" />
-        <view class="verify-btn" @click="handleScanCheckin">
-          <text>核销</text>
-        </view>
+        <input class="code-input" v-model="userId" type="number" placeholder="请输入用户ID" />
+      </view>
+      <view class="input-row reason-row">
+        <input class="code-input" v-model="reason" placeholder="核销理由（如：用户手机没电，出示身份证）" />
+      </view>
+      <view class="verify-btn full" @click="handleManualCheckin">
+        <text>核销</text>
       </view>
     </view>
 
@@ -40,6 +43,8 @@ import PageHeader from '../../components/PageHeader.vue'
 
 let activityId = ref('')
 const userId = ref('')
+const reason = ref('')
+const scannedCode = ref('')
 const result = ref(null) // { type: 'success'|'already'|'nosignup'|'error', title, desc }
 const resultType = ref('')
 const resultIcon = ref('')
@@ -70,10 +75,14 @@ async function startScan() {
         const text = (res && (res.result || res.text)) || ''
         const parsed = parseScanText(text)
         if (!parsed) {
-          setResult('error', '❌', '无效二维码', '二维码格式不正确，应为 activity:{活动ID}:{用户ID}')
+          setResult('error', '❌', '无效二维码', '二维码格式不正确，请让用户刷新出示新码')
           return
         }
-        userId.value = parsed.userId
+        if (parsed.kind === 'legacy') {
+          setResult('error', '❌', '旧版二维码已停用', '请让用户刷新页面后重新出示二维码')
+          return
+        }
+        scannedCode.value = parsed.code
         handleScanCheckin()
       },
       fail: (res) => {
@@ -85,23 +94,21 @@ async function startScan() {
   }
 }
 
-// 解析二维码文本 activity:{activityId}:{userId}，返回 userId
+// 解析二维码文本：只认 atk:{48位hex}；旧版明文码单独识别以便给出明确文案
 function parseScanText(text) {
-  if (!text) return null
-  const m = String(text).match(/^activity:([^:]+):([^:]+)/)
-  if (!m) return null
-  const uid = Number(m[2])
-  if (!Number.isFinite(uid)) return null
-  return { activityId: m[1], userId: uid }
+  const s = String(text || '').trim()
+  if (/^atk:[0-9a-f]{48}$/.test(s)) return { kind: 'ticket', code: s }
+  if (/^activity:[^:]+:[^:]+$/.test(s)) return { kind: 'legacy' }
+  return null
 }
 
 async function handleScanCheckin() {
   if (!activityId.value) return uni.showToast({ title: '缺少活动ID', icon: 'none' })
-  if (!userId.value) return uni.showToast({ title: '请输入用户ID', icon: 'none' })
+  if (!scannedCode.value) return uni.showToast({ title: '请先扫码', icon: 'none' })
 
   uni.showLoading({ title: '核销中...' })
   try {
-    const res = await scanCheckin(activityId.value, { userId: Number(userId.value) })
+    const res = await scanCheckin(activityId.value, { code: scannedCode.value })
     uni.hideLoading()
     if (res && res.ok) {
       setResult('success', '✅', '核销成功', '已确认用户到场')
@@ -112,7 +119,39 @@ async function handleScanCheckin() {
     }
   } catch (e) {
     uni.hideLoading()
-    // 未报名返回 400，错误信息为「尚未报名」
+    const msg = (e && (e.message || e.error)) || '核销失败'
+    if (String(msg).includes('尚未报名')) {
+      setResult('nosignup', '🚫', '未报名', '该用户尚未报名此活动')
+    } else if (String(msg).includes('过期')) {
+      setResult('expired', '⌛', '二维码已过期', '请让用户刷新页面后重新出示二维码')
+    } else if (String(msg).includes('旧版二维码')) {
+      setResult('error', '❌', '旧版二维码已停用', '请让用户刷新页面后重新出示二维码')
+    } else {
+      setResult('error', '❌', '核销失败', msg)
+    }
+  }
+}
+
+// 手动核销：强制理由
+async function handleManualCheckin() {
+  if (!activityId.value) return uni.showToast({ title: '缺少活动ID', icon: 'none' })
+  if (!userId.value) return uni.showToast({ title: '请输入用户ID', icon: 'none' })
+  if (String(reason.value || '').trim().length < 2) {
+    return uni.showToast({ title: '请填写手动核销理由', icon: 'none' })
+  }
+  uni.showLoading({ title: '核销中...' })
+  try {
+    const res = await scanCheckin(activityId.value, { userId: Number(userId.value), reason: String(reason.value).trim() })
+    uni.hideLoading()
+    if (res && res.ok) {
+      setResult('success', '✅', '核销成功', '已确认用户到场（手动核销，已留痕）')
+    } else if (res && res.reason === 'already_checked_in') {
+      setResult('already', '⚠️', '已签到', '该用户此前已完成核销到场，无需重复签到')
+    } else {
+      setResult('nosignup', '⚠️', '核销异常', (res && (res.error || res.message)) || '重复签到或状态异常')
+    }
+  } catch (e) {
+    uni.hideLoading()
     const msg = (e && (e.message || e.error)) || '核销失败'
     if (String(msg).includes('尚未报名')) {
       setResult('nosignup', '🚫', '未报名', '该用户尚未报名此活动')
@@ -150,6 +189,8 @@ page { background: #f5f5f5; }
 .manual-section { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 30rpx; }
 .section-title { font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 20rpx; }
 .input-row { display: flex; gap: 16rpx; align-items: center; }
+.reason-row { margin-top: 16rpx; }
+.verify-btn.full { width: 100%; margin-top: 16rpx; text-align: center; box-sizing: border-box; }
 .code-input { flex: 1; height: 76rpx; background: #f5f5f5; border-radius: 8rpx; padding: 0 20rpx; font-size: 30rpx; box-sizing: border-box; }
 .verify-btn { padding: 0 40rpx; height: 76rpx; line-height: 76rpx; background: #07c160; color: #fff; border-radius: 8rpx; font-size: 30rpx; font-weight: bold; white-space: nowrap; }
 
