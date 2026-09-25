@@ -553,6 +553,10 @@
           <view class="module-icon">🧾</view>
           <view class="module-name">经营对账</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/activity/consultation-messages')">
+          <view class="module-icon">💬</view>
+          <view class="module-name">咨询留言</view>
+        </view>
       </view>
     </view>
 
