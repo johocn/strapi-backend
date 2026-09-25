@@ -459,6 +459,16 @@
             <view class="quick-create" @click="quickCreateVenue">＋新建</view>
           </view>
         </view>
+
+        <view class="form-item">
+          <text class="form-label">集合点</text>
+          <picker class="picker-grow" mode="selector" :range="pickupLocationNames" @change="handlePickupLocationChange">
+            <view class="picker-value">
+              <text :class="['picker-placeholder', { empty: !pickupLocationId }]">{{ currentPickupLocationName || '不选择集合点' }}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
       </view>
 
       <view class="form-section">
@@ -860,6 +870,7 @@ import { getActivity, createActivity, updateActivity, listSeries, createSeries, 
 import { geoArticleApi, caseApi, productApi, faqApi, tutorialApi } from '../../api/website.js'
 import { getLessonList, getCourseList } from '../../api/course.js'
 import { listLecturers, listVenues, checkSchedule, createLecturer, createVenue } from '../../api/resource.js'
+import { getPickupLocationList } from '../../api/points.js'
 import { getTagList, getTagGroupList, createTag } from '../../api/tag.js'
 import { getAllRoles } from '../../api/auth.js'
 import { loadSiteConfig, isFeatureEnabled } from '../../utils/config-helper.js'
@@ -1058,17 +1069,36 @@ function handleVenueChange(e) {
   venueId.value = idx === 0 || !row ? '' : String(row.id)
 }
 
+// 集合点（自提点）选择：仅启用项入列，停用项仍可回显名称
+const pickupLocationList = ref([])
+const pickupLocationId = ref('')
+const activePickupLocations = computed(() => pickupLocationList.value.filter(r => r.status !== 'inactive'))
+const pickupLocationNames = computed(() => ['不选择集合点', ...activePickupLocations.value.map(r => r.name || `自提点#${r.id}`)])
+const currentPickupLocationName = computed(() => {
+  if (!pickupLocationId.value) return ''
+  const it = pickupLocationList.value.find(r => String(r.id) === String(pickupLocationId.value))
+  return it ? (it.name || `自提点#${pickupLocationId.value}`) : ''
+})
+function handlePickupLocationChange(e) {
+  const idx = Number(e.detail.value)
+  const row = activePickupLocations.value[idx - 1]
+  pickupLocationId.value = idx === 0 || !row ? '' : String(row.id)
+}
+
 async function loadResources() {
   try {
-    const [l, v] = await Promise.all([
+    const [l, v, p] = await Promise.all([
       listLecturers({ page: 1, pageSize: 500, includeDisabled: 'true' }),
-      listVenues({ page: 1, pageSize: 500, includeDisabled: 'true' })
+      listVenues({ page: 1, pageSize: 500, includeDisabled: 'true' }),
+      getPickupLocationList({ page: 1, pageSize: 500 })
     ])
     lecturerList.value = l.list || []
     venueList.value = v.list || []
+    pickupLocationList.value = p.list || []
   } catch (e) {
     lecturerList.value = []
     venueList.value = []
+    pickupLocationList.value = []
   }
 }
 
@@ -1858,6 +1888,7 @@ async function loadDetail() {
     }
     lecturerId.value = relId(data.lecturer)
     venueId.value = relId(data.venue)
+    pickupLocationId.value = relId(data.pickupLocation)
     syncIndexes()
     syncSeriesIndex()
   } catch (e) {
@@ -1995,6 +2026,7 @@ async function handleSubmit() {
   // ---- 资源排期冲突预检 ----
   if (lecturerId.value) submitData.lecturer = Number(lecturerId.value)
   if (venueId.value) submitData.venue = Number(venueId.value)
+  if (pickupLocationId.value) submitData.pickupLocation = Number(pickupLocationId.value)
 
   const hasRes = Boolean(submitData.lecturer || submitData.venue)
   const hasTime = Boolean(submitData.startTime && submitData.endTime)
