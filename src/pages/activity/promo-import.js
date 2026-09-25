@@ -3,7 +3,7 @@
 
 import { PROMO_PALETTES } from './promo-palettes.js'
 
-const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "goods", "purpose", "notice"]
+const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "floatContact", "goods", "purpose", "notice"]
 const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 
 export function stripCodeBlock(raw) {

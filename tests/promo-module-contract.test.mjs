@@ -11,10 +11,11 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = resolve(here, '..')
 const read = p => readFileSync(resolve(root, p), 'utf8')
 
-/** web 白名单期望清单（15 类；不含 floatContact —— 仅 C 端需要持久化该类型） */
+/** web 白名单期望清单（16 类 = 15 类基础模块 + floatContact；与后端 PROMO_MODULE_TYPES 及 C 端一致） */
 const EXPECTED = [
   'cover', 'info', 'rich', 'highlights', 'speakers', 'agenda', 'images',
-  'rewards', 'contact', 'message', 'faq', 'custom', 'goods', 'purpose', 'notice',
+  'rewards', 'contact', 'message', 'faq', 'custom', 'floatContact',
+  'goods', 'purpose', 'notice',
 ]
 
 const promoVue = read('src/pages/activity/promo.vue')
@@ -24,14 +25,18 @@ test('白名单与期望清单一致（行为验证，非正则）', () => {
   for (const type of EXPECTED) {
     assert.equal(normalizePromoModules([{ type }]).length, 1, `${type} 未加入白名单`)
   }
-  for (const type of ['tour', 'floatContact', 'unknown-x']) {
+  for (const type of ['tour', 'unknown-x']) {
     assert.equal(normalizePromoModules([{ type }]).length, 0, `${type} 不应在 web 白名单中`)
   }
 })
 
+/** type → 组件文件（floatContact 复用通用悬浮组件，文件名不遵循 promo- 前缀） */
+const COMPONENT_FILE = { floatContact: 'src/components/promo/float-contact.vue' }
+const componentFileOf = t => COMPONENT_FILE[t] || `src/components/promo/promo-${t}.vue`
+
 test('每个白名单类型都有 C 端副本组件文件', () => {
   for (const type of EXPECTED) {
-    const file = `src/components/promo/promo-${type}.vue`
+    const file = componentFileOf(type)
     assert.ok(existsSync(resolve(root, file)), `缺组件文件 ${file}`)
   }
 })

@@ -62,3 +62,9 @@ test('normalizeGoodsList 空/非法入参返回空数组', () => {
 test('defaultSalePromoModules 促销默认序为 cover→goods→purpose→notice→info→contact', () => {
   assert.deepEqual(defaultSalePromoModules().map(m => m.type), ['cover', 'goods', 'purpose', 'notice', 'info', 'contact'])
 })
+
+test('floatContact 加入白名单（与后端 PROMO_MODULE_TYPES 对齐）', () => {
+  const out = normalizePromoModules([{ type: 'floatContact' }])
+  assert.equal(out.length, 1)
+  assert.equal(out[0].type, 'floatContact')
+})
