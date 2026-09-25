@@ -60,8 +60,8 @@ const selectedDate = ref('')
 const dayMap = ref(new Map())
 const loading = ref(false)
 
-const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束' }
-const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended' }
+const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束', archived: '已归档' }
+const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended', archived: 'archived' }
 function statusText(s) { return statusTextMap[s] || s || '-' }
 function statusClass(s) { return statusClassMap[s] || 'default' }
 
@@ -154,6 +154,7 @@ page { background: #f5f5f5; }
 .status-badge.open { background: #e6f7ff; color: #1890ff; }
 .status-badge.ongoing { background: #fff7e6; color: #fa8c16; }
 .status-badge.ended { background: #f6ffed; color: #52c41a; }
+.status-badge.archived { background: #f0f0f0; color: #8c8c8c; text-decoration: line-through; }
 .status-badge.default { background: #f5f5f5; color: #666; }
 .card-meta { display: flex; gap: 16rpx; margin-bottom: 8rpx; flex-wrap: wrap; }
 .meta-item { font-size: 24rpx; color: #999; }
