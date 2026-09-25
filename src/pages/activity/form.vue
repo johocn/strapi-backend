@@ -1267,11 +1267,12 @@ function advanceTip() {
     : ''
 }
 
-// 冲突/建议时段的 {"start"|"conflictStart", "end"|"conflictEnd"} 或 {startTime,endTime} → "MM-DD HH:mm ~ HH:mm"
+// 冲突/建议时段 → "MM-DD HH:mm ~ HH:mm"
+// 兼容三种后端形状：建议候选 {suggestStart,suggestEnd}、冲突项 {startTime,endTime}、旧式 {start,end}/{conflictStart,conflictEnd}
 function fmtRange(obj) {
   if (!obj) return ''
-  const s = obj.startTime || obj.start || obj.conflictStart
-  const e = obj.endTime || obj.end || obj.conflictEnd
+  const s = obj.suggestStart || obj.startTime || obj.start || obj.conflictStart
+  const e = obj.suggestEnd || obj.endTime || obj.end || obj.conflictEnd
   const f = (v) => v ? fmtDate(v) + ' ' + (String(v).slice(11, 16) || '') : ''
   return `${f(s)} ~ ${String(e).slice(11, 16) || ''}`
 }
