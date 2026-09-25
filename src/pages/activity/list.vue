@@ -10,6 +10,17 @@
     </PageHeader>
 
     <view class="search-section">
+      <view class="search-row">
+        <input
+          class="search-input"
+          v-model="searchInput"
+          placeholder="搜索活动标题"
+          confirm-type="search"
+          @confirm="handleSearch"
+        />
+        <view class="search-btn" @click="handleSearch">搜索</view>
+        <view class="search-btn ghost" v-if="activeSearch" @click="clearSearch">清空</view>
+      </view>
       <view class="filter-row">
         <picker mode="selector" :range="statusOptions" @change="handleStatusChange">
           <view class="filter-item">
@@ -38,8 +49,8 @@
       </view>
     </view>
 
-    <view class="activity-list" v-if="!loading && pagedList.length > 0">
-      <view v-for="item in pagedList" :key="item.documentId || item.id" class="activity-card">
+    <view class="activity-list" v-if="!loading && dataList.length > 0">
+      <view v-for="item in dataList" :key="item.documentId || item.id" class="activity-card">
         <view class="card-header">
           <text class="card-title">{{ item.title || '-' }}</text>
           <text v-if="item.type && item.type !== '其他'" class="type-badge">{{ item.type }}</text>
@@ -69,14 +80,14 @@
     </view>
 
     <view v-if="loading" class="loading"><text>加载中...</text></view>
-    <view v-if="!loading && filteredAll.length === 0" class="empty-state">
+    <view v-if="!loading && dataList.length === 0" class="empty-state">
       <text class="empty-icon">📋</text>
       <text class="empty-text">暂无活动</text>
     </view>
 
-    <view class="pagination" v-if="filteredAll.length > pageSize">
+    <view class="pagination" v-if="total > pageSize">
       <view class="pagination-btn" @click="prevPage" :class="{ disabled: currentPage === 1 }">上一页</view>
-      <text class="pagination-info">{{ currentPage }} / {{ totalPages }}</text>
+      <text class="pagination-info">{{ currentPage }} / {{ totalPages }}（共 {{ total }} 条）</text>
       <view class="pagination-btn" @click="nextPage" :class="{ disabled: currentPage >= totalPages }">下一页</view>
     </view>
 
@@ -110,41 +121,27 @@ import PageHeader from '../../components/PageHeader.vue'
 const statusOptions = ['全部状态', '草稿', '报名中', '进行中', '已结束', '已归档']
 const statusValues = ['', 'draft', 'signup_open', 'ongoing', 'ended', 'archived']
 const statusIndex = ref(0)
+const searchInput = ref('')
+const activeSearch = ref('')
 const statusTextMap = { draft: '草稿', signup_open: '报名中', ongoing: '进行中', ended: '已结束', archived: '已归档' }
 const statusClassMap = { draft: 'draft', signup_open: 'open', ongoing: 'ongoing', ended: 'ended', archived: 'archived' }
 
 // 服务端拉取（按状态）的原始数据
 const dataList = ref([])
-const filteredAll = computed(() => dataList.value.filter(a => {
-  if (venueIndex.value > 0) {
-    const id = relId(a.venue)
-    if (id !== relId(venueList.value[venueIndex.value - 1])) return false
-  }
-  if (lecturerIndex.value > 0) {
-    const id = relId(a.lecturer)
-    if (id !== relId(lecturerList.value[lecturerIndex.value - 1])) return false
-  }
-  if (categoryIndex.value > 0 && a.category !== categoryOptions.value[categoryIndex.value]) return false
-  return true
-}))
 
-// 前端筛选：场地 / 讲师 / 分类
+// 筛选项数据源（仅用于下拉选项渲染）
 const venueList = ref([])
 const lecturerList = ref([])
 const categoryList = ref([])
 const venueIndex = ref(0)
 const lecturerIndex = ref(0)
 const categoryIndex = ref(0)
-const venueOptions = computed(() => ['全部场地', ...venueList.value.filter(v => !v.disabled).map(v => v.name || `场地#${v.id}`)])
-const lecturerOptions = computed(() => ['全部讲师', ...lecturerList.value.filter(l => !l.disabled).map(l => l.name || `讲师#${l.id}`)])
+// 下拉可选集合（排除停用项）；筛选下发时按同一集合取下标，避免与 venueList/lecturerList 下标错位
+const venueSelectable = computed(() => venueList.value.filter(v => !v.disabled))
+const lecturerSelectable = computed(() => lecturerList.value.filter(l => !l.disabled))
+const venueOptions = computed(() => ['全部场地', ...venueSelectable.value.map(v => v.name || `场地#${v.id}`)])
+const lecturerOptions = computed(() => ['全部讲师', ...lecturerSelectable.value.map(l => l.name || `讲师#${l.id}`)])
 const categoryOptions = computed(() => ['全部分类', ...categoryList.value.map(t => t.name || '')])
-
-function relId(r) {
-  if (!r) return ''
-  const row = Array.isArray(r) ? r[0] : r
-  if (!row) return ''
-  return String(row.id ?? row.documentId ?? '')
-}
 
 async function loadFilters() {
   try {
@@ -166,18 +163,15 @@ async function loadFilters() {
   }
 }
 
-function handleVenueFilter(e) { venueIndex.value = Number(e.detail.value); currentPage.value = 1 }
-function handleLecturerFilter(e) { lecturerIndex.value = Number(e.detail.value); currentPage.value = 1 }
-function handleCategoryFilter(e) { categoryIndex.value = Number(e.detail.value); currentPage.value = 1 }
+function handleVenueFilter(e) { venueIndex.value = Number(e.detail.value); reloadFromFirstPage() }
+function handleLecturerFilter(e) { lecturerIndex.value = Number(e.detail.value); reloadFromFirstPage() }
+function handleCategoryFilter(e) { categoryIndex.value = Number(e.detail.value); reloadFromFirstPage() }
 
-// 分页：基于 filteredAll 客户端切片
+// 分页：服务端分页，total 来自后端 meta.pagination.total
 const currentPage = ref(1)
 const pageSize = 10
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredAll.value.slice(start, start + pageSize)
-})
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredAll.value.length / pageSize)))
+const total = ref(0)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 const loading = ref(false)
 
 const showDeleteModal = ref(false)
@@ -195,25 +189,44 @@ function formatTime(dateStr) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function docIdOf(row) {
+  if (!row) return ''
+  return String(row.documentId || row.id || '')
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const params = { page: 1, pageSize: 500 }
+    const params = { page: currentPage.value, pageSize }
     if (statusIndex.value > 0) params.status = statusValues[statusIndex.value]
+    if (activeSearch.value) params.search = activeSearch.value
+    if (venueIndex.value > 0) {
+      const v = venueSelectable.value[venueIndex.value - 1]
+      if (v) params.venue = docIdOf(v)
+    }
+    if (lecturerIndex.value > 0) {
+      const l = lecturerSelectable.value[lecturerIndex.value - 1]
+      if (l) params.lecturer = docIdOf(l)
+    }
+    if (categoryIndex.value > 0) params.category = categoryOptions.value[categoryIndex.value]
     const res = await listActivities(params)
     dataList.value = res.list || []
-    currentPage.value = 1
+    total.value = Number(res.pagination?.total ?? dataList.value.length)
   } catch (e) {
     dataList.value = []
+    total.value = 0
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-function handleStatusChange(e) { statusIndex.value = Number(e.detail.value); loadData() }
-function prevPage() { if (currentPage.value > 1) currentPage.value-- }
-function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
+function handleStatusChange(e) { statusIndex.value = Number(e.detail.value); reloadFromFirstPage() }
+function reloadFromFirstPage() { currentPage.value = 1; loadData() }
+function handleSearch() { activeSearch.value = searchInput.value.trim(); reloadFromFirstPage() }
+function clearSearch() { searchInput.value = ''; activeSearch.value = ''; reloadFromFirstPage() }
+function prevPage() { if (currentPage.value > 1) { currentPage.value--; loadData() } }
+function nextPage() { if (currentPage.value < totalPages.value) { currentPage.value++; loadData() } }
 
 function goCreate() {
   uni.navigateTo({ url: '/pages/activity/form' })
@@ -331,6 +344,10 @@ page { background: #f5f5f5; }
 .btn-group { display: flex; gap: 16rpx; align-items: center; }
 
 .search-section { margin-bottom: 20rpx; }
+.search-row { display: flex; gap: 16rpx; align-items: center; margin-bottom: 16rpx; }
+.search-input { flex: 1; height: 72rpx; padding: 0 24rpx; background: #fff; border-radius: 8rpx; font-size: 26rpx; box-sizing: border-box; }
+.search-btn { padding: 12rpx 32rpx; background: #667eea; color: #fff; border-radius: 8rpx; font-size: 26rpx; }
+.search-btn.ghost { background: #f0f0f0; color: #666; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .filter-item {
   display: flex; align-items: center; gap: 8rpx;
