@@ -44,7 +44,7 @@
           <input
             v-model="productCodeInput"
             class="form-input"
-            placeholder="如 LCYSRK006"
+            :placeholder="queryPlaceholder"
             maxlength="50"
           />
         </view>
@@ -137,6 +137,10 @@
               <text class="edit-label">到期日期</text>
               <input v-model="editForm.maturityDate" class="edit-input" placeholder="YYYY-MM-DD" />
             </view>
+            <view class="edit-item">
+              <text class="edit-label">采集网址</text>
+              <input v-model="editForm.navSourceUrl" class="edit-input" placeholder="净值来源网址（客户可自行查阅校验）" />
+            </view>
             <view v-if="editForm.unitNav" class="edit-item">
               <text class="edit-label">单位净值</text>
               <text class="edit-value-readonly">{{ editForm.unitNav }}（{{ editForm.navDate || '' }}）</text>
@@ -148,7 +152,7 @@
         <view class="data-block">
           <view class="block-title">
             <text class="block-tag source">源数据</text>
-            <text class="block-name">{{ collectResult.sourceData?.company || '渤银理财' }}</text>
+            <text class="block-name">{{ collectResult.sourceData?.company || sourceOptions[sourceIndex] }}</text>
           </view>
           <view class="data-list">
             <view class="data-item">
@@ -302,6 +306,28 @@
       </view>
     </view>
 
+    <!-- 批量任务处理中状态条 -->
+    <view v-if="batchTask" class="batch-task-bar">
+      <text class="batch-task-text">{{ batchTask.type === 'collect' ? '批量采集中' : batchTask.type === 'annual' ? '年化重算中' : '风险指标计算中' }}...</text>
+    </view>
+
+    <!-- 最近一次批量操作结果 -->
+    <view v-if="batchResult" class="batch-result">
+      <view class="result-header">
+        <text class="result-title">最近一次批量操作结果</text>
+        <text class="result-close" @click="batchResult = null">×</text>
+      </view>
+      <view class="result-summary">
+        <text>成功 {{ batchResult.successCount }} 个</text>
+        <text v-if="batchResult.failCount > 0" class="fail-text">失败 {{ batchResult.failCount }} 个</text>
+        <text v-if="batchResult.insertCount !== undefined" class="insert-text">新增 {{ batchResult.insertCount }} 条</text>
+        <text v-if="batchResult.updateCount !== undefined" class="update-text">更新 {{ batchResult.updateCount }} 条</text>
+      </view>
+      <view v-for="(item, i) in (batchResult.failDetails || [])" :key="i" class="fail-detail">
+        <text>{{ item.productName }}：{{ item.reason }}</text>
+      </view>
+    </view>
+
     <view class="action-section">
       <view class="section-title">批量采集操作</view>
       <view class="action-row">
@@ -361,6 +387,7 @@ import {
   triggerCollect,
   recalculate,
   recalculateRiskMetric,
+  getAdminCollectConfigs,
   collectProduct,
   confirmCollect,
   getAdminCompanyList,
@@ -371,8 +398,8 @@ const overview = ref({})
 const anomalies = ref([])
 
 // ===== 产品采集 =====
-const sourceOptions = ['渤银理财', '杭银理财']
-const sourceValues = ['cbhb', 'hzbank']
+const sourceOptions = ['渤银理财', '杭银理财', '青岛银行', '中国理财网', '南银理财', '宁银理财']
+const sourceValues = ['cbhb', 'hzbank', 'qdccb', 'chinawealth', 'nanyin', 'ningyin']
 const sourceIndex = ref(0)
 const productCodeInput = ref('')
 const collecting = ref(false)
@@ -445,11 +472,20 @@ const editForm = ref({
   benchmark: '',
   issueDate: '',
   maturityDate: '',
+  navSourceUrl: '',
   unitNav: null,
   navDate: '',
 })
 
 const currentSource = computed(() => sourceValues[sourceIndex.value])
+
+/** 查询输入占位提示：中国理财网按登记编码，青岛银行按完整产品代码 */
+const queryPlaceholder = computed(() => {
+  if (currentSource.value === 'chinawealth') return '请输入登记编码'
+  if (currentSource.value === 'qdccb') return '请输入产品代码（含类型后缀，如 CCRSFDKFJZ03A9）'
+  if (currentSource.value === 'ningyin') return '请输入产品代码（如 ZGN2660096E）'
+  return '如 LCYSRK006'
+})
 
 /** 是否可入库：至少需要产品名称和登记编码（理财网名称可选） */
 const canConfirm = computed(() => {
@@ -500,6 +536,7 @@ function initEditForm(mergedData) {
     benchmark: d.benchmark || '',
     issueDate: d.issueDate || '',
     maturityDate: d.maturityDate || '',
+    navSourceUrl: d.navSourceUrl || '',
     unitNav: d.unitNav || null,
     navDate: d.navDate || '',
   }
@@ -604,6 +641,7 @@ async function handleConfirm() {
       issueDate: editForm.value.issueDate || null,
       maturityDate: editForm.value.maturityDate || null,
       benchmark: editForm.value.benchmark || null,
+      navSourceUrl: editForm.value.navSourceUrl || null,
       remark: '',
       company: companyValue,
       source: currentSource.value,
@@ -672,6 +710,36 @@ const batchCollecting = ref(false)
 const recalculating = ref(false)
 const recalcRisk = ref(false)
 
+// 批量任务轮询
+const batchTask = ref(null) // { type: 'collect' | 'annual' | 'risk', startedAt }
+const batchResult = ref(null) // 最近一次批量操作结果
+const POLL_INTERVAL = 5000
+const POLL_TIMEOUT = 180000
+let pollTimer = null
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+function startPolling(type, isDone, onDone) {
+  batchTask.value = { type, startedAt: Date.now() }
+  stopPolling()
+  pollTimer = setInterval(async () => {
+    try {
+      const done = await isDone()
+      if (done || Date.now() - batchTask.value.startedAt > POLL_TIMEOUT) {
+        stopPolling()
+        batchTask.value = null
+        onDone(done)
+      }
+    } catch (e) {
+      stopPolling()
+      batchTask.value = null
+      uni.showToast({ title: '查询任务状态失败', icon: 'none' })
+    }
+  }, POLL_INTERVAL)
+}
+
 async function loadOverview() {
   try {
     overview.value = await getStatsOverview() || {}
@@ -692,12 +760,14 @@ async function loadAnomalies() {
 async function handleTriggerCollect() {
   batchCollecting.value = true
   try {
-    const result = await triggerCollect({})
-    const msg = result?.successCount != null
-      ? `批量采集完成：成功${result.successCount}，失败${result.failCount}`
-      : '批量采集已触发'
-    uni.showToast({ title: msg, icon: 'success' })
-    setTimeout(() => { loadOverview(); loadAnomalies() }, 2000)
+    await triggerCollect({})
+    uni.showToast({ title: '批量采集任务已触发', icon: 'none' })
+    startPolling('collect',
+      async () => {
+        const list = await getAdminCollectConfigs({ pageSize: 500 })
+        return list.every(c => c.collectStatus !== 'running')
+      },
+      (done) => { refreshBatchResult('collect', done) })
   } catch (e) {
     uni.showToast({ title: e?.message || '触发失败', icon: 'none' })
   } finally {
@@ -709,8 +779,13 @@ async function handleRecalculate() {
   recalculating.value = true
   try {
     await recalculate()
-    uni.showToast({ title: '年化重算完成', icon: 'success' })
-    loadOverview()
+    uni.showToast({ title: '年化重算任务已触发', icon: 'none' })
+    startPolling('annual',
+      async () => {
+        const res = await getProductMonitor()
+        return res.list.every(p => p.annualStatus === 'ok')
+      },
+      (done) => { refreshBatchResult('annual', done) })
   } catch (e) {
     uni.showToast({ title: '重算失败', icon: 'none' })
   } finally {
@@ -721,12 +796,66 @@ async function handleRecalculate() {
 async function handleRecalcRisk() {
   recalcRisk.value = true
   try {
-    await recalculateRiskMetric()
-    uni.showToast({ title: '风险指标重算完成', icon: 'success' })
+    await recalculateRiskMetric({ type: 'all' })
+    uni.showToast({ title: '风险指标任务已触发', icon: 'none' })
+    startPolling('risk',
+      async () => {
+        const res = await getProductMonitor()
+        return res.list.every(p => p.riskStatus === 'ok')
+      },
+      (done) => { refreshBatchResult('risk', done) })
   } catch (e) {
     uni.showToast({ title: '重算失败', icon: 'none' })
   } finally {
     recalcRisk.value = false
+  }
+}
+
+async function refreshBatchResult(type, done) {
+  if (!done) {
+    uni.showToast({ title: '任务仍在处理，可稍后刷新查看', icon: 'none' })
+    return
+  }
+  const monitor = await getProductMonitor()
+  const configs = await getAdminCollectConfigs({ pageSize: 500 })
+  const failDetails = []
+  let insertTotal = 0
+  let updateTotal = 0
+  let noNewNav = false
+  if (type === 'collect') {
+    for (const c of configs) {
+      insertTotal += c.lastInsertCount || 0
+      updateTotal += c.lastUpdateCount || 0
+      if (c.collectStatus === 'failed') {
+        failDetails.push({ productName: c.product?.productName || `产品${c.product?.id}`, reason: c.failReason || '采集失败' })
+      }
+    }
+    if (!insertTotal && !updateTotal && failDetails.length === 0) {
+      const maxNavDate = monitor.list.reduce((max, p) => {
+        const d = p.latestNav?.navDate
+        return d && d > max ? d : max
+      }, '')
+      noNewNav = true
+      uni.showToast({ title: `数据源暂无新净值（最新 ${maxNavDate}）`, icon: 'none' })
+    }
+  } else {
+    for (const p of monitor.list) {
+      const status = type === 'annual' ? p.annualStatus : p.riskStatus
+      if (status !== 'ok') {
+        failDetails.push({ productName: p.productName, reason: status === 'danger' ? '无计算数据' : '未同步到最新净值日期' })
+      }
+    }
+  }
+  batchResult.value = {
+    successCount: (type === 'collect' ? configs.length : monitor.list.length) - failDetails.length,
+    failCount: failDetails.length,
+    failDetails,
+    ...(type === 'collect' ? { insertCount: insertTotal, updateCount: updateTotal } : {}),
+  }
+  loadOverview()
+  loadAnomalies()
+  if (!noNewNav) {
+    uni.showToast({ title: `批量${type === 'collect' ? '采集' : type === 'annual' ? '年化' : '风险指标'}完成`, icon: 'success' })
   }
 }
 
@@ -944,6 +1073,33 @@ page { background: #f5f5f5; }
   background: #1890ff; color: #fff;
 }
 .action-btn.nav-collect[disabled] { opacity: 0.5; }
+
+/* 批量任务状态条 */
+.batch-task-bar {
+  background: #e6f7ff; border-radius: 12rpx; padding: 20rpx 24rpx;
+  margin-bottom: 20rpx; border: 1rpx solid #bae7ff;
+}
+.batch-task-text { font-size: 26rpx; color: #1890ff; }
+
+/* 最近一次批量操作结果 */
+.batch-result {
+  background: #f6ffed; border-radius: 12rpx; padding: 24rpx;
+  margin-bottom: 20rpx; border: 1rpx solid #b7eb8f;
+}
+.result-close {
+  font-size: 36rpx; color: #999; padding: 0 8rpx; line-height: 1;
+}
+.result-summary {
+  display: flex; gap: 24rpx; font-size: 28rpx; color: #333;
+  margin-bottom: 12rpx; font-weight: bold;
+}
+.fail-text { color: #f5222d; }
+.insert-text { color: #07c160; }
+.update-text { color: #1677ff; }
+.fail-detail {
+  font-size: 24rpx; color: #999; padding: 6rpx 0;
+  word-break: break-all;
+}
 
 /* 批量操作区 */
 .action-section, .anomaly-section {

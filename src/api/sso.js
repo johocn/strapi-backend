@@ -161,6 +161,8 @@ export const ssoMsgTemplateApi = {
   create: (data) => post(`${ADMIN}/msg-templates`, data).then(extractItem),
   update: (id, data) => put(`${ADMIN}/msg-templates/${id}`, data).then(extractItem),
   delete: (id) => del(`${ADMIN}/msg-templates/${id}`).then(extractItem),
+  addFromLibrary: (data) => post(`${ADMIN}/msg-templates/from-library`, data).then(extractItem),
+  wxPrivateTemplates: () => get(`${ADMIN}/wx/templates`).then((res) => (res && res.data && res.data.template_list) || []),
 }
 
 // 模板版本 / AB 测试（templateId 传模板 documentId，后端自动解析）

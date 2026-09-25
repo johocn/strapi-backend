@@ -6,86 +6,59 @@
     </PageHeader>
 
     <scroll-view scroll-y class="form-scroll">
-      <!-- 基本信息 -->
-      <view class="form-section">
-        <view class="section-title">基本信息</view>
+      <ArticleBaseForm v-model="form">
+        <template #relations>
+          <view class="form-item">
+            <text class="form-label">分类</text>
+            <input type="text" v-model="form.category" placeholder="文章分类" class="form-input" />
+          </view>
 
-        <view class="form-item">
-          <text class="form-label">标题 *</text>
-          <input type="text" v-model="form.title" placeholder="请输入文章标题" class="form-input" />
-        </view>
+          <view class="form-item">
+            <text class="form-label">标签</text>
+            <TagSelector v-model="form.tags" :siteId="siteId" label="标签" />
+          </view>
 
-        <view class="form-item">
-          <text class="form-label">slug</text>
-          <input type="text" v-model="form.slug" placeholder="URL 别名（留空自动生成）" class="form-input" />
-        </view>
+          <view class="form-item">
+            <text class="form-label">摘要</text>
+            <textarea v-model="form.excerpt" placeholder="文章摘要" class="form-textarea" />
+          </view>
 
-        <view class="form-item">
-          <text class="form-label">分类</text>
-          <input type="text" v-model="form.category" placeholder="文章分类" class="form-input" />
-        </view>
+          <view class="form-item">
+            <text class="form-label">封面图 URL</text>
+            <input type="text" v-model="form.coverImage" placeholder="封面图地址" class="form-input" />
+          </view>
+        </template>
 
-        <view class="form-item">
-          <text class="form-label">标签</text>
-          <TagSelector v-model="form.tags" :siteId="siteId" label="标签" />
-        </view>
+        <template #meta>
+          <view class="section-title">SEO 配置</view>
 
-        <view class="form-item">
-          <text class="form-label">摘要</text>
-          <textarea v-model="form.excerpt" placeholder="文章摘要" class="form-textarea" />
-        </view>
+          <view class="form-item">
+            <text class="form-label">SEO 标题</text>
+            <input type="text" v-model="form.seoTitle" placeholder="SEO 标题" class="form-input" />
+          </view>
 
-        <view class="form-item">
-          <text class="form-label">封面图 URL</text>
-          <input type="text" v-model="form.coverImage" placeholder="封面图地址" class="form-input" />
-        </view>
+          <view class="form-item">
+            <text class="form-label">SEO 描述</text>
+            <textarea v-model="form.seoDescription" placeholder="SEO 描述" class="form-textarea" />
+          </view>
 
-        <view class="form-item">
-          <text class="form-label">正文</text>
-          <textarea v-model="form.content" placeholder="请输入正文内容" class="form-textarea content-textarea" />
-        </view>
-      </view>
+          <view class="form-item">
+            <text class="form-label">SEO 关键词（逗号分隔）</text>
+            <input type="text" v-model="form.seoKeywords" placeholder="例: 关键词1,关键词2" class="form-input" />
+          </view>
 
-      <!-- SEO 配置 -->
-      <view class="form-section">
-        <view class="section-title">SEO 配置</view>
-
-        <view class="form-item">
-          <text class="form-label">SEO 标题</text>
-          <input type="text" v-model="form.seoTitle" placeholder="SEO 标题" class="form-input" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">SEO 描述</text>
-          <textarea v-model="form.seoDescription" placeholder="SEO 描述" class="form-textarea" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">SEO 关键词（逗号分隔）</text>
-          <input type="text" v-model="form.seoKeywords" placeholder="例: 关键词1,关键词2" class="form-input" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">canonical URL</text>
-          <input type="text" v-model="form.canonicalUrl" placeholder="规范链接" class="form-input" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">结构化数据 (JSON)</text>
-          <textarea v-model="form.schemaJson" placeholder='{"@context":"https://schema.org"}' class="form-textarea json-textarea" />
-        </view>
-        <JsonExampleBlock
-          fieldLabel="结构化数据"
-          fieldName="schemaJson"
-          :exampleJson="articleSchemaJsonExample"
-          @fill="handleFillExample"
-        />
-
-        <view class="form-item form-row">
-          <text class="form-label">允许收录</text>
-          <switch :checked="form.allowIndex" @change="form.allowIndex = !form.allowIndex" />
-        </view>
-      </view>
+          <view class="form-item">
+            <text class="form-label">结构化数据 (JSON)</text>
+            <textarea v-model="form.schemaJson" placeholder='{"@context":"https://schema.org"}' class="form-textarea json-textarea" />
+          </view>
+          <JsonExampleBlock
+            fieldLabel="结构化数据"
+            fieldName="schemaJson"
+            :exampleJson="articleSchemaJsonExample"
+            @fill="handleFillExample"
+          />
+        </template>
+      </ArticleBaseForm>
     </scroll-view>
   </view>
 </template>
@@ -98,6 +71,7 @@ import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
 import TagSelector from '../../../components/TagSelector.vue'
 import JsonExampleBlock from '../../../components/JsonExampleBlock.vue'
+import ArticleBaseForm from '../../../components/ArticleBaseForm.vue'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
@@ -120,6 +94,7 @@ const form = ref({
   canonicalUrl: '',
   schemaJson: '',
   allowIndex: true,
+  noFollow: false,
   status: 'draft',
 })
 
@@ -176,6 +151,7 @@ async function loadDetail() {
         canonicalUrl: item.canonicalUrl || '',
         schemaJson: typeof item.schemaJson === 'string' ? item.schemaJson : JSON.stringify(item.schemaJson || '', null, 2),
         allowIndex: item.allowIndex !== false,
+        noFollow: item.noFollow === true,
         status: item.status || 'draft',
       }
     }

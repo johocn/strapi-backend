@@ -1,6 +1,9 @@
 <template>
   <view class="page-container">
     <PageHeader title="素材库">
+      <button class="btn-secondary" @click="syncFromWechat" :disabled="syncing || uploadType === 'thumb'" v-if="hasPermission('menu.sso-wx')">
+        {{ syncing ? '同步中...' : '↻ 从微信获取' }}
+      </button>
       <button class="btn-primary" @click="chooseAndUpload" :disabled="uploading" v-if="hasPermission('menu.sso-wx')">
         {{ uploading ? '上传中...' : '+ 上传素材' }}
       </button>
@@ -8,7 +11,7 @@
 
     <view class="help-banner">
       <text class="help-icon">ℹ️</text>
-      <text class="help-text">上传图片 / 语音 / 视频 / 缩略图素材到公众号永久素材库，供图文（thumb_media_id）与自动回复使用。</text>
+      <text class="help-text">上传图片 / 语音 / 视频 / 缩略图素材到公众号永久素材库，供图文（thumb_media_id）与自动回复使用；「从微信获取」可一键拉取公众号后台已有的图片 / 语音 / 视频素材入库。</text>
     </view>
 
     <!-- 上传表单 -->
@@ -80,7 +83,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ssoWxMaterialApi } from '../../api/wechat.js'
 import { useUserStore } from '../../store/user.js'
 import PageHeader from '../../components/PageHeader.vue'
-import { getMediaUrl } from '../../utils/format.js'
+import { getMediaUrl, toWxProxy } from '../../utils/format.js'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
@@ -141,7 +144,8 @@ async function loadData(page = 1) {
       'pagination[page]': page,
       'pagination[pageSize]': 10,
     })
-    dataList.value = (list || []).map(m => ({ ...m, url: getMediaUrl(m.file, true) || getMediaUrl(m.media, true) || m.url || m.thumb_url }) )
+    // wx_url 为微信永久素材链接（mmbiz.qpic.cn），经 h.joho.cn/wximg/ 反代绕过防盗链展示
+    dataList.value = (list || []).map(m => ({ ...m, url: getMediaUrl(m.file, true) || getMediaUrl(m.media, true) || toWxProxy(m.wx_url) || m.url || m.thumb_url }) )
     pagination.value = pg
     currentPage.value = page
   } catch (e) {
@@ -152,46 +156,55 @@ async function loadData(page = 1) {
 }
 
 function chooseAndUpload() {
-  const confirm = () => {
-    if (uploadType.value === 'image' || uploadType.value === 'thumb') {
-      uni.chooseImage({
-        count: 1,
-        sizeType: ['compressed'],
-        success: (res) => {
-          if (res.tempFilePaths && res.tempFilePaths[0]) {
-            doUpload(res.tempFilePaths[0])
-          }
-        },
-      })
-    } else {
-      uni.chooseFile({
-        count: 1,
-        success: (res) => {
-          const fp = res.tempFiles && res.tempFiles[0] ? res.tempFiles[0].path : (res.tempFilePath || '')
-          if (fp) doUpload(fp)
-        },
-      })
-    }
+  const uploadPaths = (paths) => {
+    if (paths && paths.length) batchUpload(paths)
   }
-  // 未填写名称时先提示（可忽略）
-  confirm()
+  if (uploadType.value === 'image' || uploadType.value === 'thumb') {
+    // 图片/缩略图支持多选批量上传
+    uni.chooseImage({
+      count: 9,
+      sizeType: ['compressed'],
+      success: (res) => {
+        if (res.tempFilePaths && res.tempFilePaths.length) uploadPaths(res.tempFilePaths)
+      },
+    })
+  } else {
+    uni.chooseFile({
+      count: 1,
+      success: (res) => {
+        const fp = res.tempFiles && res.tempFiles[0] ? res.tempFiles[0].path : (res.tempFilePath || '')
+        if (fp) uploadPaths([fp])
+      },
+    })
+  }
 }
 
-async function doUpload(filePath) {
-  previewPath.value = filePath
+/** 批量上传（串行，避免并发打爆公众号接口） */
+async function batchUpload(paths) {
   uploading.value = true
+  let ok = 0
   try {
-    const name = materialName.value || filePath.split('/').pop() || '未命名素材'
-    const result = await ssoWxMaterialApi.upload(filePath, uploadType.value, name)
-    uni.showToast({ title: '上传成功', icon: 'success' })
+    for (const fp of paths) {
+      previewPath.value = fp
+      const name = materialName.value || fp.split('/').pop() || '未命名素材'
+      try {
+        await ssoWxMaterialApi.upload(fp, uploadType.value, name)
+        ok++
+      } catch (e) {
+        // 单张失败继续下一张
+      }
+    }
+    uni.showToast({ title: ok ? `上传成功 ${ok}/${paths.length} 张` : '上传失败', icon: ok ? 'success' : 'none' })
     materialName.value = ''
     previewPath.value = ''
     loadData(1)
-  } catch (e) {
-    uni.showToast({ title: '上传失败', icon: 'none' })
   } finally {
     uploading.value = false
   }
+}
+
+async function doUpload(filePath) {
+  await batchUpload([filePath])
 }
 
 function handleDelete(item) {
@@ -216,6 +229,13 @@ function handleDelete(item) {
 function prevPage() { if (currentPage.value > 1) loadData(currentPage.value - 1) }
 function nextPage() { if (currentPage.value < totalPages.value) loadData(currentPage.value + 1) }
 
+/** 图片点击放大预览 */
+function previewMaterial(item) {
+  if (isPreviewable(item.type) && item.url) {
+    uni.previewImage({ urls: [item.url], current: item.url })
+  }
+}
+
 onShow(() => loadData(1))
 </script>
 
@@ -223,6 +243,8 @@ onShow(() => loadData(1))
 page { background: #f5f5f5; }
 .page-container { min-height: 100vh; padding: 20rpx; box-sizing: border-box; }
 .btn-primary { background: #ff0000; color: #fff; padding: 16rpx 32rpx; font-size: 30rpx; border-radius: 8rpx; border: none; line-height: 1.2; }
+.btn-secondary { background: #e6f4ff; color: #1677ff; border: 2rpx solid #91caff; padding: 14rpx 32rpx; font-size: 28rpx; border-radius: 8rpx; line-height: 1.2; }
+.btn-secondary[disabled] { color: #ccc; background: #f5f5f5; border-color: #eee; }
 .help-banner { display: flex; align-items: flex-start; gap: 12rpx; background: #e6f4ff; padding: 20rpx; border-radius: 12rpx; margin-bottom: 20rpx; border-left: 6rpx solid #1677ff; }
 .help-icon { font-size: 28rpx; flex-shrink: 0; }
 .help-text { font-size: 26rpx; color: #333; line-height: 1.5; }
@@ -237,22 +259,16 @@ page { background: #f5f5f5; }
 .preview-img { width: 200rpx; height: 200rpx; border-radius: 8rpx; }
 .preview-text { font-size: 26rpx; color: #999; }
 .preview-placeholder { font-size: 24rpx; color: #ccc; }
-.data-list { display: flex; flex-direction: column; gap: 20rpx; }
-.data-card { background: #fff; border-radius: 12rpx; padding: 24rpx; display: flex; align-items: flex-start; gap: 20rpx; }
-.material-preview { width: 120rpx; height: 120rpx; background: #f5f5f5; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.material-img { width: 120rpx; height: 120rpx; border-radius: 8rpx; }
-.material-icon { font-size: 56rpx; }
-.data-info { flex: 1; display: flex; flex-direction: column; }
-.data-title { display: flex; align-items: center; gap: 16rpx; margin-bottom: 12rpx; }
-.material-name { font-size: 30rpx; font-weight: bold; color: #333; }
-.material-type { padding: 4rpx 16rpx; border-radius: 6rpx; font-size: 22rpx; }
-.meta-item { font-size: 24rpx; color: #999; margin-right: 16rpx; word-break: break-all; }
-.meta-item.link { color: #1677ff; }
-.data-footer { display: flex; justify-content: space-between; margin-top: 12rpx; }
-.data-date { font-size: 22rpx; color: #999; }
-.data-actions { display: flex; flex-direction: column; gap: 12rpx; }
-.action-btn { padding: 12rpx 24rpx; border-radius: 8rpx; font-size: 24rpx; text-align: center; }
-.action-btn.delete { background: #fff0f0; color: #ff4d4f; }
+.material-grid { display: flex; flex-wrap: wrap; gap: 20rpx; }
+.material-card { width: calc((100% - 20rpx) / 2); background: #fff; border-radius: 12rpx; overflow: hidden; box-sizing: border-box; }
+.card-media { position: relative; width: 100%; height: 280rpx; background: #f5f5f5; display: flex; align-items: center; justify-content: center; }
+.card-img { width: 100%; height: 100%; }
+.card-icon { font-size: 80rpx; }
+.card-type { position: absolute; top: 12rpx; left: 12rpx; padding: 4rpx 14rpx; border-radius: 6rpx; font-size: 20rpx; }
+.card-delete { position: absolute; top: 12rpx; right: 12rpx; width: 48rpx; height: 48rpx; line-height: 48rpx; text-align: center; background: rgba(0,0,0,0.55); color: #fff; border-radius: 50%; font-size: 26rpx; }
+.card-info { padding: 16rpx 20rpx; display: flex; flex-direction: column; gap: 8rpx; }
+.card-name { font-size: 28rpx; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-date { font-size: 22rpx; color: #999; }
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; padding: 100rpx 0; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 28rpx; color: #999; }

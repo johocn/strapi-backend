@@ -28,6 +28,11 @@
           <input v-model="form.registerCode" placeholder="如：Z7008426000574" class="form-input" />
         </view>
 
+        <view class="form-item">
+          <text class="form-label">采集网址</text>
+          <input v-model="form.navSourceUrl" placeholder="净值来源网址（客户可自行查阅校验）" class="form-input" />
+        </view>
+
         <view class="form-row">
           <view class="form-item half">
             <text class="form-label">产品类型 *</text>
@@ -150,6 +155,7 @@ const form = ref({
   productCode: '',
   saleCode: '',
   registerCode: '',
+  navSourceUrl: '',
   productType: 'bank-wealth',
   riskLevel: 'R2',
   company: null,

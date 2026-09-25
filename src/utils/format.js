@@ -108,6 +108,12 @@ export function extractItem(response) {
   return response
 }
 
+/** 微信图片防盗链代理：mmbiz.qpic.cn 直链在非微信生态页面会被 Referer 校验拦截，替换为 h.joho.cn/wximg/ 反代路径 */
+export function toWxProxy(url) {
+  if (!url || typeof url !== 'string') return url
+  return url.replace(/^https:\/\/mmbiz\.qpic\.cn\//, 'https://h.joho.cn/wximg/')
+}
+
 export function getMediaUrl(file, preferOss = true) {
   if (!file) return ''
   

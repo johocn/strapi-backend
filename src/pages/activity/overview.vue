@@ -19,6 +19,7 @@
         :class="{ active: status === opt.value }" @click="setStatus(opt.value)">
         {{ opt.label }}
       </view>
+      <view class="chip" :class="{ active: promoOnly }" @click="togglePromo">仅商户促销</view>
     </view>
 
     <view class="board-list" v-if="!loading && rows.length > 0">
@@ -89,7 +90,11 @@ const statusOptions = [
   { label: '报名中', value: 'signup_open' },
   { label: '进行中', value: 'ongoing' },
   { label: '已结束', value: 'ended' },
+  { label: '已归档', value: 'archived' },
 ]
+
+// 促销视图：只看 promoTemplate=sale 的商户促销活动
+const promoOnly = ref(false)
 
 const status = ref('all')
 const summary = ref({})
@@ -134,10 +139,17 @@ function setStatus(v) {
   status.value = v
   loadData()
 }
+function togglePromo() {
+  promoOnly.value = !promoOnly.value
+  loadData()
+}
 async function loadData() {
   loading.value = true
   try {
-    const res = await getActivityOverview({ status: status.value })
+    const res = await getActivityOverview({
+      status: status.value,
+      promoTemplate: promoOnly.value ? 'sale' : 'all',
+    })
     const d = res && (res.data || res)
     summary.value = (d && d.summary) || {}
     rows.value = Array.isArray(d && d.rows) ? d.rows : []

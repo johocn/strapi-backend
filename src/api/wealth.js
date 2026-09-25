@@ -3,8 +3,8 @@ import { extractList, extractItem } from '../utils/format.js'
 
 // 后台路径前缀：/zhao-wealth/v1/admin（zhao-wealth 插件 admin-api 路由，与其他 zhao-* 插件保持一致）
 const ADMIN = '/zhao-wealth/v1/admin'
-// C 端路径前缀：/v1/wealth（zhao-wealth 插件 content-api 路由）
-const V1 = '/v1/wealth'
+// C 端路径前缀：/zhao-wealth/v1/wealth（zhao-wealth 插件 content-api 路由，与 admin 前缀一致，均为 /api/zhao-wealth/ 下挂载）
+const V1 = '/zhao-wealth/v1/wealth'
 
 // ==================== 公司管理 ====================
 export function getAdminCompanyList(params = {}) {
@@ -50,8 +50,8 @@ export function getCollectStatus() {
   return adminGet(`${ADMIN}/collect/status`).then(extractItem)
 }
 
-export function recalculate() {
-  return adminPost(`${ADMIN}/recalculate`).then(extractItem)
+export function recalculate(data = {}) {
+  return adminPost(`${ADMIN}/recalculate`, data).then(extractItem)
 }
 
 /**
@@ -83,19 +83,19 @@ export function updateRecommendConfig(id, data) {
 
 // ==================== 风险指标 ====================
 export function getRiskMetrics(productId, params = {}) {
-  return adminGet(`${ADMIN}/risk-metrics/aggregate`, { product: productId, ...params }).then(extractItem)
+  return adminGet(`${ADMIN}/risk-metrics/aggregate`, { productId, ...params }).then(extractItem)
 }
 
 export function getRiskTrend(productId, params = {}) {
-  return adminGet(`${ADMIN}/risk-metrics/trend`, { product: productId, ...params }).then(extractItem)
+  return adminGet(`${ADMIN}/risk-metrics/trend`, { productId, ...params }).then(extractItem)
 }
 
 export function getRiskPeers(params = {}) {
   return adminGet(`${ADMIN}/risk-metrics/peers`, params).then(extractList)
 }
 
-export function recalculateRiskMetric() {
-  return adminPost(`${ADMIN}/recalculate-risk-metric`).then(extractItem)
+export function recalculateRiskMetric(data = {}) {
+  return adminPost(`${ADMIN}/recalculate-risk-metric`, data).then(extractItem)
 }
 
 // ==================== 统计 ====================
@@ -105,6 +105,15 @@ export function getStatsOverview() {
 
 export function getStatsAnomalies(params = {}) {
   return adminGet(`${ADMIN}/stats/anomalies`, params).then(extractList)
+}
+
+// ==================== 净值监察 ====================
+export function getProductMonitor() {
+  return adminGet(`${ADMIN}/monitor/products`).then(extractItem)
+}
+
+export function getAdminCollectConfigs(params = {}) {
+  return adminGet(`${ADMIN}/collect-configs`, params).then(extractList)
 }
 
 // ==================== 合规披露 ====================
@@ -150,11 +159,6 @@ export function getHoldingProfitTrend(id, params = {}) {
   return adminGet(`${ADMIN}/holdings/${id}/profit-trend`, params).then(extractItem)
 }
 
-// ==================== 客户自选 ====================
-export function getCustomerProductList(params = {}) {
-  return adminGet(`${ADMIN}/customer-products`, params).then(extractList)
-}
-
 // ==================== C 端接口（对比页用） ====================
 export function compareProducts(productIds, period = 'm1') {
   return get(`${V1}/compare`, { productIds: productIds.join(','), period }).then(extractItem)
@@ -162,4 +166,39 @@ export function compareProducts(productIds, period = 'm1') {
 
 export function getDisclosure(productType) {
   return get(`${V1}/disclosure`, { productType }).then(extractItem)
+}
+
+// ==================== 预约咨询管理 ====================
+// 列表（?status=pending|replied|all&submitType=phone|wechat|message|all&page=&pageSize=）
+export function getAdminConsultations(params = {}) {
+  return adminGet(`${ADMIN}/consultations`, params).then(extractList)
+}
+// 回复（body:{reply}）
+export function replyConsultation(id, reply) {
+  return adminPost(`${ADMIN}/consultations/${id}/reply`, { reply })
+}
+// 微信二维码配置
+export function getAdminConsultConfig() {
+  return adminGet(`${ADMIN}/consult-config`)
+}
+export function updateAdminConsultConfig(data) {
+  return adminPut(`${ADMIN}/consult-config`, data)
+}
+
+// ==================== 服务人联系方式配置 ====================
+// 后端列表返回 { code, data: { list, pagination } }（与 extractList 识别的 records 结构不同，单独解析）
+export function getConsultContactList(params = {}) {
+  return adminGet(`${ADMIN}/consult-contacts`, params).then((res) => ({
+    list: (res && res.data && Array.isArray(res.data.list)) ? res.data.list : [],
+    pagination: (res && res.data && res.data.pagination) || {},
+  }))
+}
+export function createConsultContact(data) {
+  return adminPost(`${ADMIN}/consult-contacts`, data).then(extractItem)
+}
+export function updateConsultContact(id, data) {
+  return adminPut(`${ADMIN}/consult-contacts/${id}`, data).then(extractItem)
+}
+export function deleteConsultContact(id) {
+  return adminDel(`${ADMIN}/consult-contacts/${id}`).then(extractItem)
 }

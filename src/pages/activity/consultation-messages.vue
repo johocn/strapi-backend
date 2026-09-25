@@ -1,23 +1,23 @@
 <template>
   <view class="page-container">
-    <PageHeader title="留言管理"></PageHeader>
+    <PageHeader title="咨询留言管理"></PageHeader>
 
     <view class="filter-section">
       <view class="filter-row">
-        <view class="filter-item">
-          <text class="filter-label">活动</text>
-          <picker mode="selector" :range="activityNames" :value="activityIndex" @change="handleActivityChange">
-            <view class="picker-value">
-              <text>{{ activityNames[activityIndex] }}</text>
-              <text class="arrow">▼</text>
-            </view>
-          </picker>
-        </view>
         <view class="filter-item">
           <text class="filter-label">状态</text>
           <picker mode="selector" :range="statusOptions" :value="statusIndex" @change="handleStatusChange">
             <view class="picker-value">
               <text>{{ statusOptions[statusIndex] }}</text>
+              <text class="arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        <view class="filter-item">
+          <text class="filter-label">渠道</text>
+          <picker mode="selector" :range="channelOptions" :value="channelIndex" @change="handleChannelChange">
+            <view class="picker-value">
+              <text>{{ channelOptions[channelIndex] }}</text>
               <text class="arrow">▼</text>
             </view>
           </picker>
@@ -29,19 +29,17 @@
       <view v-for="row in rows" :key="row.documentId || row.id" class="msg-card">
         <view class="msg-head">
           <text class="msg-no">#{{ row.id ?? '' }}</text>
-          <text class="msg-user">{{ row.user?.nickname || row.user?.username || row.nickname || '匿名用户' }}</text>
+          <text class="msg-user">{{ row.name || '匿名' }}</text>
+          <text class="channel-badge" :class="'ch-' + (row.submitType || 'phone')">{{ channelText(row.submitType) }}</text>
           <text class="status-badge" :class="statusClass(row.status)">{{ statusText(row.status) }}</text>
         </view>
         <view class="msg-meta">
-          <text v-if="row.activity?.title" class="msg-activity">{{ row.activity.title }}</text>
           <text class="msg-time">{{ formatTime(row.createdAt || row.created_at) }}</text>
         </view>
         <view class="msg-body">
-          <view class="msg-label-row">
-            <text class="msg-q">问</text>
-            <text class="msg-label-time">{{ formatTime(row.createdAt || row.created_at) }}</text>
-          </view>
-          <text class="msg-content">{{ row.message || row.content || '（无内容）' }}</text>
+          <view class="contact-line" v-if="row.phone">{{ '电话：' + row.phone }}</view>
+          <view class="contact-line" v-if="row.contactType && row.contactValue">{{ '预留' + contactTypeText(row.contactType) + '：' + row.contactValue }}</view>
+          <text class="msg-content">{{ row.message || '（无留言内容）' }}</text>
         </view>
         <view class="msg-reply" v-if="row.reply">
           <text class="msg-a">答</text>
@@ -62,7 +60,7 @@
     <view v-if="loading" class="loading"><text>加载中...</text></view>
     <view v-if="!loading && rows.length === 0" class="empty-state">
       <text class="empty-icon">💬</text>
-      <text class="empty-text">暂无留言</text>
+      <text class="empty-text">暂无咨询留言</text>
     </view>
 
     <view class="pagination" v-if="pageCount() > 1">
@@ -81,7 +79,7 @@
         <view class="modal-body">
           <view class="msg-preview" v-if="current">
             <text class="msg-preview-label">用户留言：</text>
-            <text class="msg-preview-text">{{ current.message || current.content || '（无内容）' }}</text>
+            <text class="msg-preview-text">{{ current.message || '（无留言内容）' }}</text>
           </view>
           <textarea class="reply-textarea" v-model="replyText" placeholder="请输入回复内容" :maxlength="500"></textarea>
         </view>
@@ -95,15 +93,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { listActivities, listActivityMessages, replyActivityMessage } from '../../api/activity.js'
+import { ref, onMounted } from 'vue'
+import { getAdminConsultations, replyConsultation } from '../../api/wealth.js'
 import PageHeader from '../../components/PageHeader.vue'
 
-const activityOptions = ref([])   // [{documentId,title}]
-const statusOptions = ['全部状态', '未回复', '已回复']
-const statusValues = ['', 'open', 'replied']
+const statusOptions = ['全部状态', '待回复', '已回复']
+const statusValues = ['', 'pending', 'replied']
 const statusIndex = ref(0)
-const activityIndex = ref(0)
+const channelOptions = ['全部渠道', '电话', '微信', '留言']
+const channelValues = ['', 'phone', 'wechat', 'message']
+const channelIndex = ref(0)
 const rows = ref([])
 const pagination = ref({})
 const currentPage = ref(1)
@@ -112,17 +111,15 @@ const showReply = ref(false)
 const current = ref(null)
 const replyText = ref('')
 
-const statusTextMap = { open: '未回复', replied: '已回复' }
-const statusClassMap = { open: 'open', replied: 'replied' }
-
-const activityNames = computed(() => {
-  const names = ['全部活动']
-  for (const a of activityOptions.value) names.push(a.title || a.documentId || '未命名活动')
-  return names
-})
+const statusTextMap = { pending: '待回复', replied: '已回复', confirmed: '已确认', cancelled: '已取消' }
+const statusClassMap = { pending: 'open', replied: 'replied', confirmed: 'replied', cancelled: 'default' }
+const channelTextMap = { phone: '电话', wechat: '微信', message: '留言' }
+const contactTypeTextMap = { phone: '电话', email: '邮箱', wechat: '微信' }
 
 function statusText(s) { return statusTextMap[s] || s || '-' }
 function statusClass(s) { return statusClassMap[s] || 'default' }
+function channelText(s) { return channelTextMap[s || 'phone'] || '电话' }
+function contactTypeText(t) { return contactTypeTextMap[t] || t || '-' }
 
 function formatTime(v) {
   if (!v) return '-'
@@ -133,25 +130,15 @@ function formatTime(v) {
 }
 
 function handleStatusChange(e) { statusIndex.value = Number(e.detail.value); loadMessages(1) }
-function handleActivityChange(e) { activityIndex.value = Number(e.detail.value); loadMessages(1) }
-
-async function loadActivities() {
-  try {
-    const res = await listActivities({ page: 1, pageSize: 200 })
-    const list = res?.list || res?.data || []
-    activityOptions.value = list.map(a => ({ documentId: a.documentId, title: a.title }))
-  } catch (e) {
-    activityOptions.value = []
-  }
-}
+function handleChannelChange(e) { channelIndex.value = Number(e.detail.value); loadMessages(1) }
 
 async function loadMessages(page = 1) {
   loading.value = true
   try {
     const params = { page, pageSize: 20 }
     if (statusValues[statusIndex.value]) params.status = statusValues[statusIndex.value]
-    if (activityIndex.value > 0) params.activity = activityOptions.value[activityIndex.value - 1].documentId
-    const res = await listActivityMessages(params)
+    if (channelValues[channelIndex.value]) params.submitType = channelValues[channelIndex.value]
+    const res = await getAdminConsultations(params)
     rows.value = res?.list ?? res?.data ?? []
     pagination.value = res?.pagination ?? {}
     currentPage.value = page
@@ -179,16 +166,14 @@ function closeReply() { showReply.value = false; current.value = null }
 async function submitReply() {
   if (!replyText.value.trim()) { uni.showToast({ title: '请输入回复内容', icon: 'none' }); return }
   try {
-    await replyActivityMessage(current.value.documentId, replyText.value.trim())
+    await replyConsultation(current.value.id, replyText.value.trim())
     uni.showToast({ title: '回复成功', icon: 'success' })
     closeReply()
     loadMessages(currentPage.value)
-  } catch (e) {
-    /* 错误提示由 request.js 统一弹出 */
-  }
+  } catch (e) { /* 错误提示由 request.js 统一弹出 */ }
 }
 
-onMounted(() => { loadActivities(); loadMessages(1) })
+onMounted(() => { loadMessages(1) })
 </script>
 
 <style scoped>
@@ -211,14 +196,15 @@ page { background: #f5f5f5; }
 .msg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; gap: 16rpx; }
 .msg-no { font-size: 26rpx; color: #999; flex-shrink: 0; }
 .msg-user { font-size: 30rpx; font-weight: bold; color: #333; flex: 1; }
+.channel-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; background: #f0f5ff; color: #597ef7; }
 .status-badge { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 16rpx; flex-shrink: 0; }
 .status-badge.open { background: #e6f7ff; color: #1890ff; }
 .status-badge.replied { background: #f6ffed; color: #52c41a; }
 .status-badge.default { background: #f5f5f5; color: #666; }
 .msg-meta { display: flex; gap: 24rpx; margin-bottom: 12rpx; }
-.msg-activity { font-size: 24rpx; color: #999; }
 .msg-time { font-size: 24rpx; color: #999; }
 .msg-body { padding: 16rpx 0; border-top: 1rpx solid #f0f0f0; }
+.contact-line { font-size: 24rpx; color: #666; margin-bottom: 8rpx; }
 .msg-label-row { display: flex; align-items: center; gap: 12rpx; margin-bottom: 8rpx; }
 .msg-q, .msg-a { flex-shrink: 0; min-width: 44rpx; padding: 2rpx 12rpx; border-radius: 8rpx; font-size: 22rpx; text-align: center; }
 .msg-q { background: rgba(64, 158, 255, 0.12); color: #409eff; }

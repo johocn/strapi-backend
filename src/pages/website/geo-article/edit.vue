@@ -40,24 +40,9 @@
           </picker>
         </view>
 
-        <view class="form-item">
-          <text class="form-label">标题 *（建议含本地地域词）</text>
-          <input type="text" v-model="form.title" placeholder="如：吉林市XX指南" class="form-input" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">slug</text>
-          <input type="text" v-model="form.slug" placeholder="URL 别名（留空自动生成）" class="form-input" />
-        </view>
-
         <view class="form-item" v-if="form.type === 'geo-faq'">
           <text class="form-label">问答标题 *</text>
           <input type="text" v-model="form.faqQuestion" placeholder="FAQ 问题（FAQPage 结构化用）" class="form-input" />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">正文 *（HTML：文字/表格/图片/锚链接/引用标注）</text>
-          <textarea v-model="form.content" placeholder="正文 HTML 源码" class="form-textarea content-textarea" />
         </view>
 
         <view class="form-item">
@@ -75,6 +60,8 @@
           </picker>
         </view>
       </view>
+
+      <ArticleBaseForm v-model="form" />
 
       <!-- 标签与关系背书 -->
       <view class="form-section">
@@ -252,22 +239,8 @@
         </view>
 
         <view class="form-item">
-          <text class="form-label">canonical URL</text>
-          <input type="text" v-model="form.canonicalUrl" class="form-input" />
-        </view>
-
-        <view class="form-item">
           <text class="form-label">内部锚文本（JSON，text/url，1-2 处）</text>
           <textarea v-model="jsonFields.internalLinks" placeholder='[{"text":"锚文本","url":"/path"}]' class="form-textarea json-textarea" />
-        </view>
-
-        <view class="form-item form-row">
-          <text class="form-label">允许收录</text>
-          <switch :checked="form.allowIndex" @change="form.allowIndex = !form.allowIndex" />
-        </view>
-        <view class="form-item form-row">
-          <text class="form-label">nofollow</text>
-          <switch :checked="form.noFollow" @change="form.noFollow = !form.noFollow" />
         </view>
       </view>
 
@@ -367,6 +340,7 @@ import {
 import { getTagList } from '../../../api/tag.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
+import ArticleBaseForm from '../../../components/ArticleBaseForm.vue'
 
 const userStore = useUserStore()
 const hasPermission = userStore.hasPermission
@@ -377,6 +351,14 @@ const isEdit = computed(() => !!documentId.value)
 const typeOptions = ['GEO 文章', 'GEO 问答', '本地报告', '本地对比', '本地清单']
 const typeValues = ['geo-article', 'geo-faq', 'local-report', 'local-comparison', 'local-list']
 const typeIndex = ref(0)
+
+const TYPE_JSONLD_MAP = {
+  'geo-faq': 'FAQPage',
+  'local-list': 'ItemList',
+  'local-comparison': 'ItemList',
+  'local-report': 'Article',
+  'geo-article': 'Article',
+}
 
 const jsonLdOptions = ['Article', 'FAQPage', 'LocalBusiness', 'ItemList']
 const ctaOptions = ['不展示', '本地选购清单下载', '本地一对一咨询预约']
@@ -507,14 +489,7 @@ function handleTypeChange(e) {
   typeIndex.value = e.detail.value
   form.value.type = typeValues[typeIndex.value]
   // 类型联动：结构化类型按手册映射给默认值
-  const map = {
-    'geo-faq': 'FAQPage',
-    'local-list': 'ItemList',
-    'local-comparison': 'ItemList',
-    'local-report': 'Article',
-    'geo-article': 'Article',
-  }
-  form.value.jsonLdType = map[form.value.type] || 'Article'
+  form.value.jsonLdType = TYPE_JSONLD_MAP[form.value.type] || 'Article'
 }
 
 function handleCategoryChange(e) {
@@ -775,6 +750,11 @@ async function handleAudit() {
 
 onLoad((options) => {
   loadOptions()
+  if (options?.type && typeValues.includes(options.type)) {
+    typeIndex.value = typeValues.indexOf(options.type)
+    form.value.type = options.type
+    form.value.jsonLdType = TYPE_JSONLD_MAP[options.type] || (form.value.jsonLdType || 'Article')
+  }
   if (options?.documentId) {
     documentId.value = options.documentId
     loadDetail()

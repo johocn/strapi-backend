@@ -164,7 +164,8 @@ async function saveItem() {
 
 async function toggleItem(item) {
   try {
-    await deleteVenue(item.documentId) // 软删：置 disabled=true
+    if (item.disabled) await updateVenue(item.documentId, { disabled: false })
+    else await deleteVenue(item.documentId) // 软删：置 disabled=true
     uni.showToast({ title: '操作成功', icon: 'success' })
     loadData(currentPage.value)
   } catch (e) {

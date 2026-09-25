@@ -99,6 +99,23 @@
         </view>
       </view>
 
+      <!-- 宣传模板（决定配色与默认模块集） -->
+      <view class="form-section">
+        <view class="section-title">宣传模板</view>
+        <view class="form-item">
+          <view class="promo-template-row">
+            <view
+              v-for="t in PROMO_TEMPLATE_OPTIONS"
+              :key="t.value"
+              class="promo-template-chip"
+              :class="{ on: form.promoTemplate === t.value }"
+              @click="applyTemplate(t.value)"
+            >{{ t.label }}</view>
+          </view>
+          <text class="form-tip">选择「商户促销」会套用 cover → goods → purpose → notice → info → contact 默认模块序（已有模块会被覆盖）。</text>
+        </view>
+      </view>
+
       <!-- 页面模块 -->
       <view class="form-section">
         <view class="section-title">页面模块</view>
@@ -151,6 +168,30 @@
                 </view>
                 <view class="link-add" @click="(m.config.items ||= []).push({ t: '', title: '', desc: '' })">+ 添加条目</view>
               </template>
+              <template v-else-if="m.type === 'tour'">
+                <input type="text" v-model="form.meetupPoint" placeholder="集合地点（如：人民广场地铁站1号口）" class="form-input" />
+                <view class="form-row">
+                  <input type="number" v-model="form.minParticipants" placeholder="成团人数（0=不限）" class="form-input form-inline" />
+                </view>
+                <textarea v-model="form.costIncludes" placeholder="费用包含（如：往返大巴+景区门票+1晚住宿+2正1早）" class="form-textarea"></textarea>
+                <textarea v-model="form.costExcludes" placeholder="费用不含（如：个人消费、旅游意外险）" class="form-textarea"></textarea>
+                <view class="form-tip">集合地点 / 成团人数 / 费用说明保存在活动字段中（C 端行程模块自动读取）。</view>
+                <view v-for="(d, di) in m.config.days || []" :key="di" class="tour-config-day">
+                  <view class="form-row">
+                    <input type="number" v-model="m.config.days[di].day" placeholder="第几天（1）" class="form-input form-inline tour-day-num" />
+                    <input type="text" v-model="m.config.days[di].title" placeholder="当日主题（选填）" class="form-input form-inline" />
+                    <text class="link-del" @click="m.config.days.splice(di, 1)">删除本天</text>
+                  </view>
+                  <view v-for="(s, si) in m.config.days[di].stops || []" :key="si" class="form-row">
+                    <input type="text" v-model="m.config.days[di].stops[si].time" placeholder="时间（08:00）" class="form-input form-inline tour-stop-time" />
+                    <input type="text" v-model="m.config.days[di].stops[si].title" placeholder="站点标题" class="form-input form-inline" />
+                    <input type="text" v-model="m.config.days[di].stops[si].desc" placeholder="描述（可选）" class="form-input form-inline" />
+                    <text class="link-del" @click="m.config.days[di].stops.splice(si, 1)">删除</text>
+                  </view>
+                  <view class="link-add" @click="(m.config.days[di].stops ||= []).push({ time: '', title: '', desc: '' })">+ 添加站点</view>
+                </view>
+                <view class="link-add" @click="(m.config.days ||= []).push({ day: (m.config.days || []).length + 1, title: '', stops: [] })">+ 添加一天</view>
+              </template>
               <template v-else-if="m.type === 'faq'">
                 <view v-for="(it, ii) in m.config.items || []" :key="ii" class="form-row">
                   <input type="text" v-model="m.config.items[ii].q" placeholder="问题" class="form-input form-inline" />
@@ -196,6 +237,22 @@
                 <text v-else class="promo-fixed-empty">暂未关联讲师，可在活动编辑页设置。</text>
                 <text class="form-tip">嘉宾讲师自动读取活动关联的讲师信息，此处仅作展示，修改请前往活动编辑页。</text>
                 <view class="link-add" @click="goEditActivity">去活动编辑页修改 ›</view>
+              </template>
+              <template v-else-if="m.type === 'goods'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：促销商品）" class="form-input" />
+                <input type="text" v-model="m.config.notice" placeholder="免责文案（默认：价格以到店为准）" class="form-input" />
+                <text class="form-tip">商品清单在活动编辑页「促销商品」区填写，此处只配置模块标题与免责文案。</text>
+                <view class="link-add" @click="goEditActivity">去活动编辑页填写商品 ›</view>
+              </template>
+              <template v-else-if="m.type === 'purpose'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动目的）" class="form-input" />
+                <text class="form-tip">活动目的正文在活动编辑页填写。</text>
+                <view class="link-add" @click="goEditActivity">去活动编辑页填写活动目的 ›</view>
+              </template>
+              <template v-else-if="m.type === 'notice'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动说明）" class="form-input" />
+                <RichEditor v-model="m.config.html" />
+                <text class="form-tip">正文读取活动介绍（活动编辑页「活动介绍」），此处为补充规则，正文在前、补充在后。</text>
               </template>
             </view>
           </view>
@@ -350,16 +407,20 @@
               <PromoHighlights v-else-if="m.type === 'highlights'" :activity="form" :config="m.config" />
               <PromoSpeakers v-else-if="m.type === 'speakers'" :activity="form" :config="m.config" />
               <PromoAgenda v-else-if="m.type === 'agenda'" :activity="form" :config="m.config" />
+              <PromoTour v-else-if="m.type === 'tour'" :activity="form" :config="m.config" />
               <PromoImages v-else-if="m.type === 'images'" :activity="form" :config="m.config" />
               <PromoRewards v-else-if="m.type === 'rewards'" :rewards="form.rewardConfig" />
               <PromoContact v-else-if="m.type === 'contact'" :contact="form.promoContact || {}" @open-wechat="previewShowWechat = true" @call-phone="previewCallPhone()" />
               <PromoMessage v-else-if="m.type === 'message'" :messages="previewMessages" :config="m.config" />
               <PromoFaq v-else-if="m.type === 'faq'" :activity="form" :config="m.config" />
               <PromoCustom v-else-if="m.type === 'custom'" :activity="form" :config="m.config" />
-              <!-- floatContact 预览块：仓库无 float-contact.vue，复用 promo-contact.vue 渲染，修复 build:h5 阻断 -->
-              <PromoContact
+              <PromoGoods v-else-if="m.type === 'goods'" :activity="form" :config="m.config" />
+              <PromoPurpose v-else-if="m.type === 'purpose'" :activity="form" :config="m.config" />
+              <PromoNotice v-else-if="m.type === 'notice'" :activity="form" :config="m.config" />
+              <FloatContact
                 v-else-if="m.type === 'floatContact'"
                 :contact="form.promoContact || {}"
+                :in-wechat="false"
                 @open-wechat="previewShowWechat = true"
                 @call-phone="previewCallPhone()"
               />
@@ -432,14 +493,38 @@ import PromoRich from '../../components/promo/promo-rich.vue'
 import PromoHighlights from '../../components/promo/promo-highlights.vue'
 import PromoSpeakers from '../../components/promo/promo-speakers.vue'
 import PromoAgenda from '../../components/promo/promo-agenda.vue'
+import PromoTour from '../../components/promo/promo-tour.vue'
 import PromoImages from '../../components/promo/promo-images.vue'
 import PromoRewards from '../../components/promo/promo-rewards.vue'
 import PromoContact from '../../components/promo/promo-contact.vue'
+import PromoMessage from '../../components/promo/promo-message.vue'
 import PromoFaq from '../../components/promo/promo-faq.vue'
 import PromoCustom from '../../components/promo/promo-custom.vue'
+import PromoGoods from '../../components/promo/promo-goods.vue'
+import PromoPurpose from '../../components/promo/promo-purpose.vue'
+import PromoNotice from '../../components/promo/promo-notice.vue'
+import FloatContact from '../../components/promo/float-contact.vue'
 import { PROMO_MODULE_META } from './promo-presets.js'
 import { PROMO_PALETTES } from './promo-palettes.js'
 import { parsePromoImport, buildPromoPrompt, buildCustomHtmlPrompt, sanitizeCustomHtml, CUSTOM_PLACEHOLDERS as PLACEHOLDER_ITEMS } from './promo-import.js'
+import { defaultSalePromoModules } from './promo-import.js'
+
+const PROMO_TEMPLATE_OPTIONS = [
+  { value: 'summit', label: '峰会' },
+  { value: 'salon', label: '沙龙' },
+  { value: 'training', label: '培训' },
+  { value: 'action', label: '剧本游' },
+  { value: 'life', label: '生活' },
+  { value: 'sale', label: '商户促销' },
+]
+
+function applyTemplate(value) {
+  form.promoTemplate = value
+  if (value === 'sale') {
+    form.promoModules = defaultSalePromoModules()
+    openModuleIndex.value = -1
+  }
+}
 
 const activityId = ref('')
 const loading = ref(false)
@@ -495,6 +580,9 @@ const form = reactive({
   shareRewardPoints: 0,
   formConfig: [],
   rewardConfig: null,
+  // 促销内容：只读回填，用于预览 goods / purpose 模块（编辑入口在活动编辑页）
+  purpose: '',
+  goodsList: [],
   promoTemplate: 'summit',
   promoColors: null,
   promoModules: [],
@@ -691,6 +779,9 @@ async function loadDetail() {
       type: data.type || '',
       category: data.category || '',
       description: data.description || '',
+      // 促销内容随活动回填，供预览 goods / purpose 模块读取（保存时不回写）
+      purpose: data.purpose || '',
+      goodsList: Array.isArray(data.goodsList) ? data.goodsList : [],
       startTime: data.startTime || '',
       endTime: data.endTime || '',
       venueName: data.venueName || '',
@@ -1109,6 +1200,12 @@ page { background: #f5f5f5; }
 
 .link-add { color: #667eea; font-size: 26rpx; padding: 12rpx 0; }
 .link-del { color: #ff4d4f; font-size: 26rpx; padding: 4rpx 8rpx; }
+.promo-template-row { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.promo-template-chip { padding: 14rpx 32rpx; font-size: 26rpx; color: #666; background: #fff; border: 1rpx solid #e3e6f0; border-radius: 30rpx; }
+.promo-template-chip.on { color: #667eea; border-color: #667eea; background: rgba(102,126,234,.08); font-weight: bold; }
+.tour-config-day { border: 2rpx solid #f0f0f0; border-radius: 12rpx; padding: 16rpx; margin-bottom: 16rpx; }
+.tour-day-num { width: 120rpx; }
+.tour-stop-time { width: 150rpx; }
 
 .promo-fixed-row { display: flex; gap: 16rpx; padding: 10rpx 0; }
 .promo-fixed-label { width: 140rpx; flex-shrink: 0; font-size: 26rpx; color: #999; }

@@ -30,7 +30,7 @@
 
       <view class="form-item">
         <text class="form-label">目标客户</text>
-        <input class="form-input" v-model="userId" placeholder="输入用户名或用户ID" />
+        <input class="form-input" type="number" v-model="userId" placeholder="输入数字用户ID" />
       </view>
 
       <view class="form-item">
@@ -197,13 +197,14 @@ async function submitGrant() {
   if (submitting.value) return
   if (!currentActivityId.value) return uni.showToast({ title: '请先选择活动', icon: 'none' })
   if (!lessonDocumentId.value) return uni.showToast({ title: '请选择或输入课时', icon: 'none' })
-  if (!userId.value.trim()) return uni.showToast({ title: '请输入目标客户', icon: 'none' })
+  const uid = Number(String(userId.value).trim())
+  if (!Number.isInteger(uid) || uid <= 0) return uni.showToast({ title: '请输入数字用户ID', icon: 'none' })
 
   submitting.value = true
   try {
     const payload = {
       activityId: currentActivityId.value,
-      userId: userId.value.trim(),
+      userId: uid,
       lessonDocumentId: lessonDocumentId.value,
       expiresAt: resolveExpiresAt() || undefined
     }

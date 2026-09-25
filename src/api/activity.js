@@ -45,6 +45,11 @@ export function unarchiveActivity(documentId) {
   return post(`${ADMIN}/activities/${documentId}/unarchive`).then(extractItem)
 }
 
+// 关闭活动（结束并触发活动后 SOP：回放/复购/未到场回访待办 + 生成首张 auto 经营台账快照）
+export function closeActivity(documentId) {
+  return post(`${ADMIN}/activities/${documentId}/close`).then(extractItem)
+}
+
 // 报名名单（active=已报名 / cancelled=已取消；attendedAt 有值=已到场）
 export function getActivitySignups(documentId) {
   return get(`${ADMIN}/activities/${documentId}/signups`).then(extractList)
@@ -113,7 +118,7 @@ export function getShareLeaderboard(params = {}) {
   return get(`${ADMIN}/activity-share/leaderboard`, params)
 }
 
-// 评价看板（返回 { rows, summary, pagination }；?activityDId= 可筛活动；start/end 过滤未实现）
+// 评价看板（返回 { rows, summary, pagination }；?activityDId= 可筛活动，?start=&end= 按评价时间区间过滤）
 export function getActivityReviews(params = {}) {
   return get(`${ADMIN}/activity-reviews`, params)
 }

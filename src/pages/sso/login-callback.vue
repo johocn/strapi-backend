@@ -214,7 +214,9 @@ function redirectToTarget(token, userEncoded, isNewFlag) {
   } catch {}
 
   const sep = targetUrl.includes('?') ? '&' : '?'
-  const userPart = userEncoded ? `&user=${userEncoded}` : ''
+  // user 为 base64 字符串（含 + / = 字符），必须 URL 编码，否则 C 端 URLSearchParams 解析时
+  // + 变空格、= 截断参数 → atob 失败 → C 端 syncSsoProfile 不执行 → up_users 停留 U<id> 占位邀请码
+  const userPart = userEncoded ? `&user=${encodeURIComponent(userEncoded)}` : ''
   const isNewPart = isNewFlag ? `&isNew=${isNewFlag}` : ''
   redirecting.value = true
   console.log('[SSO login-callback] redirectToTarget:', targetUrl)

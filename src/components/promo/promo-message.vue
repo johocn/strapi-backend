@@ -1,8 +1,8 @@
 <template>
   <view class="promo-card promo-message">
     <view class="message-entry">
-      <text class="message-title">留言咨询</text>
-      <view class="promo-btn-primary message-btn">去留言</view>
+      <text class="message-title">{{ config?.title || '留言咨询' }}</text>
+      <view class="promo-btn-primary message-btn">{{ config?.btnText || '去留言' }}</view>
     </view>
 
     <view v-if="messages.length" class="message-list">

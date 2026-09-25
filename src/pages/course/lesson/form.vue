@@ -518,12 +518,21 @@ function onThumbnailSelect(media) {
 
 function onVideoSelect(media) {
   form.video_url = media.url
+  autoFillTitle(media.name)
   fetchMediaDuration(media.url)
 }
 
 function onAudioSelect(media) {
   form.audio_url = media.url
+  autoFillTitle(media.name)
   fetchMediaDuration(media.url)
+}
+
+// 上传音/视频时，若课时名称为空，则用文件名（去扩展名）自动填充
+function autoFillTitle(name) {
+  if (!name || form.title) return
+  const base = String(name).replace(/\.[^.]+$/, '').trim()
+  if (base) form.title = base
 }
 
 function fetchMediaDuration(url) {

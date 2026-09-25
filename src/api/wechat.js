@@ -22,6 +22,8 @@ export const ssoWxMaterialApi = {
   list: (params = {}) => adminGet(`${WX}/materials`, params).then(extractList),
   create: (data) => adminPost(`${WX}/materials`, data).then(extractItem),
   delete: (id) => adminDel(`${WX}/materials/${id}`).then(extractItem),
+  /** 从微信永久素材库拉取并落库（type: image/voice/video） */
+  sync: (type) => adminPost(`${WX}/materials/sync`, { type }).then(extractItem),
   /**
    * 上传素材（uni.uploadFile）
    * @param {string} filePath 本地文件路径
@@ -87,6 +89,8 @@ export const ssoWxMenuApi = {
   publish: (id, data = {}) => adminPost(`${WX}/menus/${id}/publish`, data).then(extractItem),
   // 删除远程菜单（撤销公众号菜单；后端：DELETE /wx/menu/remote）
   deleteRemote: () => adminDel(`${WX}/menu/remote`).then(extractItem),
+  // 获取线上当前菜单（get_current_selfmenu_info；后端：GET /wx/menu/remote）
+  getRemote: () => adminGet(`${WX}/menu/remote`).then(extractItem),
 }
 
 // ==================== 公众号发布账号（对接 zhao-studio 多媒体发布中心账号体系） ====================

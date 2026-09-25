@@ -3,16 +3,29 @@
 
 import { PROMO_PALETTES } from './promo-palettes.js'
 
-const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom"]
+const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "floatContact", "goods", "purpose", "notice"]
 const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 
 export function stripCodeBlock(raw) {
   let s = String(raw ?? '')
   s = s.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '')
-  const i = s.indexOf('{')
-  const j = s.lastIndexOf('}')
-  if (i < 0 || j < 0 || j <= i) return s
-  return s.slice(i, j + 1)
+  // 从首个 “{” 起做括号配对（跳过字符串与转义内的括号），取配对的完整根对象。
+  // 这样 AI 输出 JSON 后再追加任何含 { } 的解说文字都不会被误截进 JSON。
+  const start = s.indexOf('{')
+  if (start >= 0) {
+    let depth = 0, inStr = false, esc = false
+    for (let i = start; i < s.length; i++) {
+      const ch = s[i]
+      if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue }
+      if (ch === '"') { inStr = true; continue }
+      if (ch === '{') depth++
+      else if (ch === '}') { depth--; if (depth === 0) return s.slice(start, i + 1) }
+    }
+    // 未配到闭合（AI 漏右括号）→ 退化为旧策略
+    const j = s.lastIndexOf('}')
+    if (j > start) return s.slice(start, j + 1)
+  }
+  return s
 }
 
 export function normalizeModuleConfig(type, config) {
@@ -38,8 +51,52 @@ export function normalizeModuleConfig(type, config) {
     const title = typeof c.title === 'string' ? c.title : undefined
     delete c.items
     if (title) c.title = title
+  } else if (type === 'goods') {
+    // 商品清单本体在 activity.goodsList，config 仅保留可选标题与免责文案
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    if (typeof c.notice === 'string' && c.notice.trim()) o.notice = c.notice.trim()
+    return o
+  } else if (type === 'purpose') {
+    // 活动目的正文在 activity.purpose，config 仅保留可选标题
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    return o
+  } else if (type === 'notice') {
+    // 正文读 activity.description，config.html 为运营补充规则
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    if (typeof c.html === 'string' && c.html.trim()) o.html = c.html
+    return o
   }
   return c
+}
+
+// 归一化促销商品清单：丢弃非对象项与「原价/促销价皆缺」的项；单侧有价则单侧展示
+export function normalizeGoodsList(raw) {
+  if (!Array.isArray(raw)) return []
+  const toPrice = v => {
+    if (v === undefined || v === null || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }
+  const out = []
+  for (const it of raw) {
+    if (!it || typeof it !== 'object' || Array.isArray(it)) continue
+    const originPrice = toPrice(it.originPrice)
+    const promoPrice = toPrice(it.promoPrice)
+    if (originPrice === null && promoPrice === null) continue
+    out.push({
+      name: typeof it.name === 'string' ? it.name.trim() : '',
+      image: typeof it.image === 'string' ? it.image : '',
+      originPrice,
+      promoPrice,
+      unit: typeof it.unit === 'string' ? it.unit.trim() : '',
+      limitPerPerson: toPrice(it.limitPerPerson),
+      desc: typeof it.desc === 'string' ? it.desc.trim() : '',
+    })
+  }
+  return out
 }
 
 export function normalizePromoModules(pm) {
@@ -59,6 +116,12 @@ export function normalizePromoModules(pm) {
 
 export function defaultPromoModules() {
   return ["cover", "info", "rich", "highlights", "agenda", "rewards", "contact", "faq", "message"]
+    .map((type, i) => ({ type, config: {}, sort: i + 1 }))
+}
+
+// 促销类默认模块序（运营选 promoTemplate=sale 时套用）
+export function defaultSalePromoModules() {
+  return ["cover", "goods", "purpose", "notice", "info", "contact"]
     .map((type, i) => ({ type, config: {}, sort: i + 1 }))
 }
 

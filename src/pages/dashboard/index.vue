@@ -147,13 +147,9 @@
           <view class="module-icon">🏷️</view>
           <view class="module-name">品牌信息</view>
         </view>
-        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/article/list')">
-          <view class="module-icon">📄</view>
-          <view class="module-name">资讯文章</view>
-        </view>
-        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/geo-article/list')">
-          <view class="module-icon">🧭</view>
-          <view class="module-name">GEO 文章</view>
+        <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/type-selector')">
+          <view class="module-icon">🚀</view>
+          <view class="module-name">发布文章</view>
         </view>
         <view class="module-item" v-if="hasPermission('menu.website-article')" @click="navigateTo('/pages/website/author/list')">
           <view class="module-icon">👤</view>
@@ -448,6 +444,10 @@
           <view class="module-icon">📡</view>
           <view class="module-name">净值采集</view>
         </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/monitor/index')">
+          <view class="module-icon">🛡️</view>
+          <view class="module-name">净值监察</view>
+        </view>
         <view class="module-item" @click="navigateTo('/pages/wealth/metrics/index')">
           <view class="module-icon">📈</view>
           <view class="module-name">指标看板</view>
@@ -463,6 +463,10 @@
         <view class="module-item" @click="navigateTo('/pages/wealth/disclosure/index')">
           <view class="module-icon">📋</view>
           <view class="module-name">披露管理</view>
+        </view>
+        <view class="module-item" @click="navigateTo('/pages/wealth/consult-contact/index')">
+          <view class="module-icon">🧑‍💼</view>
+          <view class="module-name">服务人配置</view>
         </view>
       </view>
     </view>
@@ -518,36 +522,40 @@
     </view>
 
     <!-- 活动管理 -->
-    <view class="module-section">
+    <view class="module-section" v-if="hasPermission('menu.activity-center')">
       <view class="section-title">🎪 活动管理</view>
       <view class="module-grid">
-        <view class="module-item" @click="navigateTo('/pages/series/list')">
+        <view class="module-item" v-if="hasPermission('series.read')" @click="navigateTo('/pages/series/list')">
           <view class="module-icon">🎪</view>
           <view class="module-name">活动系列</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/activity/list')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/list')">
           <view class="module-icon">📋</view>
           <view class="module-name">线下活动</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/activity/fission')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/fission')">
           <view class="module-icon">🏆</view>
           <view class="module-name">裂变榜</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/activity/review')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/review')">
           <view class="module-icon">⭐</view>
           <view class="module-name">活动评价</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/msg/repurchase-leads')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/msg/repurchase-leads')">
           <view class="module-icon">🔁</view>
           <view class="module-name">复购线索</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/activity/overview')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/overview')">
           <view class="module-icon">📊</view>
           <view class="module-name">活动效果</view>
         </view>
-        <view class="module-item" @click="navigateTo('/pages/activity/ledger')">
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/ledger')">
           <view class="module-icon">🧾</view>
           <view class="module-name">经营对账</view>
+        </view>
+        <view class="module-item" v-if="hasPermission('activity.read')" @click="navigateTo('/pages/activity/consultation-messages')">
+          <view class="module-icon">💬</view>
+          <view class="module-name">咨询留言</view>
         </view>
       </view>
     </view>

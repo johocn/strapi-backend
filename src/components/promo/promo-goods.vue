@@ -1,0 +1,153 @@
+<template>
+  <view v-if="goods.length" class="promo-card promo-goods">
+    <text v-if="title" class="section-title">{{ title }}</text>
+    <view v-for="(g, index) in goods" :key="index" class="goods-item">
+      <image v-if="g.image" :src="g.image" mode="aspectFill" class="goods-image" />
+      <view class="goods-body">
+        <text class="goods-name">{{ g.name }}</text>
+        <text v-if="g.desc" class="goods-desc">{{ g.desc }}</text>
+        <view class="goods-price">
+          <text v-if="price(g).promo" class="goods-price-promo">{{ price(g).promo }}</text>
+          <text v-if="price(g).origin" class="goods-price-origin">{{ price(g).origin }}</text>
+          <text v-if="g.unit" class="goods-unit">/{{ g.unit }}</text>
+        </view>
+        <text v-if="g.limitPerPerson" class="goods-limit">每人限购 {{ g.limitPerPerson }} 件</text>
+      </view>
+    </view>
+    <view class="goods-verify">
+      <text class="goods-verify-title">到店核销</text>
+      <text class="goods-verify-desc">报名成功后到店出示报名签到码，由店员扫码核销并享受促销价。</text>
+    </view>
+    <text class="goods-notice">{{ notice }}</text>
+  </view>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { normalizeGoodsList } from '../../pages/activity/promo-import.js'
+
+const props = defineProps({
+  activity: { type: Object, default: null },
+  config: { type: Object, default: null },
+})
+
+const title = computed(() => props.config?.title || '')
+const notice = computed(() => props.config?.notice || '价格以到店为准')
+const goods = computed(() => normalizeGoodsList(props.activity?.goodsList))
+const price = (g) => ({
+  origin: g.originPrice == null ? '' : `¥${g.originPrice}`,
+  promo: g.promoPrice == null ? '' : `¥${g.promoPrice}`,
+})
+</script>
+
+<style lang="scss" scoped>
+.section-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--c-text);
+  margin-bottom: 20rpx;
+}
+
+.goods-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 18rpx 0;
+  border-bottom: 2rpx solid var(--c-text-dim);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.goods-image {
+  flex-shrink: 0;
+  width: 160rpx;
+  height: 160rpx;
+  margin-right: 20rpx;
+  border-radius: 12rpx;
+  background: var(--c-bg);
+}
+
+.goods-body {
+  flex: 1;
+}
+
+.goods-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: var(--c-text);
+  line-height: 1.4;
+}
+
+.goods-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--c-text-dim);
+  line-height: 1.5;
+}
+
+.goods-price {
+  display: flex;
+  align-items: baseline;
+  margin-top: 12rpx;
+}
+
+.goods-price-promo {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: var(--c-primary);
+}
+
+.goods-price-origin {
+  margin-left: 14rpx;
+  font-size: 24rpx;
+  color: var(--c-text-dim);
+  text-decoration: line-through;
+}
+
+.goods-unit {
+  margin-left: 8rpx;
+  font-size: 24rpx;
+  color: var(--c-text-dim);
+}
+
+.goods-limit {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--c-accent);
+}
+
+.goods-verify {
+  margin-top: 20rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  background: var(--c-bg);
+}
+
+.goods-verify-title {
+  display: block;
+  font-size: 26rpx;
+  font-weight: bold;
+  color: var(--c-primary);
+  margin-bottom: 6rpx;
+}
+
+.goods-verify-desc {
+  display: block;
+  font-size: 24rpx;
+  color: var(--c-text-dim);
+  line-height: 1.6;
+}
+
+.goods-notice {
+  display: block;
+  margin-top: 20rpx;
+  font-size: 22rpx;
+  color: var(--c-text-dim);
+  text-align: center;
+}
+</style>
