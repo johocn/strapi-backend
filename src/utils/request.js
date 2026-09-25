@@ -212,7 +212,9 @@ async function request(options, isRetry = false) {
             msg = '服务异常，请稍后重试'
           }
           uni.showToast({ title: msg, icon: 'none' })
-          reject(new Error(msg))
+          const err = new Error(msg)
+          err.status = res.statusCode
+          reject(err)
         }
       },
       fail: (err) => {
@@ -447,7 +449,9 @@ async function adminRequest(options) {
             msg = '服务异常，请稍后重试'
           }
           uni.showToast({ title: msg, icon: 'none' })
-          reject(new Error(msg))
+          const err = new Error(msg)
+          err.status = res.statusCode
+          reject(err)
         }
       },
       fail: (err) => {

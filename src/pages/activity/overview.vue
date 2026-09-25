@@ -6,7 +6,7 @@
       </view>
     </PageHeader>
 
-    <view class="cards">
+    <view class="cards" v-if="!forbidden">
       <view class="card" v-for="c in cards" :key="c.label">
         <text class="card-num">{{ c.value }}</text>
         <text class="card-label">{{ c.label }}</text>
@@ -73,7 +73,11 @@
     </view>
 
     <view v-if="loading" class="loading"><text>加载中...</text></view>
-    <view v-if="!loading && rows.length === 0" class="empty-state">
+    <view v-else-if="forbidden" class="empty-state">
+      <text class="empty-text">无权访问该渠道数据</text>
+      <text class="empty-hint">请联系管理员为你的账号分配渠道权限</text>
+    </view>
+    <view v-else-if="rows.length === 0" class="empty-state">
       <text class="empty-text">暂无活动数据</text>
     </view>
   </view>
@@ -100,6 +104,8 @@ const status = ref('all')
 const summary = ref({})
 const rows = ref([])
 const loading = ref(false)
+// 403（无权访问该渠道数据）：与「暂无活动数据」区分渲染，避免运营误判为没有数据
+const forbidden = ref(false)
 const expandedKey = ref('')
 
 const cards = computed(() => {
@@ -145,6 +151,7 @@ function togglePromo() {
 }
 async function loadData() {
   loading.value = true
+  forbidden.value = false
   try {
     const res = await getActivityOverview({
       status: status.value,
@@ -154,7 +161,13 @@ async function loadData() {
     summary.value = (d && d.summary) || {}
     rows.value = Array.isArray(d && d.rows) ? d.rows : []
   } catch (e) {
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+    rows.value = []
+    if (e && e.status === 403) {
+      // 请求层已提示「无权访问该资源」，此处只切换空态，避免误判为「暂无数据」
+      forbidden.value = true
+    } else {
+      uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+    }
   } finally {
     loading.value = false
   }
@@ -208,4 +221,5 @@ page { background: #f5f5f5; }
 .detail-empty { font-size: 24rpx; color: #999; text-align: center; padding: 12rpx 0; }
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }
 .empty-text { font-size: 28rpx; color: #999; }
+.empty-hint { font-size: 24rpx; color: #bbb; margin-top: 12rpx; }
 </style>

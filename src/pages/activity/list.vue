@@ -81,7 +81,12 @@
     </view>
 
     <view v-if="loading" class="loading"><text>加载中...</text></view>
-    <view v-if="!loading && dataList.length === 0" class="empty-state">
+    <view v-else-if="forbidden" class="empty-state">
+      <text class="empty-icon">🔒</text>
+      <text class="empty-text">无权访问该渠道数据</text>
+      <text class="empty-hint">请联系管理员为你的账号分配渠道权限</text>
+    </view>
+    <view v-else-if="dataList.length === 0" class="empty-state">
       <text class="empty-icon">📋</text>
       <text class="empty-text">暂无活动</text>
     </view>
@@ -174,6 +179,8 @@ const pageSize = 10
 const total = ref(0)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 const loading = ref(false)
+// 403（无权访问该渠道数据）：与「暂无活动」区分渲染，避免运营误判为没有数据
+const forbidden = ref(false)
 
 const showDeleteModal = ref(false)
 const deleteItem = ref(null)
@@ -197,6 +204,7 @@ function docIdOf(row) {
 
 async function loadData() {
   loading.value = true
+  forbidden.value = false
   try {
     const params = { page: currentPage.value, pageSize }
     if (statusIndex.value > 0) params.status = statusValues[statusIndex.value]
@@ -216,7 +224,12 @@ async function loadData() {
   } catch (e) {
     dataList.value = []
     total.value = 0
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    if (e && e.status === 403) {
+      // 请求层已提示「无权访问该资源」，此处只切换空态，不重复弹 toast
+      forbidden.value = true
+    } else {
+      uni.showToast({ title: '加载失败', icon: 'none' })
+    }
   } finally {
     loading.value = false
   }
@@ -396,6 +409,7 @@ page { background: #f5f5f5; }
 .loading, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100rpx 0; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 28rpx; color: #999; }
+.empty-hint { font-size: 24rpx; color: #bbb; margin-top: 12rpx; }
 
 .pagination { display: flex; justify-content: center; align-items: center; gap: 40rpx; padding: 40rpx 0; }
 .pagination-btn { padding: 16rpx 32rpx; background: #fff; border-radius: 8rpx; font-size: 28rpx; }
