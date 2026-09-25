@@ -719,11 +719,11 @@
         <view class="form-row">
           <view class="form-item half">
             <text class="form-label">纬度 lat</text>
-            <input type="digit" v-model="form.lat" placeholder="经度" class="form-input" />
+            <input type="digit" v-model="form.lat" placeholder="纬度" class="form-input" />
           </view>
           <view class="form-item half">
             <text class="form-label">经度 lng</text>
-            <input type="digit" v-model="form.lng" placeholder="纬度" class="form-input" />
+            <input type="digit" v-model="form.lng" placeholder="经度" class="form-input" />
           </view>
         </view>
       </view>
