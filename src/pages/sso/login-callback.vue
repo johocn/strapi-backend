@@ -1,14 +1,15 @@
 <template>
   <view class="callback-page">
-    <view class="callback-title">登录中</view>
-
-    <view v-if="loading" class="status">正在跳转...</view>
-    <view v-else-if="redirecting" class="status">检测到登录凭证，正在跳转到目标页面...</view>
-    <view v-else-if="error" class="status error">
-      <text>{{ error }}</text>
-      <view class="retry-btn" @click="backToLogin">返回登录</view>
+    <sso-loading-facade
+      v-if="!error"
+      :status-text="statusText"
+    />
+    <view v-else class="error-state">
+      <view class="error-card">
+        <text class="error-title">{{ error }}</text>
+        <view class="retry-btn" @click="backToLogin">返回重新登录</view>
+      </view>
     </view>
-    <view v-else class="status">正在处理登录信息...</view>
 
     <!-- 调试信息（仅开发环境，可通过 URL 参数 ?debug=1 显示） -->
     <view v-if="showDebug" class="debug-info">
@@ -18,9 +19,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { publicPost } from '../../utils/request.js'
+import SsoLoadingFacade from '../../components/sso-loading-facade/sso-loading-facade.vue'
+import { SSO_STATUS } from '../../components/sso-loading-facade/dict.js'
+
+const statusText = computed(() => {
+  if (loading.value) return SSO_STATUS.verify
+  if (redirecting.value) return SSO_STATUS.redirect
+  return SSO_STATUS.process
+})
 
 const loading = ref(false)
 const redirecting = ref(false)
@@ -297,21 +306,24 @@ function backToLogin() {
 
 <style scoped>
 .callback-page {
+  min-height: 100vh;
+  background: #f7f8fc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 40px 20px;
-  max-width: 480px;
-  margin: 0 auto;
-  text-align: center;
 }
-.callback-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; }
-.status { padding: 16px; border-radius: 8px; color: #666; }
-.status.error { background: #fee; color: #c00; }
+.error-state { padding: 24px; }
+.error-card { background: #fff; border-radius: 20px; padding: 36px 28px; text-align: center; box-shadow: 0 8px 28px rgba(102,126,234,0.12); }
+.error-title { font-size: 15px; color: #e65b5b; }
 .retry-btn {
-  margin-top: 20px;
-  padding: 10px 24px;
+  margin: 20px auto 0;
+  padding: 11px 30px;
   background: #667eea;
   color: #fff;
-  border-radius: 6px;
-  display: inline-block;
+  border-radius: 999px;
+  width: fit-content;
 }
 .debug-info {
   margin-top: 20px;

@@ -418,5 +418,48 @@ SSO（Single Sign-On，单点登录）就是**一次登录，到处可用**。�
 
 ---
 
+## 9. 登录中转等待区（品牌门面）
+
+> 星枢 SSO 登录页与回调页在「等待/跳转」期间统一展示品牌化加载门面：淡紫背景 + 中心 logo/spinner + 标题「星枢统一关系中心」+ 广告语轮播 + 状态胶囊。入口自动跳转微信与登录回调均复用同一门面组件 `sso-loading-facade.vue`，主色统一为星枢品牌紫 `#667eea`。
+
+### 9.1 触发场景
+
+| 页面 | 触发条件 | 展示的胶囊文案 |
+|------|----------|----------------|
+| `/#/pages/sso/login` | 微信环境自动跳转中 | 正在跳转目标页面… |
+| `/#/pages/sso/login-callback` | token 直达 / code 兑换 / 正在跳转目标页面 | 校验中… / 正在跳转目标页面… |
+
+### 9.2 手机视口验收截图（390×844，dpr=2 = 780×1688）
+
+以下截图基于本地 H5 开发服（`npm run dev:h5`），使用 Playwright 手机视口（iPhone UA + 390×844 + deviceScaleFactor=2）实拍：
+
+**1) 登录页微信自动跳转门面**
+![登录页微信自动跳转门面](../../snapshots/sso-loading-20260922/01-login-debugWx-loading.png)
+> 构造 `?debugWx=1`（强制 `isWechatEnv=true`）触发微信自动跳转 → `isWechatAutoRedirecting` → 展示门面（紫色 spinner + 广告语）。
+
+**2) 登录回调页门面（token 直达 redirect 态）**
+![登录回调页门面](../../snapshots/sso-loading-20260922/02-login-callback-redirect.png)
+> 携带 `token` 走 `redirectToTarget`，展示「正在跳转目标页面…」门面 + 状态胶囊。纯 `?debug=1`（无 code）会直接进「未收到授权码」错误态，无法展示门面——这是正常行为，该中间态需真实微信回流传参才能稳定看到。
+
+**3) 登录页默认渲染（非微信环境，回归确认）**
+![登录页默认渲染](../../snapshots/sso-loading-20260922/03-login-default.png)
+> 不带 `debugWx` → page-header 广告语 + 降级账号密码登录表单，确认不回归。
+
+### 9.3 动效与降级
+
+- **广告语轮播**：约 3s 切换一条，尊重系统 `prefers-reduced-motion: reduce`（开启时不再轮播，仅静止显示首条）。
+- **spinner**：紫色圆环，约 0.8s 一圈。
+- **状态胶囊**：品牌淡紫底 + 主色文字。
+
+### 9.4 跨端「从哪页登录回哪页」结论
+
+代码层面已确认链路成立：
+- **strapi-course**：`buildSsoPageUrl(state=来源页路径)` 将 `state` 内嵌进 `return_url/c_end_url`（auth-callback 的 hash query）→ 星枢 `login-callback.redirectToTarget` 将 `token` 以 `&` 拼接其后 → `auth-callback` 可同时读到 `state + token` → reLaunch 回来源分享/详情页。
+- **nshop**：`return_url = route.fullPath`（保 query）→ token 直验后 `router.replace(目标)` 精确回来源页。
+
+> ⚠️ 真实微信 SSO 回流需已部署的 h.joho.cn + 真实微信授权登录态，自动化/子代理环境无法完整跑通，此「回来源页」需**人工 + 手机实测**确认（并核对新域名是否已加入 SSO `validateRedirectUri` 白名单）。
+
+---
+
 > **文档版本**：v1.0 | **适用系统**：基于 Strapi + UniApp 的多租户系统
-> **更新日期**：2026-08-01 | **编写目标**：让非技术人员也能独立配置 SSO 登录
+> **更新日期**：2026-09-22 | **编写目标**：让非技术人员也能独立配置 SSO 登录

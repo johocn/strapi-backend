@@ -1,35 +1,35 @@
 <template>
   <view class="sso-login-page">
-    <view class="page-header">
+    <view class="page-header" v-if="!isWechatAutoRedirecting">
       <text class="page-title">星枢统一关系中心</text>
-      <text class="page-tagline">{{ tagline }}</text>
+      <text class="page-tagline">{{ taglineStatic }}</text>
+      <!-- 正常渲染组件（含降级表单）：非微信自动跳转中、且无 OAuth 错误时显示 -->
+      <view class="component-container" v-if="!oauthError">
+	    <wx-sso-login
+	      :app-code="appCode"
+	      :redirect-uri="redirectUri"
+	      :invite-code="inviteCode"
+	      :channel-code="channelCode"
+	      :fallback-mode="mode"
+	      :fallback-enabled="true"
+	      :auto-redirect="isWechatEnv"
+	      @success="onSuccess"
+	      @error="onError"
+	      @redirect="onRedirect"
+	    />
+	  </view>
     </view>
 
-    <!-- 微信环境自动跳转中 -->
-    <view v-if="isWechatAutoRedirecting" class="loading-state">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">正在跳转微信登录...</text>
-    </view>
+    <!-- 微信环境自动跳转中：统一品牌门面（紧凑靠上，标题+广告语由门面渲染） -->
+    <sso-loading-facade
+      v-if="isWechatAutoRedirecting"
+      compact
+      :status-text="SSO_STATUS.login"
+    />
 
-    <!-- 错误提示（OAuth 失败回跳） -->
+    <!-- 错误提示（OAuth 失败回跳）：非微信跳转态 -->
     <view v-else-if="oauthError" class="error-state">
       <view class="error-text">⚠ {{ oauthError }}</view>
-    </view>
-
-    <!-- 正常渲染组件（含降级表单） -->
-    <view class="component-container" v-else>
-      <wx-sso-login
-        :app-code="appCode"
-        :redirect-uri="redirectUri"
-        :invite-code="inviteCode"
-        :channel-code="channelCode"
-        :fallback-mode="mode"
-        :fallback-enabled="true"
-        :auto-redirect="isWechatEnv"
-        @success="onSuccess"
-        @error="onError"
-        @redirect="onRedirect"
-      />
     </view>
 
     <view class="footer">
@@ -42,6 +42,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import SsoLoadingFacade from '../../components/sso-loading-facade/sso-loading-facade.vue'
+import { SSO_STATUS, getSlogan } from '../../components/sso-loading-facade/dict.js'
 
 const appCode = ref('')
 const returnUrl = ref('')
@@ -52,30 +54,8 @@ const mode = ref('token')
 const oauthError = ref('')
 const isWechatAutoRedirecting = ref(false)
 
-// 星枢统一关系中心：随机标语（解释核心理念：一个身份串联所有系统）
-const TAGS = [
-  '一个账号，玩转全部系统',
-  '一登录，全平台畅通',
-  '统一身份，串联所有系统',
-  '把散落的系统串成一个整体',
-  '一次登录，处处是你的主场',
-  '星枢，理清你与好友的联结',
-  '一个身份，链接所有业务',
-  '打通各系统，一个身份就够',
-  '账号在手，关系全有',
-  '你来登录，我们连起所有',
-  '所有系统，围绕你一个身份',
-  '星枢，让系统彼此相连',
-  '一键登录，关系自动串联',
-  '统一身份，连接课程与活动',
-  '星枢轴心，转动整个生态',
-  '关系即资产，星枢帮你理',
-  '一个他，联结你全部服务',
-  '登录一次，身份遍行全线',
-  '星枢，你做主的登录中枢',
-  '人人皆一点，处处通星枢',
-]
-const tagline = ref(TAGS[Math.floor(Math.random() * TAGS.length)])
+// 星枢统一关系中心：静态广告语（取字典随机一条，收敛到 dict.js 单一来源）
+const taglineStatic = ref(getSlogan())
 
 /**
  * 从 URL hash 中解析查询参数（UniApp H5 hash 模式兜底）
@@ -241,43 +221,27 @@ function goRegister() {
   min-height: 100vh;
   background: #f5f5f5;
 }
-.page-header { text-align: center; padding: 30px 0 20px; }
-.page-title { font-size: 22px; font-weight: bold; color: #333; }
-.page-tagline { display: block; margin-top: 8px; font-size: 13px; color: #8898aa; }
+.page-header { text-align: center; padding: 36px 0 24px; }
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+  letter-spacing: 1px;
+  background: linear-gradient(120deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.page-tagline { display: block; margin-top: 10px; font-size: 13px; color: #8898aa; }
 .component-container {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(102,126,234,0.08);
 }
 .footer { text-align: center; padding: 20px 0; }
 .footer-text { font-size: 14px; color: #666; }
 .footer-link { font-size: 14px; color: #667eea; margin-left: 4px; }
-
-/* 微信环境自动跳转加载状态 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 20px;
-  gap: 16px;
-}
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #07c160;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.loading-text {
-  font-size: 14px;
-  color: #666;
-}
 
 /* 错误提示 */
 .error-state {
