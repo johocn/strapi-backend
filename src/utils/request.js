@@ -249,8 +249,9 @@ export function get(url, params = {}) {
  * @param {string} url 接口地址（不含 BASE_API）
  * @param {object} params 查询参数
  * @param {string} filename 下载保存的文件名
+ * @param {string} mime 响应 MIME（默认 xlsx，CSV 等其它格式由调用方传入）
  */
-export function downloadFile(url, params = {}, filename = 'download') {
+export function downloadFile(url, params = {}, filename = 'download', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
   const dest = appendQuery(url, params)
 
   const doRequest = (retried) => new Promise((resolve, reject) => {
@@ -269,7 +270,7 @@ export function downloadFile(url, params = {}, filename = 'download') {
       success: async (res) => {
         if (res.statusCode === 200) {
           try {
-            const saved = triggerBrowserDownload(res.data, filename)
+            const saved = triggerBrowserDownload(res.data, filename, mime)
             resolve(saved)
           } catch (e) {
             reject(e)
@@ -299,13 +300,13 @@ export function downloadFile(url, params = {}, filename = 'download') {
   return doRequest(false)
 }
 
-function triggerBrowserDownload(arrayBuffer, filename) {
+function triggerBrowserDownload(arrayBuffer, filename, mime) {
   // 仅 H5 端支持 Blob + <a download>；非 H5 环境直接抛错由调用方提示
   if (typeof document === 'undefined' || typeof Blob === 'undefined') {
     throw new Error('当前平台不支持文件下载')
   }
   const blob = new Blob([arrayBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    type: mime || 'application/octet-stream'
   })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

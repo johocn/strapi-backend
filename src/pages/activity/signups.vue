@@ -8,6 +8,12 @@
     </view>
 
     <!-- 报名名单 -->
+    <view v-if="activeTab === 'signup'" class="toolbar">
+      <view class="export-btn" :class="{ disabled: exporting }" @click="handleExport">
+        <text>{{ exporting ? '导出中...' : '导出名单（CSV）' }}</text>
+      </view>
+    </view>
+
     <view v-if="activeTab === 'signup'" class="list">
       <view v-if="loadingSignup" class="loading"><text>加载中...</text></view>
       <template v-else>
@@ -73,7 +79,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getActivitySignups, getActivityAttendance, cancelActivitySignup, getActivity } from '../../api/activity.js'
+import { getActivitySignups, getActivityAttendance, cancelActivitySignup, getActivity, exportSignupListCsv } from '../../api/activity.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const activityId = ref('')
@@ -84,6 +90,8 @@ const loadingSignup = ref(false)
 const loadingAttendance = ref(false)
 const formConfig = ref([])
 const expandedForm = ref('')
+const activityTitle = ref('')
+const exporting = ref(false)
 
 function formatTime(dateStr) {
   if (!dateStr) return '-'
@@ -128,6 +136,7 @@ async function loadFormConfig() {
   try {
     const act = await getActivity(activityId.value)
     formConfig.value = Array.isArray(act?.formConfig) ? act.formConfig : []
+    activityTitle.value = act?.title || ''
   } catch (e) {
     formConfig.value = []
   }
@@ -153,6 +162,24 @@ function switchTab(tab) {
     if (signupList.value.length === 0) loadSignups()
   } else {
     if (attendanceList.value.length === 0) loadAttendance()
+  }
+}
+
+// 导出名单 CSV（全量名单 + 到场状态）。downloadFile 内部已给出失败提示，此处不重复弹
+async function handleExport() {
+  if (!activityId.value || exporting.value) return
+  exporting.value = true
+  uni.showLoading({ title: '导出中...' })
+  try {
+    // 文件名去掉 Windows 非法字符
+    const safeTitle = String(activityTitle.value || '活动').replace(/[\\/:*?"<>|]/g, '')
+    await exportSignupListCsv(activityId.value, `活动名单_${safeTitle}.csv`)
+    uni.hideLoading()
+    uni.showToast({ title: '已保存到浏览器下载目录', icon: 'success' })
+  } catch (e) {
+    uni.hideLoading()
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -194,6 +221,10 @@ page { background: #f5f5f5; }
 .tabs { display: flex; background: #fff; border-radius: 12rpx; padding: 8rpx; margin-bottom: 20rpx; }
 .tab-item { flex: 1; text-align: center; padding: 16rpx 0; font-size: 28rpx; color: #666; border-radius: 8rpx; }
 .tab-item.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; font-weight: bold; }
+
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 16rpx; }
+.export-btn { background: #fff; border: 1rpx solid #667eea; color: #667eea; font-size: 26rpx; padding: 10rpx 24rpx; border-radius: 8rpx; }
+.export-btn.disabled { opacity: 0.6; }
 
 .list { display: flex; flex-direction: column; gap: 16rpx; }
 .card { background: #fff; border-radius: 12rpx; padding: 24rpx; }

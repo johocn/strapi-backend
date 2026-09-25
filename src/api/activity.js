@@ -1,4 +1,4 @@
-import { get, post, put, del } from '../utils/request.js'
+import { get, post, put, del, downloadFile } from '../utils/request.js'
 import { extractList, extractItem } from '../utils/format.js'
 
 const V1 = '/zhao-point/v1'
@@ -53,6 +53,11 @@ export function closeActivity(documentId) {
 // 报名名单（active=已报名 / cancelled=已取消；attendedAt 有值=已到场）
 export function getActivitySignups(documentId) {
   return get(`${ADMIN}/activities/${documentId}/signups`).then(extractList)
+}
+
+// 导出报名名单 CSV（全量名单 + 到场状态 + 报名表单自定义字段；后端直出 text/csv）
+export function exportSignupListCsv(documentId, filename = '活动名单.csv') {
+  return downloadFile(`${ADMIN}/activities/${documentId}/signups/export`, {}, filename, 'text/csv;charset=utf-8')
 }
 
 // 移出候补（仅 waiting 可移出；不改动名额）
