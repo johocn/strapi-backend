@@ -7,3 +7,6 @@ unpackage/
 uni_modules/
 # 测试截图，无需提交
 tests/**/*.png
+
+# 构建产物（发布走 deploy-h5.ps1 scp 上传，不入库）
+dist/
