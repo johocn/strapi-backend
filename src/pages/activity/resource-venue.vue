@@ -74,10 +74,39 @@
               <input type="digit" v-model="form.lng" placeholder="经度" class="form-input" />
             </view>
           </view>
+          <view class="form-item">
+            <button class="btn-map-pick" @click="openMapPicker" :disabled="!tencentMapKey">📍 地图选点</button>
+            <text class="form-hint" v-if="!tencentMapKey">请先在积分配置中设置腾讯地图密钥</text>
+          </view>
         </view>
         <view class="modal-footer">
           <button class="btn-cancel" @click="closeEdit">取消</button>
           <button class="btn-submit" @click="saveItem" :loading="saving">保存</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 地图选点弹窗 -->
+    <view class="modal-mask map-mask" v-if="showMapPicker" @click="closeMapPicker">
+      <view class="modal-content map-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">地图选点</text>
+          <text class="modal-close" @click="closeMapPicker">✕</text>
+        </view>
+        <view class="map-container">
+          <iframe :src="mapPickerUrl" frameborder="0" style="width:100%;height:100%;border:none;"></iframe>
+        </view>
+        <view class="map-footer">
+          <view class="map-coords" v-if="mapPickedLat">
+            <text>纬度: {{ mapPickedLat }}  经度: {{ mapPickedLng }}</text>
+          </view>
+          <view class="map-coords" v-else>
+            <text>请在地图上点击选择位置</text>
+          </view>
+          <view class="map-actions">
+            <button class="btn-cancel" @click="closeMapPicker">取消</button>
+            <button class="btn-submit" @click="confirmMapPick" :disabled="!mapPickedLat">确认选点</button>
+          </view>
         </view>
       </view>
     </view>
@@ -87,6 +116,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { listVenues, createVenue, updateVenue, deleteVenue } from '../../api/resource.js'
+import { getPointConfig } from '../../api/points.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const list = ref([])
@@ -177,7 +207,69 @@ function goSchedule(item) {
   uni.navigateTo({ url: `/pages/activity/resource-schedule?type=venue&id=${item.id}&name=${encodeURIComponent(item.name || '')}` })
 }
 
-onMounted(() => loadData(1))
+// ---- 地图选点（腾讯地图 locpicker：iframe + postMessage，复用自提点选点链路）----
+const tencentMapKey = ref('')
+const showMapPicker = ref(false)
+const mapPickedLat = ref('')
+const mapPickedLng = ref('')
+
+const mapPickerUrl = computed(() => {
+  if (!tencentMapKey.value) return ''
+  const center = form.value.lat && form.value.lng
+    ? `${form.value.lat},${form.value.lng}`
+    : '39.908823,116.397470'
+  return `https://apis.map.qq.com/tools/locpicker?search=1&type=1&key=${tencentMapKey.value}&center=${center}&referer=zhao-point-admin`
+})
+
+function openMapPicker() {
+  if (!tencentMapKey.value) {
+    return uni.showToast({ title: '请先在积分配置中设置腾讯地图密钥', icon: 'none' })
+  }
+  mapPickedLat.value = ''
+  mapPickedLng.value = ''
+  showMapPicker.value = true
+  window.addEventListener('message', onMapMessage)
+}
+
+function onMapMessage(event) {
+  let loc = event.data
+  // 腾讯地图 locpicker 可能返回 JSON 字符串
+  if (typeof loc === 'string') {
+    try { loc = JSON.parse(loc) } catch { return }
+  }
+  if (!loc || typeof loc !== 'object') return
+  // 兼容多种回调格式
+  if (loc.module === 'locPicker' || loc.latlng || loc.location) {
+    const lat = loc.latlng?.lat || loc.location?.lat || loc.lat
+    const lng = loc.latlng?.lng || loc.location?.lng || loc.lng
+    if (lat && lng) {
+      mapPickedLat.value = String(lat)
+      mapPickedLng.value = String(lng)
+    }
+  }
+}
+
+function closeMapPicker() {
+  showMapPicker.value = false
+  window.removeEventListener('message', onMapMessage)
+}
+
+function confirmMapPick() {
+  if (mapPickedLat.value) {
+    form.value.lat = mapPickedLat.value
+    form.value.lng = mapPickedLng.value
+  }
+  closeMapPicker()
+}
+
+async function loadMapKey() {
+  try {
+    const res = await getPointConfig()
+    tencentMapKey.value = res?.tencentMapKey ?? ''
+  } catch {}
+}
+
+onMounted(() => { loadData(1); loadMapKey() })
 </script>
 
 <style scoped>
@@ -229,4 +321,14 @@ page { background: #f5f5f5; }
 .form-textarea { width: 100%; height: 120rpx; border: 1rpx solid #ddd; border-radius: 10rpx; padding: 16rpx 20rpx; font-size: 28rpx; box-sizing: border-box; }
 .btn-cancel { flex: 1; height: 84rpx; line-height: 84rpx; text-align: center; background: #f5f5f5; color: #666; font-size: 30rpx; border-radius: 8rpx; border: none; }
 .btn-submit { flex: 1; height: 84rpx; line-height: 84rpx; text-align: center; background: #667eea; color: #fff; font-size: 30rpx; border-radius: 8rpx; border: none; }
+
+.btn-map-pick { background: #f0f4ff; color: #667eea; padding: 16rpx 32rpx; font-size: 28rpx; border-radius: 8rpx; border: 2rpx solid #667eea; line-height: 1.2; text-align: center; }
+.btn-map-pick[disabled] { background: #f5f5f5; color: #999; border-color: #ddd; }
+.form-hint { font-size: 22rpx; color: #999; margin-top: 6rpx; display: block; }
+.map-mask { z-index: 1100; }
+.map-modal { width: 95%; max-height: 90vh; }
+.map-container { width: 100%; height: 600rpx; margin: 0; }
+.map-footer { padding: 20rpx 30rpx; border-top: 1rpx solid #f0f0f0; }
+.map-coords { font-size: 26rpx; color: #666; margin-bottom: 16rpx; }
+.map-actions { display: flex; gap: 20rpx; }
 </style>
