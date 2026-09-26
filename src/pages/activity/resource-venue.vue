@@ -117,6 +117,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { listVenues, createVenue, updateVenue, deleteVenue } from '../../api/resource.js'
 import { getPointConfig } from '../../api/points.js'
+import { buildLocPickerUrl, parseLocPickerMessage } from './venue-map-pick.js'
 import PageHeader from '../../components/PageHeader.vue'
 
 const list = ref([])
@@ -214,11 +215,8 @@ const mapPickedLat = ref('')
 const mapPickedLng = ref('')
 
 const mapPickerUrl = computed(() => {
-  if (!tencentMapKey.value) return ''
-  const center = form.value.lat && form.value.lng
-    ? `${form.value.lat},${form.value.lng}`
-    : '39.908823,116.397470'
-  return `https://apis.map.qq.com/tools/locpicker?search=1&type=1&key=${tencentMapKey.value}&center=${center}&referer=zhao-point-admin`
+  const center = form.value.lat && form.value.lng ? `${form.value.lat},${form.value.lng}` : ''
+  return buildLocPickerUrl(tencentMapKey.value, center)
 })
 
 function openMapPicker() {
@@ -232,20 +230,10 @@ function openMapPicker() {
 }
 
 function onMapMessage(event) {
-  let loc = event.data
-  // 腾讯地图 locpicker 可能返回 JSON 字符串
-  if (typeof loc === 'string') {
-    try { loc = JSON.parse(loc) } catch { return }
-  }
-  if (!loc || typeof loc !== 'object') return
-  // 兼容多种回调格式
-  if (loc.module === 'locPicker' || loc.latlng || loc.location) {
-    const lat = loc.latlng?.lat || loc.location?.lat || loc.lat
-    const lng = loc.latlng?.lng || loc.location?.lng || loc.lng
-    if (lat && lng) {
-      mapPickedLat.value = String(lat)
-      mapPickedLng.value = String(lng)
-    }
+  const picked = parseLocPickerMessage(event.data)
+  if (picked) {
+    mapPickedLat.value = picked.lat
+    mapPickedLng.value = picked.lng
   }
 }
 
