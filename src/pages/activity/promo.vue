@@ -752,16 +752,42 @@ function fmtTime(v) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// 名片字段白名单：防止脏字段进入表单或提交体
+const CONTACT_CARD_KEYS = ['name', 'title', 'company', 'phone', 'wechat']
+
+/** 是否存在任一有效联系方式（无则视为未配置，走站点默认） */
+function hasContactValue(c) {
+  if (!c) return false
+  if (c.wechat && (c.wechat.id || c.wechat.qrcode)) return true
+  if (c.phone || c.wechatServiceUrl || c.notice) return true
+  if (c.card && CONTACT_CARD_KEYS.some((k) => c.card[k])) return true
+  return false
+}
+
+/** 规范化联系方式：补齐结构 + 字段白名单；无有效字段返回 null（=使用站点默认） */
 function normContact(pc) {
   if (!pc || typeof pc !== 'object') return null
-  return {
-    wechat: pc.wechat && typeof pc.wechat === 'object'
-      ? pc.wechat
-      : { qrcode: '', id: typeof pc.wechat === 'string' ? pc.wechat : '' },
+  const wechat = pc.wechat && typeof pc.wechat === 'object'
+    ? { id: pc.wechat.id || '', qrcode: pc.wechat.qrcode || '' }
+    : { qrcode: '', id: typeof pc.wechat === 'string' ? pc.wechat : '' }
+  const cardSrc = pc.card && typeof pc.card === 'object' ? pc.card : null
+  const card = cardSrc
+    ? CONTACT_CARD_KEYS.reduce((o, k) => { o[k] = cardSrc[k] || ''; return o }, {})
+    : null
+  const out = {
+    wechat,
     phone: pc.phone || '',
-    card: pc.card || null,
+    wechatServiceUrl: pc.wechatServiceUrl || '',
+    card,
     notice: pc.notice || '',
   }
+  return hasContactValue(out) ? out : null
+}
+
+/** 回填联系方式并同步名片展开态 */
+function applyContact(pc) {
+  form.promoContact = normContact(pc)
+  showPromoCard.value = !!form.promoContact?.card
 }
 
 async function loadDetail() {
@@ -813,11 +839,11 @@ async function loadDetail() {
       promoTemplate: data.promoTemplate || 'summit',
       promoColors: data.promoColors && typeof data.promoColors === 'object' ? { ...data.promoColors } : null,
       promoModules: Array.isArray(data.promoModules) ? data.promoModules : [],
-      promoContact: normContact(data.promoContact),
       promoAssets: Array.isArray(data.promoAssets) ? data.promoAssets : [],
       customPromoHtml: data.customPromoHtml || '',
       customPromoActive: data.customPromoActive !== false,
     })
+    applyContact(data.promoContact)
     // 编辑器使用独立 ref：回填已保存的定制 HTML 作为可编辑默认值（此前丢失），并默认进入当前生效方案
     customPromoHtml.value = data.customPromoHtml || ''
     clearedCustom.value = false
@@ -937,7 +963,7 @@ function toggleContactOverride(e) {
 
 function openPromoQrcodePicker() { showPromoQrcodePicker.value = true }
 function onPromoQrcodePicked(file) {
-  if (!form.promoContact) form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', card: null, notice: '' }
+  if (!form.promoContact) form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', wechatServiceUrl: '', card: null, notice: '' }
   if (!form.promoContact.wechat) form.promoContact.wechat = { qrcode: '', id: '' }
   if (!file || !file.url) { showPromoQrcodePicker.value = false; return }
   form.promoContact.wechat.qrcode = file.url
@@ -951,17 +977,19 @@ function togglePromoCard() {
   showPromoCard.value = !showPromoCard.value
 }
 
+/** 清洗为提交结构：不改动入参、剔除空字段；无有效字段返回 null（后端回落站点默认） */
 function sanitizePromoContact(c) {
-  if (!c) return null
-  if (c.wechat && !c.wechat.id && !c.wechat.qrcode) delete c.wechat
-  else if (!c.wechat) c.wechat = undefined
-  for (const k of ['phone','wechatServiceUrl','notice']) if (!c[k]) delete c[k]
-  if (c.card) {
-    const card = c.card
-    for (const k of ['name','title','company','phone','wechat']) if (!card[k]) delete card[k]
-    if (!Object.keys(card).length) c.card = undefined
+  const n = normContact(c)
+  if (!n) return null
+  const out = {}
+  if (n.wechat.id || n.wechat.qrcode) out.wechat = { ...n.wechat }
+  for (const k of ['phone', 'wechatServiceUrl', 'notice']) if (n[k]) out[k] = n[k]
+  if (n.card) {
+    const card = {}
+    for (const k of CONTACT_CARD_KEYS) if (n.card[k]) card[k] = n.card[k]
+    if (Object.keys(card).length) out.card = card
   }
-  return (c.phone || c.wechat || c.wechatServiceUrl || c.notice || c.card) ? c : null
+  return out
 }
 
 // ---- AI 生成 / 粘贴导入 ----
@@ -983,7 +1011,7 @@ function applyPromoResult(r) {
     form.promoModules.forEach((m, i) => { m.sort = i })
     openModuleIndex.value = -1
   }
-  if (d.promoContact && typeof d.promoContact === 'object') form.promoContact = normContact(d.promoContact)
+  if (d.promoContact && typeof d.promoContact === 'object') applyContact(d.promoContact)
   suggestTips.value = []
   if (d.promoColors && typeof d.promoColors === 'object') {
     form.promoColors = d.promoColors
@@ -1096,6 +1124,7 @@ async function save() {
   if (!form.promoModules.length) return uni.showToast({ title: '至少需要一个宣传模块', icon: 'none' })
   saving.value = true
   try {
+    const promoContact = sanitizePromoContact(form.promoContact)
     const data = {
       title: form.title || undefined,
       description: form.description || undefined,
@@ -1105,12 +1134,15 @@ async function save() {
         config: m.config && Object.keys(m.config).length ? m.config : {},
         sort: i,
       })),
-      promoContact: sanitizePromoContact(form.promoContact),
+      promoContact,
       promoColors: form.promoColors || null,
       // AI 方案生效标记：切换 C 端显示为 promoModules；完全定制 HTML 保留（不清空）便于后续再编辑
       customPromoActive: false,
     }
     await updateActivity(activityId.value, data)
+    // 用提交结果归一化本地表单：避免清洗后表单残留半残对象（模板会读 wechat.id），
+    // 并让开关状态与库中真实值（null=走站点默认）保持一致
+    applyContact(promoContact)
     uni.showToast({ title: '已保存', icon: 'success' })
   } catch (e) {
     uni.showToast({ title: e.message || '保存失败', icon: 'none' })
