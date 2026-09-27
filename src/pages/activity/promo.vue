@@ -151,6 +151,7 @@
               <template v-else-if="m.type === 'cover'">
                 <input type="text" v-model="m.config.title" placeholder="主标题" class="form-input" />
                 <input type="text" v-model="m.config.subtitle" placeholder="副标题" class="form-input" />
+                <input type="text" v-model="m.config.highlight" placeholder="宣传重点（一句话卖点，如：进店免费领西瓜）" class="form-input" />
               </template>
               <template v-else-if="m.type === 'highlights'">
                 <view v-for="(p, pi) in m.config.points || []" :key="pi" class="form-row">

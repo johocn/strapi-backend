@@ -68,3 +68,8 @@ test('floatContact 加入白名单（与后端 PROMO_MODULE_TYPES 对齐）', ()
   assert.equal(out.length, 1)
   assert.equal(out[0].type, 'floatContact')
 })
+
+test('normalizeModuleConfig cover 保留 highlight（预览要素不被清洗）', () => {
+  const cfg = normalizeModuleConfig('cover', { title: '主标题', subtitle: '副标题', highlight: '进店免费领西瓜' })
+  assert.equal(cfg.highlight, '进店免费领西瓜')
+})
