@@ -22,3 +22,11 @@ test('日期开始/结束各自独立 v-if 自动降级', () => {
   assert.match(src, /v-if="dateStart"/)
   assert.match(src, /v-if="dateEnd"/)
 })
+
+const pageSrc = readFileSync(resolve(here, '../src/pages/activity/promo.vue'), 'utf8')
+
+test('无图兜底：预览未配置 cover 模块时合成头部，和 C 端一致', () => {
+  assert.ok(pageSrc.includes('const previewModules = computed'), '缺 previewModules')
+  assert.ok(pageSrc.includes("m?.type === 'cover'"), '缺 cover 判定')
+  assert.ok(pageSrc.includes('v-for="m in previewModules"'), '预览未使用 previewModules')
+})

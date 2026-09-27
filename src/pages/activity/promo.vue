@@ -401,7 +401,7 @@
         </view>
         <scroll-view scroll-y class="preview-scroll">
           <view v-if="activeScheme === 'ai'" class="promo-page preview-body" :class="'promo-' + form.promoTemplate" :style="previewColorVars">
-            <block v-for="m in form.promoModules" :key="m.sort">
+            <block v-for="m in previewModules" :key="m.sort">
               <PromoCover v-if="m.type === 'cover'" :activity="form" :config="m.config" />
               <PromoInfo v-else-if="m.type === 'info'" :activity="form" :config="m.config" />
               <PromoRich v-else-if="m.type === 'rich'" :activity="form" :config="m.config" />
@@ -594,6 +594,12 @@ const form = reactive({
 })
 
 const activeScheme = ref('ai') // 'ai' | 'custom'
+// 无图兜底：与 C 端一致，未配置 cover 模块时合成头部，保证预览与线上一致
+const previewModules = computed(() => {
+  const list = Array.isArray(form.promoModules) ? form.promoModules : []
+  if (list.some((m) => m?.type === 'cover')) return list
+  return [{ type: 'cover', sort: 0, config: {} }, ...list]
+})
 const customMode = ref('source') // 'source' | 'visual'
 const customPromoHtml = ref('')
 const modalCustomPreviewBox = ref(null)
