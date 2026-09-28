@@ -557,6 +557,10 @@
           <view class="module-icon">💬</view>
           <view class="module-name">咨询留言</view>
         </view>
+        <view class="module-item" v-if="hasPermission('product-survey.read')" @click="navigateTo('/pages/activity/survey-board')">
+          <view class="module-icon">📋</view>
+          <view class="module-name">选品需求榜</view>
+        </view>
       </view>
     </view>
 

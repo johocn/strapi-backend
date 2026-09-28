@@ -17,4 +17,5 @@ export const PROMO_MODULE_META = {
   goods: { name: '促销商品', needConfig: true },
   purpose: { name: '活动目的', needConfig: true },
   notice: { name: '活动说明', needConfig: true },
+  survey: { name: '选品调研', needConfig: true },
 }

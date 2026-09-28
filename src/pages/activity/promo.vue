@@ -245,6 +245,14 @@
                 <text class="form-tip">商品清单在活动编辑页「促销商品」区填写，此处只配置模块标题与免责文案。</text>
                 <view class="link-add" @click="goEditActivity">去活动编辑页填写商品 ›</view>
               </template>
+              <template v-else-if="m.type === 'survey'">
+                <view class="promo-fixed-row"><text class="promo-fixed-label">标题</text><text class="promo-fixed-value">{{ m.config.title || '帮我们选品' }}</text></view>
+                <view class="promo-fixed-row"><text class="promo-fixed-label">周期</text><text class="promo-fixed-value">{{ m.config.roundKey || '未设置' }}</text></view>
+                <view class="promo-fixed-row"><text class="promo-fixed-label">渠道 token</text><text class="promo-fixed-value">{{ m.config.channelToken || '未设置' }}</text></view>
+                <view class="promo-fixed-row"><text class="promo-fixed-label">品类数</text><text class="promo-fixed-value">{{ (m.config.collections || []).length }} 个</text></view>
+                <text class="form-tip">完整配置请在活动编辑页设置。</text>
+                <view class="link-add" @click="goEditActivity">去活动编辑页修改 ›</view>
+              </template>
               <template v-else-if="m.type === 'purpose'">
                 <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动目的）" class="form-input" />
                 <text class="form-tip">活动目的正文在活动编辑页填写。</text>
@@ -416,6 +424,7 @@
               <PromoFaq v-else-if="m.type === 'faq'" :activity="form" :config="m.config" />
               <PromoCustom v-else-if="m.type === 'custom'" :activity="form" :config="m.config" />
               <PromoGoods v-else-if="m.type === 'goods'" :activity="form" :config="m.config" />
+              <PromoSurvey v-else-if="m.type === 'survey'" :activity="form" :config="m.config" />
               <PromoPurpose v-else-if="m.type === 'purpose'" :activity="form" :config="m.config" />
               <PromoNotice v-else-if="m.type === 'notice'" :activity="form" :config="m.config" />
               <FloatContact
@@ -502,6 +511,7 @@ import PromoMessage from '../../components/promo/promo-message.vue'
 import PromoFaq from '../../components/promo/promo-faq.vue'
 import PromoCustom from '../../components/promo/promo-custom.vue'
 import PromoGoods from '../../components/promo/promo-goods.vue'
+import PromoSurvey from '../../components/promo/promo-survey.vue'
 import PromoPurpose from '../../components/promo/promo-purpose.vue'
 import PromoNotice from '../../components/promo/promo-notice.vue'
 import FloatContact from '../../components/promo/float-contact.vue'

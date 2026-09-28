@@ -606,17 +606,20 @@
 
         <view class="form-item">
           <text class="form-label">促销商品清单（仅宣传展示，不接商城）</text>
-          <view v-for="(g, gi) in form.goodsList || []" :key="gi" class="form-row">
-            <input type="text" v-model="form.goodsList[gi].name" placeholder="商品名称" class="form-input form-inline" />
-            <input type="text" v-model="form.goodsList[gi].promoPrice" placeholder="促销价" class="form-input form-inline" />
-            <input type="text" v-model="form.goodsList[gi].originPrice" placeholder="原价（划线）" class="form-input form-inline" />
-            <input type="text" v-model="form.goodsList[gi].unit" placeholder="单位（如 斤/份）" class="form-input form-inline" />
-            <input type="text" v-model="form.goodsList[gi].limitPerPerson" placeholder="每人限购" class="form-input form-inline" />
-            <input type="text" v-model="form.goodsList[gi].desc" placeholder="说明（可选）" class="form-input form-inline" />
-            <text class="link-del" @click="removeGoods(gi)">删除</text>
-          </view>
-          <view class="link-add" @click="addGoods">+ 添加商品</view>
-          <text class="form-tip">促销价/原价皆缺的商品不会在 C 端展示；价格以到店为准。</text>
+          <template v-if="!goodsVendureOn">
+            <view v-for="(g, gi) in form.goodsList || []" :key="gi" class="form-row">
+              <input type="text" v-model="form.goodsList[gi].name" placeholder="商品名称" class="form-input form-inline" />
+              <input type="text" v-model="form.goodsList[gi].promoPrice" placeholder="促销价" class="form-input form-inline" />
+              <input type="text" v-model="form.goodsList[gi].originPrice" placeholder="原价（划线）" class="form-input form-inline" />
+              <input type="text" v-model="form.goodsList[gi].unit" placeholder="单位（如 斤/份）" class="form-input form-inline" />
+              <input type="text" v-model="form.goodsList[gi].limitPerPerson" placeholder="每人限购" class="form-input form-inline" />
+              <input type="text" v-model="form.goodsList[gi].desc" placeholder="说明（可选）" class="form-input form-inline" />
+              <text class="link-del" @click="removeGoods(gi)">删除</text>
+            </view>
+            <view class="link-add" @click="addGoods">+ 添加商品</view>
+            <text class="form-tip">促销价/原价皆缺的商品不会在 C 端展示；价格以到店为准。</text>
+          </template>
+          <text v-else class="form-tip">「促销商品」模块已切换为读取 Vendure 在售商品，此商品清单不再生效（仍会随活动提交保存）。</text>
         </view>
 
         <view class="form-item">
@@ -635,7 +638,36 @@
               <template v-if="m.type === 'goods'">
                 <input type="text" v-model="m.config.title" placeholder="模块标题（默认：促销商品）" class="form-input" />
                 <input type="text" v-model="m.config.notice" placeholder="免责文案（默认：价格以到店为准）" class="form-input" />
-                <text class="form-tip">商品清单在上方「促销商品清单」区维护。</text>
+                <view class="form-item">
+                  <text class="form-label">商品来源</text>
+                  <picker mode="selector" :range="['手填商品清单', 'Vendure（读取在售）']" :value="m.config.source === 'vendure' ? 1 : 0" @change="(e) => (m.config.source = e.detail.value === 1 ? 'vendure' : '')">
+                    <view class="picker-value">
+                      <text>{{ m.config.source === 'vendure' ? 'Vendure（读取在售）' : '手填商品清单' }}</text>
+                      <text class="picker-arrow">▼</text>
+                    </view>
+                  </picker>
+                </view>
+                <template v-if="m.config.source === 'vendure'">
+                  <input type="text" v-model="m.config.channelToken" placeholder="Vendure 渠道 token" class="form-input" />
+                  <input type="text" v-model="m.config.collectionSlug" placeholder="Collection slug（留空=该渠道全部在售）" class="form-input" />
+                  <input type="number" v-model="m.config.limit" placeholder="展示数量（默认 8）" class="form-input" />
+                  <text class="form-tip">已切换为读取 Vendure 在售商品，上方「促销商品清单」不再生效。预订动作不变（仍走活动内报名）。</text>
+                </template>
+                <text v-else class="form-tip">商品清单在上方「促销商品清单」区维护。</text>
+              </template>
+              <template v-else-if="m.type === 'survey'">
+                <input type="text" v-model="m.config.title" placeholder="模块标题（默认：帮我们选品）" class="form-input" />
+                <input type="text" v-model="m.config.desc" placeholder="说明文案（如：勾选你想要的，我们下周备货）" class="form-input" />
+                <input type="text" v-model="m.config.channelToken" placeholder="Vendure 渠道 token（如 66ruvnhh34svhckaa2i）" class="form-input" />
+                <input type="text" v-model="m.config.roundKey" placeholder="周期 roundKey（如 2026-W40）" class="form-input" />
+                <input type="text" v-model="m.config.deadline" placeholder="截止时间（如 2026-10-01T23:59:59+08:00）" class="form-input" />
+                <view v-for="(c, ci) in m.config.collections || []" :key="ci" class="form-row">
+                  <input type="text" v-model="m.config.collections[ci].slug" placeholder="Collection slug（中文亦可）" class="form-input form-inline" />
+                  <input type="text" v-model="m.config.collections[ci].label" placeholder="品类显示名" class="form-input form-inline" />
+                  <text class="link-del" @click="m.config.collections.splice(ci, 1)">删除</text>
+                </view>
+                <view class="link-add" @click="addSurveyCollection(m)">+ 添加品类</view>
+                <text class="form-tip">channelToken 取 Vendure 渠道 token；collections[].slug 是 Vendure Collection 的 slug（中文 slug 也可，一个 Collection 一个品类 tab）；roundKey 格式 YYYY-Www。</text>
               </template>
               <template v-else-if="m.type === 'purpose'">
                 <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动目的）" class="form-input" />
@@ -891,6 +923,15 @@ function addGoods() {
   form.goodsList.push({ name: '', image: '', originPrice: null, promoPrice: null, unit: '', limitPerPerson: null, desc: '' })
 }
 function removeGoods(i) { form.goodsList.splice(i, 1) }
+
+// 「促销商品」模块切换为 Vendure 读取时，隐藏上方手填商品清单区
+const goodsVendureOn = computed(() => (form.promoModules || []).some(m => m.type === 'goods' && m.config?.source === 'vendure'))
+
+// 选品调研模块：品类行式增删（slug + label）
+function addSurveyCollection(m) {
+  if (!Array.isArray(m.config.collections)) m.config.collections = []
+  m.config.collections.push({ slug: '', label: '' })
+}
 
 const isEdit = ref(false)
 const activityId = ref('')

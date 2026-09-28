@@ -167,6 +167,13 @@ export function replyActivityMessage(messageDocumentId, reply) {
   return put(`${ADMIN}/activity-messages/${messageDocumentId}/reply`, { reply })
 }
 
+// ===== 选品调研（选品需求榜）=====
+// 走 channelScopeRoute（非 /adm），路径即 /zhao-point/v1/admin/product-survey/board
+// params: { channel?, roundKey(必填 YYYY-Www), source? }；返回 { summary, rows, demands }
+export function fetchSurveyBoard(params = {}) {
+  return get(`${V1}/admin/product-survey/board`, params).then(r => r?.data ?? r)
+}
+
 // ===== 活动临时开放课时授权 =====
 
 // 手动授予临时开放课时（body:{ activityId, userId, lessonDocumentId, expiresAt }）

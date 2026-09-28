@@ -3,7 +3,7 @@
 
 import { PROMO_PALETTES } from './promo-palettes.js'
 
-const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "floatContact", "goods", "purpose", "notice"]
+const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "floatContact", "goods", "purpose", "notice", "survey"]
 const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 
 export function stripCodeBlock(raw) {
@@ -52,10 +52,32 @@ export function normalizeModuleConfig(type, config) {
     delete c.items
     if (title) c.title = title
   } else if (type === 'goods') {
-    // 商品清单本体在 activity.goodsList，config 仅保留可选标题与免责文案
+    // 商品清单本体在 activity.goodsList；config 保留标题/免责与 Vendure 读取配置（source=vendure 时改读在售）
     const o = {}
     if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
     if (typeof c.notice === 'string' && c.notice.trim()) o.notice = c.notice.trim()
+    if (c.source === 'vendure') o.source = 'vendure'
+    if (typeof c.channelToken === 'string' && c.channelToken.trim()) o.channelToken = c.channelToken.trim()
+    if (typeof c.collectionSlug === 'string' && c.collectionSlug.trim()) o.collectionSlug = c.collectionSlug.trim()
+    if (c.limit !== undefined && c.limit !== null && c.limit !== '') o.limit = c.limit
+    return o
+  } else if (type === 'survey') {
+    // 选品调研：候选池在 Vendure Collection；config 保留投放所需字符串与品类映射
+    const o = {}
+    if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
+    if (typeof c.desc === 'string' && c.desc.trim()) o.desc = c.desc.trim()
+    if (typeof c.channelToken === 'string' && c.channelToken.trim()) o.channelToken = c.channelToken.trim()
+    if (typeof c.roundKey === 'string' && c.roundKey.trim()) o.roundKey = c.roundKey.trim()
+    if (typeof c.deadline === 'string' && c.deadline.trim()) o.deadline = c.deadline.trim()
+    const cols = Array.isArray(c.collections) ? c.collections : []
+    const list = []
+    for (const it of cols) {
+      if (!it || typeof it !== 'object' || Array.isArray(it)) continue
+      const slug = String(it.slug ?? '').trim()
+      if (!slug) continue
+      list.push({ slug, label: String(it.label ?? '').trim() })
+    }
+    if (list.length) o.collections = list
     return o
   } else if (type === 'purpose') {
     // 活动目的正文在 activity.purpose，config 仅保留可选标题
@@ -372,7 +394,8 @@ export function buildPromoPrompt(a) {
     '- 通用规则：字符串值（尤其 html/faq/highlights 等中文文案）内禁止使用英文双引号 "，如需强调一律用中文引号「」或“”；JSON 的键与字符串定界符仍用英文双引号',
     '- title(string) 建议标题：保留原标题主体，可在不改变事实前提下增强吸引力与紧迫感',
     '- description(string,≤2000字) 活动介绍文案，基于已提供的介绍按上述营销要点润色扩写',
-    '- promoModules(array) 宣传模块 [{type,config,sort}]，type 从 cover/info/rich/highlights/speakers/agenda/images/rewards/contact/message/faq/custom 选；各模块写作要求：',
+    '- promoModules(array) 宣传模块 [{type,config,sort}]，type 从 cover/info/rich/highlights/speakers/agenda/images/rewards/contact/message/faq/custom/goods/survey 选；各模块写作要求：',
+    '  - survey.config={title,desc}：选品调研模块（候选池与周期由运营在后台配置，AI 仅可写标题与说明文案，不要编造 Collection/渠道/周期）',
     '  - cover.config={title,subtitle,highlight}：主标题抓眼球、副标题点明价值或时间地点、highlight 为一句卖点短句（不超过 12 字，如「进店免费领西瓜」）',
     '  - 禁止编造活动时间、场地、费用：这些由活动数据自动填充，cover 与正文都不要写具体日期、地点或价格（除非原文已明确提供）',
     '  - rich.config={html}：宣传正文，用 HTML（p/strong/br 等简单标签）分段落',
