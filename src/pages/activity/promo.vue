@@ -1050,7 +1050,7 @@ function applyPromoResult(r) {
 
 function applyPaste() {
   if (!pasteRaw.value.trim()) return uni.showToast({ title: '请先粘贴 JSON', icon: 'none' })
-  applyPromoResult(parsePromoImport(pasteRaw.value))
+  applyPromoResult(parsePromoImport(pasteRaw.value, form.promoModules))
 }
 
 function copyPrompt() {
@@ -1073,7 +1073,7 @@ async function genByAI() {
       uni.showToast({ title: res?.data?.error || 'AI 未返回内容，请检查 AI 配置', icon: 'none' })
       return
     }
-    applyPromoResult(parsePromoImport(content))
+    applyPromoResult(parsePromoImport(content, form.promoModules))
   } catch (e) {
     uni.showToast({ title: e.message || 'AI 生成失败', icon: 'none' })
   } finally {

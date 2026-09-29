@@ -6,6 +6,14 @@ import { PROMO_PALETTES } from './promo-palettes.js'
 const PROMO_MODULE_TYPES = ["cover", "info", "rich", "highlights", "speakers", "agenda", "images", "rewards", "contact", "message", "faq", "custom", "floatContact", "goods", "purpose", "notice", "survey"]
 const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 
+// 运营在后台维护、AI 既读不到也写不出的基础设施配置：
+// AI 只负责文案，导入归一化时若 AI 输出缺这些键，则从同类型旧模块原样继承，
+// 避免「重写宣传文案」把 Vendure 渠道/候选池/已选商品与定序一起清空。
+const OPS_MANAGED_KEYS = {
+  goods: ['source', 'channelToken', 'collectionSlug', 'limit', 'productIds'],
+  survey: ['channelToken', 'roundKey', 'deadline', 'collections'],
+}
+
 export function stripCodeBlock(raw) {
   let s = String(raw ?? '')
   s = s.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, '')
@@ -121,9 +129,18 @@ export function normalizeGoodsList(raw) {
   return out
 }
 
-export function normalizePromoModules(pm) {
+// prevModules：导入前的现有模块，用于继承 OPS_MANAGED_KEYS（AI 产出不了的基础配置）
+export function normalizePromoModules(pm, prevModules) {
   if (pm === undefined || pm === null) return undefined
   if (!Array.isArray(pm)) throw new Error('promoModules 必须为数组')
+  // 按类型排队配对：第 n 个 goods 继承旧的第 n 个 goods 配置
+  const prevQueues = new Map()
+  for (const m of Array.isArray(prevModules) ? prevModules : []) {
+    if (!m || typeof m !== 'object' || !m.type) continue
+    const q = prevQueues.get(m.type) || []
+    q.push(m.config && typeof m.config === 'object' && !Array.isArray(m.config) ? m.config : {})
+    prevQueues.set(m.type, q)
+  }
   const seen = new Set(); const out = []
   for (const m of pm) {
     if (!m || typeof m !== 'object') continue
@@ -131,7 +148,16 @@ export function normalizePromoModules(pm) {
     const sort = Number.isFinite(Number(m.sort)) ? Number(m.sort) : out.length
     if (seen.has(sort)) continue
     seen.add(sort)
-    out.push({ type: m.type, config: normalizeModuleConfig(m.type, m.config), sort })
+    const config = normalizeModuleConfig(m.type, m.config)
+    const keys = OPS_MANAGED_KEYS[m.type]
+    const queue = keys && prevQueues.get(m.type)
+    const prev = queue && queue.length ? queue.shift() : null
+    if (prev) {
+      for (const k of keys) {
+        if (config[k] === undefined && prev[k] !== undefined) config[k] = prev[k]
+      }
+    }
+    out.push({ type: m.type, config, sort })
   }
   return out.sort((a, b) => a.sort - b.sort)
 }
@@ -228,7 +254,8 @@ export function repairJson(s) {
 
 // 归一化 AI 宣传输出（仅宣传字段；返回 { ok, errors, data }）
 // data = { title?, description?, promoModules, promoContact?, suggestFields }
-export function parsePromoImport(rawText) {
+// prevModules：导入前现有模块，用于保留运营配置（如 goods 的 productIds / Vendure 读取配置）
+export function parsePromoImport(rawText, prevModules) {
   const errors = []
   let obj
   const cleaned = stripCodeBlock(rawText)
@@ -245,7 +272,7 @@ export function parsePromoImport(rawText) {
   if (typeof obj.description === 'string' && obj.description.trim()) {
     data.description = obj.description.trim().slice(0, 2000)
   }
-  try { data.promoModules = normalizePromoModules(obj.promoModules) ?? defaultPromoModules() }
+  try { data.promoModules = normalizePromoModules(obj.promoModules, prevModules) ?? defaultPromoModules() }
   catch (e) { errors.push('promoModules ' + e.message) }
   if (!data.promoModules.length) errors.push('promoModules 无有效模块')
 
@@ -353,6 +380,10 @@ export function buildPromoPrompt(a) {
   if (pkgArticles) learningPkg.push('文章：' + pkgArticles)
   if (pkgLessons) learningPkg.push('课时：' + pkgLessons)
   const learningPkgDesc = learningPkg.length ? learningPkg.join('；') : '（未配置）'
+  // 已有 goods/survey 模块（Vendure 选品与配置由运营在后台维护，AI 无权删改）
+  const opsTypes = [...new Set((Array.isArray(a.promoModules) ? a.promoModules : [])
+    .filter(m => m && (m.type === 'goods' || m.type === 'survey'))
+    .map(m => m.type))]
 
   return [
     '你是活动营销宣传助手，核心目标是写出**高转化、强引流**的宣传文案，让目标用户看完就想报名。以下是运营已确定的活动固定信息（不得编造或修改时间/场地/讲师/名额/费用等已定内容，也不得编造电话/微信等联系方式）。只输出一个 JSON 对象，不要 markdown 代码块、不要注释、不要多余文字，必须是可被 JSON.parse 直接解析的合法 JSON。',
@@ -418,6 +449,9 @@ export function buildPromoPrompt(a) {
     '模块选用指引：',
     '- 优先使用固定模块（cover/rich/highlights/agenda/faq/images 等）保证结构清晰',
     '- 若客户需要固定模块无法满足的自由排版、图文混排或专题区块，在需要处使用 custom 自定义块（富文本 HTML + 网络图片 URL 数组，images 留空避免假链接），C 端按 sort 顺序渲染',
+    opsTypes.length
+      ? `- 本活动已配置 ${opsTypes.join('、')} 模块：必须在 promoModules 中原样保留该模块，config 仅可写标题/说明文案（Vendure 渠道、候选池与已选商品由运营在后台维护，禁止编造、清空或删除该模块）`
+      : null,
     '',
     '请输出 JSON。',
   ].filter(Boolean).join('\n')
