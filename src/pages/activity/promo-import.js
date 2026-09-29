@@ -162,6 +162,22 @@ export function normalizePromoModules(pm, prevModules) {
   return out.sort((a, b) => a.sort - b.sort)
 }
 
+// 导入后缺失模块自动补回：AI 可能完全不输出 goods/survey（整个模块被删），
+// 这里按原 sort 位置把旧模块连同配置原样补回，避免运营的选品/候选池配置被动丢失。
+// 配置为原样拷贝（不再走 normalizeModuleConfig，否则白名单会再次削掉 productIds）。
+export function backfillOpsModules(list, prevModules) {
+  const arr = Array.isArray(list) ? [...list] : []
+  const types = new Set(arr.map(m => m && m.type))
+  for (const type of Object.keys(OPS_MANAGED_KEYS)) {
+    if (types.has(type)) continue
+    for (const m of (Array.isArray(prevModules) ? prevModules : []).filter(x => x && x.type === type)) {
+      const cfg = m.config && typeof m.config === 'object' && !Array.isArray(m.config) ? m.config : {}
+      arr.push({ type, config: { ...cfg }, sort: Number.isFinite(Number(m.sort)) ? Number(m.sort) : arr.length })
+    }
+  }
+  return arr.sort((a, b) => a.sort - b.sort)
+}
+
 export function defaultPromoModules() {
   return ["cover", "info", "rich", "highlights", "agenda", "rewards", "contact", "faq", "message"]
     .map((type, i) => ({ type, config: {}, sort: i + 1 }))
@@ -272,9 +288,14 @@ export function parsePromoImport(rawText, prevModules) {
   if (typeof obj.description === 'string' && obj.description.trim()) {
     data.description = obj.description.trim().slice(0, 2000)
   }
-  try { data.promoModules = normalizePromoModules(obj.promoModules, prevModules) ?? defaultPromoModules() }
+  let modules
+  try { modules = normalizePromoModules(obj.promoModules, prevModules) }
   catch (e) { errors.push('promoModules ' + e.message) }
-  if (!data.promoModules.length) errors.push('promoModules 无有效模块')
+  // 有效性以 AI 输出为准（补回前判断），避免「AI 输出空模块」被补回内容掩盖成有效方案
+  const base = modules ?? defaultPromoModules()
+  // 补回 AI 未输出的运营配置模块（goods/survey）
+  data.promoModules = backfillOpsModules(base, prevModules)
+  if (!base.length) errors.push('promoModules 无有效模块')
 
   data.promoContact = obj.promoContact && typeof obj.promoContact === 'object' && !Array.isArray(obj.promoContact)
     ? obj.promoContact
