@@ -649,9 +649,24 @@
                 </view>
                 <template v-if="m.config.source === 'vendure'">
                   <input type="text" v-model="m.config.channelToken" placeholder="Vendure 渠道 token" class="form-input" />
-                  <input type="text" v-model="m.config.collectionSlug" placeholder="Collection slug（留空=该渠道全部在售）" class="form-input" />
-                  <input type="number" v-model="m.config.limit" placeholder="展示数量（默认 8）" class="form-input" />
-                  <text class="form-tip">已切换为读取 Vendure 在售商品，上方「促销商品清单」不再生效。预订动作不变（仍走活动内报名）。</text>
+                  <input type="text" v-model="m.config.collectionSlug" placeholder="候选 Collection slug（留空=该渠道全部在售）" class="form-input" />
+                  <view class="form-item">
+                    <view class="goods-pick-head">
+                      <text class="form-label">已选商品（{{ (m.config.productIds || []).length }} 个，按此顺序展示）</text>
+                      <text class="link-add" @click="openGoodsPicker(m)">从 Vendure 选择商品</text>
+                    </view>
+                    <view v-if="(m.config.productIds || []).length" class="goods-pick-list">
+                      <view v-for="(id, gi) in m.config.productIds" :key="id" class="goods-pick-row">
+                        <text class="goods-pick-name">{{ goodsName(id) }}</text>
+                        <text class="link-del" @click="moveGoodsPick(m, gi, -1)">上移</text>
+                        <text class="link-del" @click="moveGoodsPick(m, gi, 1)">下移</text>
+                        <text class="link-del" @click="removeGoodsPick(m, gi)">移除</text>
+                      </view>
+                    </view>
+                    <text v-else class="form-tip">未选商品=按上方 Collection（留空则该渠道在售全部）展示；选择后仅展示所选商品并按选择顺序排列。</text>
+                  </view>
+                  <input type="number" v-model="m.config.limit" placeholder="展示数量（未选商品时生效，默认 8）" class="form-input" />
+                  <text class="form-tip">已切换为读取 Vendure 商品（候选含未上架），上方「促销商品清单」不再生效。预订动作不变（仍走活动内报名）。</text>
                 </template>
                 <text v-else class="form-tip">商品清单在上方「促销商品清单」区维护。</text>
               </template>
@@ -868,6 +883,54 @@
         <view class="rel-panel-footer">
           <button class="btn-plain" @click="closeRelPicker">取消</button>
           <button class="btn-primary" @click="confirmRelPicker">确定</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="goodsPicker.visible" class="rel-mask" @click="closeGoodsPicker">
+      <view class="rel-panel goods-pick-panel" @click.stop>
+        <view class="rel-panel-header">
+          <text class="rel-panel-title">从 Vendure 选择商品</text>
+          <text class="rel-panel-close" @click="closeGoodsPicker">✕</text>
+        </view>
+        <view class="goods-pick-selected">
+          <view class="goods-pick-selected-head">
+            <text class="form-label">已选 {{ goodsPicker.selected.length }} 个（可上移/下移调整顺序）</text>
+            <text class="link-del" @click="clearGoodsPicked">清空</text>
+          </view>
+          <scroll-view scroll-y class="goods-pick-selected-list">
+            <view v-for="(id, si) in goodsPicker.selected" :key="id" class="goods-pick-row">
+              <text class="goods-pick-name">{{ goodsPicker.names[id] || `#${id}` }}</text>
+              <text class="link-del" @click="moveGoodsSelected(si, -1)">↑</text>
+              <text class="link-del" @click="moveGoodsSelected(si, 1)">↓</text>
+              <text class="link-del" @click="toggleGoodsPick(id)">✕</text>
+            </view>
+            <text v-if="!goodsPicker.selected.length" class="form-tip">尚未选择</text>
+          </scroll-view>
+        </view>
+        <scroll-view scroll-y class="rel-panel-list">
+          <view v-if="goodsPicker.loading" class="form-tip rel-empty">加载中...</view>
+          <view v-else-if="goodsPicker.error" class="form-tip rel-empty goods-pick-err" @click="loadGoodsCandidates">
+            {{ goodsPicker.error }}，点击重试
+          </view>
+          <view v-for="p in goodsPicker.list" :key="p.id" class="rel-opt" @click="toggleGoodsPick(String(p.id))">
+            <view class="rel-check" :class="{ on: goodsPicker.selected.includes(String(p.id)) }">
+              <text v-if="goodsPicker.selected.includes(String(p.id))" class="rel-check-mark">✓</text>
+            </view>
+            <view class="goods-pick-opt-body">
+              <text class="rel-opt-name">{{ p.name }}</text>
+              <text class="goods-pick-opt-meta">
+                {{ p.enabled === false ? '待上架 · ' : '' }}{{ p.priceFromText || '未配价' }}
+              </text>
+            </view>
+          </view>
+          <view v-if="!goodsPicker.loading && !goodsPicker.error && !goodsPicker.list.length" class="form-tip rel-empty">
+            暂无可选商品（检查渠道 token / Collection slug）
+          </view>
+        </scroll-view>
+        <view class="rel-panel-footer">
+          <button class="btn-plain" @click="closeGoodsPicker">取消</button>
+          <button class="btn-primary" @click="confirmGoodsPicker">确定</button>
         </view>
       </view>
     </view>
@@ -1740,6 +1803,136 @@ function addModule(type) {
 
 function toggleModuleConfig(i) { openModuleIndex.value = openModuleIndex.value === i ? -1 : i }
 
+// ===== goods 模块「从 Vendure 选择商品」弹层（只存有序 productIds，名称仅本地回显不入库） =====
+const GOODS_VENDURE_BASE = 'https://e.joho.cn'
+const goodsNameMap = ref({})
+const goodsPicker = reactive({ visible: false, loading: false, error: '', list: [], selected: [], names: {}, module: null })
+
+function goodsName(id) { return goodsNameMap.value[String(id)] || `#${id}` }
+
+/** 直连 Vendure 只读候选接口（query 手动拼串，规避 H5 query 转换不确定） */
+function fetchVendureCandidates(params, token) {
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&')
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${GOODS_VENDURE_BASE}/product-survey/candidates?${qs}`,
+      method: 'GET',
+      header: token ? { 'vendure-token': token } : {},
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data || {})
+        else reject(new Error(res.data?.message || `Vendure 请求失败(${res.statusCode})`))
+      },
+      fail: (err) => reject(new Error(err?.errMsg || '网络错误')),
+    })
+  })
+}
+
+function openGoodsPicker(m) {
+  goodsPicker.module = m
+  goodsPicker.selected = (Array.isArray(m.config.productIds) ? m.config.productIds : []).map(String)
+  goodsPicker.list = []
+  goodsPicker.error = ''
+  goodsPicker.visible = true
+  loadGoodsCandidates()
+}
+
+async function loadGoodsCandidates() {
+  const m = goodsPicker.module
+  if (!m) return
+  const token = (m.config.channelToken || '').trim()
+  const slug = (m.config.collectionSlug || '').trim()
+  goodsPicker.loading = true
+  goodsPicker.error = ''
+  try {
+    // 已选商品（含未上架，用于回显名称）+ 候选池（Collection 优先，否则该渠道在售）
+    const [picked, pool] = await Promise.all([
+      goodsPicker.selected.length
+        ? fetchVendureCandidates({ productIds: goodsPicker.selected.join(',') }, token)
+        : Promise.resolve({ products: [] }),
+      slug
+        ? fetchVendureCandidates({ collection: slug, take: 100 }, token)
+        : fetchVendureCandidates({ onsale: 1, take: 100 }, token),
+    ])
+    const merged = new Map()
+    for (const p of picked.products || []) {
+      goodsPicker.names[String(p.id)] = p.name
+      merged.set(String(p.id), p)
+    }
+    for (const p of pool.products || []) merged.set(String(p.id), p)
+    goodsPicker.list = [...merged.values()]
+  } catch (e) {
+    goodsPicker.error = e?.message || '加载失败'
+  } finally {
+    goodsPicker.loading = false
+  }
+}
+
+function toggleGoodsPick(id) {
+  const key = String(id)
+  const i = goodsPicker.selected.indexOf(key)
+  if (i > -1) {
+    goodsPicker.selected.splice(i, 1)
+    return
+  }
+  if (goodsPicker.selected.length >= 100) return uni.showToast({ title: '最多选择 100 个商品', icon: 'none' })
+  goodsPicker.selected.push(key)
+}
+
+function moveGoodsSelected(i, delta) {
+  const j = i + delta
+  const arr = goodsPicker.selected
+  if (j < 0 || j >= arr.length) return
+  const t = arr[i]
+  arr[i] = arr[j]
+  arr[j] = t
+}
+
+function clearGoodsPicked() { goodsPicker.selected = [] }
+
+function closeGoodsPicker() {
+  goodsPicker.visible = false
+  goodsPicker.module = null
+}
+
+function confirmGoodsPicker() {
+  if (goodsPicker.module) {
+    goodsPicker.module.config.productIds = [...goodsPicker.selected]
+    Object.assign(goodsNameMap.value, goodsPicker.names)
+  }
+  closeGoodsPicker()
+}
+
+function moveGoodsPick(m, i, delta) {
+  const arr = m.config.productIds
+  const j = i + delta
+  if (!Array.isArray(arr) || j < 0 || j >= arr.length) return
+  const t = arr[i]
+  arr[i] = arr[j]
+  arr[j] = t
+}
+
+function removeGoodsPick(m, i) {
+  if (Array.isArray(m.config.productIds)) m.config.productIds.splice(i, 1)
+}
+
+/** 编辑回填：拉取已选商品名称用于列表回显（失败不阻塞表单） */
+async function ensureGoodsNames() {
+  const mods = (form.promoModules || []).filter(
+    m => m.type === 'goods' && Array.isArray(m.config?.productIds) && m.config.productIds.length && m.config.channelToken
+  )
+  for (const m of mods) {
+    try {
+      const res = await fetchVendureCandidates({ productIds: m.config.productIds.map(String).join(',') }, m.config.channelToken)
+      for (const p of res.products || []) goodsNameMap.value[String(p.id)] = p.name
+    } catch (e) {
+      // 名称仅用于回显，失败时列表退化为 #id 展示
+    }
+  }
+}
+
 function toggleContactOverride(e) {
   if (e.detail.value) {
     if (!form.promoContact) form.promoContact = { wechat: { qrcode: '', id: '' }, phone: '', card: null, notice: '' }
@@ -2135,7 +2328,7 @@ onMounted(async () => {
     form.endTime = addMinutes(start, 90) // 默认明天 10:30 结束
     applySignupAdvance() // n=0 且 signupEnd 空 → signupEnd = startTime（活动开始即截止）
   }
-  loadDetail(); loadSeries(); loadResources(); loadCategories()
+  loadDetail().then(ensureGoodsNames); loadSeries(); loadResources(); loadCategories()
 })
 </script>
 
@@ -2218,6 +2411,18 @@ onMounted(async () => {
 .rel-panel-footer { display: flex; gap: 20rpx; margin-top: 20rpx; }
 .btn-plain { flex: 1; height: 76rpx; border: 1rpx solid #ddd; background: #fff; color: #666; border-radius: 40rpx; font-size: 28rpx; }
 .rel-empty { text-align: center; padding: 40rpx 0; }
+/* ---- goods 模块 Vendure 商品选择器 ---- */
+.goods-pick-head { display: flex; justify-content: space-between; align-items: center; }
+.goods-pick-list { border: 1rpx solid #eee; border-radius: 10rpx; padding: 6rpx 16rpx; }
+.goods-pick-row { display: flex; align-items: center; gap: 16rpx; padding: 10rpx 0; }
+.goods-pick-name { flex: 1; min-width: 0; font-size: 26rpx; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goods-pick-selected { border-bottom: 1rpx solid #eee; padding-bottom: 12rpx; margin-bottom: 16rpx; }
+.goods-pick-selected-head { display: flex; justify-content: space-between; align-items: center; }
+.goods-pick-selected-list { max-height: 240rpx; }
+.goods-pick-panel .rel-panel-list { max-height: 36vh; }
+.goods-pick-opt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.goods-pick-opt-meta { font-size: 22rpx; color: #999; margin-top: 4rpx; }
+.goods-pick-err { color: #ff4d4f; text-decoration: underline; }
 .related-section-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .related-arrow { font-size: 26rpx; color: #999; }
 .related-type-block { margin-top: 20rpx; border: 1rpx solid #eee; border-radius: 12rpx; overflow: hidden; }
