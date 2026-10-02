@@ -676,13 +676,30 @@
                 <input type="text" v-model="m.config.channelToken" placeholder="Vendure 渠道 token（如 66ruvnhh34svhckaa2i）" class="form-input" />
                 <input type="text" v-model="m.config.roundKey" placeholder="周期 roundKey（如 2026-W40）" class="form-input" />
                 <input type="text" v-model="m.config.deadline" placeholder="截止时间（如 2026-10-01T23:59:59+08:00）" class="form-input" />
+                <input type="text" v-model="m.config.freeInputLabel" placeholder="文字补充项标题（默认：文字补充）" class="form-input" />
+                <input type="text" v-model="m.config.freeInputPlaceholder" placeholder="文字补充项提示语（默认：还想买什么？直接告诉我们）" class="form-input" />
+                <view class="form-item">
+                  <view class="goods-pick-head">
+                    <text class="form-label">已选候选商品（{{ (m.config.productIds || []).length }} 个，按此顺序展示）</text>
+                    <text class="link-add" @click="openGoodsPicker(m)">从 Vendure 选择商品</text>
+                  </view>
+                  <view v-if="(m.config.productIds || []).length" class="goods-pick-list">
+                    <view v-for="(id, gi) in m.config.productIds" :key="id" class="goods-pick-row">
+                      <text class="goods-pick-name">{{ goodsName(id) }}</text>
+                      <text class="link-del" @click="moveGoodsPick(m, gi, -1)">上移</text>
+                      <text class="link-del" @click="moveGoodsPick(m, gi, 1)">下移</text>
+                      <text class="link-del" @click="removeGoodsPick(m, gi)">移除</text>
+                    </view>
+                  </view>
+                  <text v-else class="form-tip">未选商品=按下方 Collection 品类 tab 展示；选择后仅展示所选商品并按选择顺序单列排列（隐藏品类 tab）。</text>
+                </view>
                 <view v-for="(c, ci) in m.config.collections || []" :key="ci" class="form-row">
                   <input type="text" v-model="m.config.collections[ci].slug" placeholder="Collection slug（中文亦可）" class="form-input form-inline" />
                   <input type="text" v-model="m.config.collections[ci].label" placeholder="品类显示名" class="form-input form-inline" />
                   <text class="link-del" @click="m.config.collections.splice(ci, 1)">删除</text>
                 </view>
                 <view class="link-add" @click="addSurveyCollection(m)">+ 添加品类</view>
-                <text class="form-tip">channelToken 取 Vendure 渠道 token；collections[].slug 是 Vendure Collection 的 slug（中文 slug 也可，一个 Collection 一个品类 tab）；roundKey 格式 YYYY-Www。</text>
+                <text class="form-tip">channelToken 取 Vendure 渠道 token；collections[].slug 是 Vendure Collection 的 slug（中文 slug 也可，一个 Collection 一个品类 tab）；roundKey 格式 YYYY-Www。已选商品非空时优先按商品展示。</text>
               </template>
               <template v-else-if="m.type === 'purpose'">
                 <input type="text" v-model="m.config.title" placeholder="模块标题（默认：活动目的）" class="form-input" />
@@ -720,6 +737,7 @@
                 <view class="link-add" @click="(m.config.items ||= []).push({ q: '', a: '' })">+ 添加问答</view>
               </template>
               <template v-else-if="m.type === 'images'">
+                <input type="text" v-model="m.config.desc" placeholder="说明文案（选填，如：本周征集下周四想吃的，我们照单进货）" class="form-input" />
                 <view v-for="(img, ii) in m.config.images || []" :key="ii" class="promo-module-image-row">
                   <text class="promo-module-image-name">{{ img.name || img.url }}</text>
                   <text class="link-del" @click="m.config.images.splice(ii, 1)">删除</text>
@@ -1921,7 +1939,7 @@ function removeGoodsPick(m, i) {
 /** 编辑回填：拉取已选商品名称用于列表回显（失败不阻塞表单） */
 async function ensureGoodsNames() {
   const mods = (form.promoModules || []).filter(
-    m => m.type === 'goods' && Array.isArray(m.config?.productIds) && m.config.productIds.length && m.config.channelToken
+    m => (m.type === 'goods' || m.type === 'survey') && Array.isArray(m.config?.productIds) && m.config.productIds.length && m.config.channelToken
   )
   for (const m of mods) {
     try {

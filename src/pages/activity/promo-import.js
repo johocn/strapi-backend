@@ -11,7 +11,7 @@ const PALETTE_BY_KEY = new Map(PROMO_PALETTES.map(p => [p.key, p]))
 // 避免「重写宣传文案」把 Vendure 渠道/候选池/已选商品与定序一起清空。
 const OPS_MANAGED_KEYS = {
   goods: ['source', 'channelToken', 'collectionSlug', 'limit', 'productIds'],
-  survey: ['channelToken', 'roundKey', 'deadline', 'collections'],
+  survey: ['channelToken', 'roundKey', 'deadline', 'collections', 'productIds', 'freeInputLabel', 'freeInputPlaceholder'],
 }
 
 export function stripCodeBlock(raw) {
@@ -70,13 +70,17 @@ export function normalizeModuleConfig(type, config) {
     if (c.limit !== undefined && c.limit !== null && c.limit !== '') o.limit = c.limit
     return o
   } else if (type === 'survey') {
-    // 选品调研：候选池在 Vendure Collection；config 保留投放所需字符串与品类映射
+    // 选品调研：候选池可为 Vendure Collection 或运营按商品挑选（productIds）；config 保留投放所需字符串与品类映射
     const o = {}
     if (typeof c.title === 'string' && c.title.trim()) o.title = c.title.trim()
     if (typeof c.desc === 'string' && c.desc.trim()) o.desc = c.desc.trim()
     if (typeof c.channelToken === 'string' && c.channelToken.trim()) o.channelToken = c.channelToken.trim()
     if (typeof c.roundKey === 'string' && c.roundKey.trim()) o.roundKey = c.roundKey.trim()
     if (typeof c.deadline === 'string' && c.deadline.trim()) o.deadline = c.deadline.trim()
+    if (typeof c.freeInputLabel === 'string' && c.freeInputLabel.trim()) o.freeInputLabel = c.freeInputLabel.trim()
+    if (typeof c.freeInputPlaceholder === 'string' && c.freeInputPlaceholder.trim()) o.freeInputPlaceholder = c.freeInputPlaceholder.trim()
+    const ids = Array.isArray(c.productIds) ? c.productIds.map(i => String(i).trim()).filter(Boolean) : []
+    if (ids.length) o.productIds = ids
     const cols = Array.isArray(c.collections) ? c.collections : []
     const list = []
     for (const it of cols) {

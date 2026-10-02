@@ -3,8 +3,8 @@
     <text v-if="title" class="section-title">{{ title }}</text>
     <text v-if="desc" class="survey-desc">{{ desc }}</text>
 
-    <!-- 品类 tab（配 1 个 Collection 时不渲染） -->
-    <scroll-view v-if="collections.length > 1" scroll-x class="survey-tabs">
+    <!-- 品类 tab（配 1 个 Collection 时不渲染；按商品挑选时无品类） -->
+    <scroll-view v-if="!byIdsMode && collections.length > 1" scroll-x class="survey-tabs">
       <text
         v-for="(c, i) in collections"
         :key="c.slug"
@@ -36,6 +36,10 @@
         <view class="survey-check"></view>
       </view>
     </view>
+
+    <!-- 文字补充项（预览只读） -->
+    <text class="survey-free-label">{{ freeInputLabel }}</text>
+    <view class="survey-free-preview"><text>{{ freeInputPlaceholder }}</text></view>
   </view>
 </template>
 
@@ -56,20 +60,35 @@ const collections = computed(() => {
   const list = Array.isArray(props.config?.collections) ? props.config.collections : []
   return list.filter(c => c && c.slug)
 })
+/** 运营按商品挑选的候选池（优先于 collections，非空时隐藏品类 tab） */
+const productIds = computed(() => {
+  const ids = Array.isArray(props.config?.productIds) ? props.config.productIds : []
+  return ids.map(i => String(i)).filter(Boolean)
+})
+const byIdsMode = computed(() => productIds.value.length > 0)
 
+const freeInputLabel = computed(() => props.config?.freeInputLabel || '文字补充')
+const freeInputPlaceholder = computed(() => props.config?.freeInputPlaceholder || '还想买什么？直接告诉我们')
+
+const PICKED_KEY = '__picked__'
 const productsByTab = ref({})
 const activeTab = ref(0)
 const loading = ref(true)
 const loadError = ref(false)
 
 const currentProducts = computed(() => {
+  if (byIdsMode.value) return productsByTab.value[PICKED_KEY] || []
   const c = collections.value[activeTab.value]
   return c ? (productsByTab.value[c.slug] || []) : []
 })
 
 // 直连 Vendure 只读候选接口（CORS 由 Vendure 自身处理；GET 参数手动拼串，规避 H5 query 转换不确定）
-function fetchCandidates(slug, token) {
-  const url = `${VENDURE_BASE}/product-survey/candidates?collection=${encodeURIComponent(slug)}&take=50`
+function fetchCandidates(params, token) {
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&')
+  const url = `${VENDURE_BASE}/product-survey/candidates?${qs}`
   return new Promise((resolve, reject) => {
     uni.request({
       url,
@@ -85,21 +104,33 @@ function fetchCandidates(slug, token) {
 }
 
 async function load() {
-  if (!collections.value.length) {
+  if (!byIdsMode.value && !collections.value.length) {
     loading.value = false
     return
   }
   loading.value = true
   loadError.value = false
   try {
-    const res = await Promise.all(
-      collections.value.map(c => fetchCandidates(c.slug, props.config?.channelToken))
-    )
-    const map = {}
-    collections.value.forEach((c, i) => {
-      map[c.slug] = Array.isArray(res[i]?.products) ? res[i].products : []
-    })
-    productsByTab.value = map
+    if (byIdsMode.value) {
+      const res = await fetchCandidates({ productIds: productIds.value.join(','), take: 100 }, props.config?.channelToken)
+      const list = Array.isArray(res?.products) ? res.products : []
+      const map = new Map(list.map(p => [String(p.id), p]))
+      const ordered = productIds.value.map(id => map.get(id)).filter(Boolean)
+      const picked = new Set(productIds.value)
+      productsByTab.value = {
+        [PICKED_KEY]: ordered.length ? [...ordered, ...list.filter(p => !picked.has(String(p.id)))] : list,
+      }
+      activeTab.value = 0
+    } else {
+      const res = await Promise.all(
+        collections.value.map(c => fetchCandidates({ collection: c.slug, take: 50 }, props.config?.channelToken))
+      )
+      const map = {}
+      collections.value.forEach((c, i) => {
+        map[c.slug] = Array.isArray(res[i]?.products) ? res[i].products : []
+      })
+      productsByTab.value = map
+    }
   } catch (e) {
     loadError.value = true
   } finally {
@@ -244,5 +275,26 @@ onMounted(load)
   margin-left: 16rpx;
   border-radius: 50%;
   border: 2rpx solid var(--c-text-dim);
+}
+
+.survey-free-label {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  font-weight: bold;
+  color: var(--c-text);
+}
+
+.survey-free-preview {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100rpx;
+  margin-top: 12rpx;
+  padding: 18rpx 20rpx;
+  font-size: 26rpx;
+  color: var(--c-text-dim);
+  border: 2rpx solid var(--c-text-dim);
+  border-radius: 12rpx;
+  background: var(--c-bg);
 }
 </style>
