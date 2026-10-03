@@ -86,10 +86,33 @@
         </scroll-view>
       </view>
 
+      <view class="card">
+        <view class="card-label">预约发布</view>
+        <view class="schedule-row">
+          <picker mode="date" :value="scheduleDate" class="picker-item" @change="onScheduleDateChange">
+            <view class="picker-value" :class="{ 'is-placeholder': !scheduleDate }">
+              {{ scheduleDate || '选择日期' }}
+            </view>
+          </picker>
+          <picker mode="time" :value="scheduleTime" class="picker-item" @change="onScheduleTimeChange">
+            <view class="picker-value" :class="{ 'is-placeholder': !scheduleTime }">
+              {{ scheduleTime || '选择时间' }}
+            </view>
+          </picker>
+        </view>
+        <input v-model="scheduleName" class="schedule-name-input" placeholder="预约任务名（选填）" />
+        <button class="btn-schedule" :disabled="scheduling" @click="createSchedule">
+          {{ scheduling ? '创建中...' : '创建预约' }}
+        </button>
+      </view>
+
       <view class="btn-row">
         <button class="btn-default" @click="step = 1">上一步</button>
+        <button class="btn-preview" :disabled="previewing" @click="openPreview">
+          {{ previewing ? '预览中...' : '预览' }}
+        </button>
         <button
-          class="btn-primary"
+          class="btn-primary btn-publish"
           :disabled="selectedAccountIds.length === 0 || publishing"
           @click="startPublish"
         >
@@ -138,13 +161,49 @@
         <button class="btn-default" @click="resetAll">重新发布</button>
       </view>
     </view>
+
+    <!-- 发布预览浮层 -->
+    <view v-if="previewVisible" class="preview-mask" @click="closePreview">
+      <view class="preview-panel" @click.stop>
+        <view class="preview-header">
+          <text class="preview-title">发布预览</text>
+          <text class="preview-close" @click="closePreview">✕</text>
+        </view>
+        <scroll-view scroll-y class="preview-list">
+          <view v-if="previewLoading" class="preview-empty">
+            <text class="empty-text">预览生成中...</text>
+          </view>
+          <view v-else-if="previewGroups.length === 0" class="preview-empty">
+            <text class="empty-text">暂无预览结果</text>
+          </view>
+          <view v-for="(group, gi) in previewGroups" :key="gi" class="preview-group">
+            <view class="preview-group-title">{{ group.articleTitle }}</view>
+            <view v-if="group.rows.length === 0" class="preview-empty">
+              <text class="empty-text">该文章暂无预览结果</text>
+            </view>
+            <view v-for="(row, ri) in group.rows" :key="ri" class="preview-item">
+              <view class="preview-item-head">
+                <text class="preview-account">{{ row.accountName || row.accountId }}</text>
+                <text class="preview-platform">{{ getPlatformName(row.platform) }}</text>
+              </view>
+              <view v-if="row.error" class="preview-error">{{ row.error }}</view>
+              <view v-else class="preview-body">
+                <view class="preview-line">标题：{{ row.adaptedTitle || '—' }}</view>
+                <view class="preview-line preview-content">{{ row.adaptedContentPreview || '—' }}</view>
+                <view class="preview-length">内容长度：{{ row.contentLength || 0 }}</view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { articleDraftApi, publishAccountApi, publishActionApi } from '../../../api/studio.js'
+import { articleDraftApi, publishAccountApi, publishActionApi, publishScheduleApi } from '../../../api/studio.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
 import TenantSelector from '../../../components/TenantSelector.vue'
@@ -170,6 +229,18 @@ const selectedAccountIds = ref([])
 
 // Step 3
 const publishResults = ref([])
+
+// 发布预览
+const previewVisible = ref(false)
+const previewing = ref(false)
+const previewLoading = ref(false)
+const previewGroups = ref([])
+
+// 预约发布
+const scheduleDate = ref('')
+const scheduleTime = ref('')
+const scheduleName = ref('')
+const scheduling = ref(false)
 
 const successCount = computed(() => publishResults.value.filter(r => r.success).length)
 const failCount = computed(() => publishResults.value.filter(r => !r.success).length)
@@ -266,6 +337,90 @@ function toggleAccount(id) {
     selectedAccountIds.value.splice(i, 1)
   } else {
     selectedAccountIds.value.push(id)
+  }
+}
+
+function validateSelection() {
+  if (selectedArticleIds.value.length === 0) {
+    uni.showToast({ title: '请先选择文章', icon: 'none' })
+    return false
+  }
+  if (selectedAccountIds.value.length === 0) {
+    uni.showToast({ title: '请至少选择一个发布账号', icon: 'none' })
+    return false
+  }
+  return true
+}
+
+async function openPreview() {
+  if (!validateSelection()) return
+  previewVisible.value = true
+  previewing.value = true
+  previewLoading.value = true
+  previewGroups.value = []
+  try {
+    for (const articleId of selectedArticleIds.value) {
+      const res = await publishActionApi.preview(articleId, selectedAccountIds.value)
+      const rows = Array.isArray(res) ? res : (res?.results || [])
+      previewGroups.value.push({
+        articleTitle: res?.articleTitle || articleId,
+        rows: rows || []
+      })
+    }
+    if (previewGroups.value.every(group => group.rows.length === 0)) {
+      uni.showToast({ title: '暂无预览结果', icon: 'none' })
+    }
+  } catch (e) {
+    uni.showToast({ title: e?.message || '预览失败', icon: 'none' })
+  } finally {
+    previewing.value = false
+    previewLoading.value = false
+  }
+}
+
+function closePreview() {
+  previewVisible.value = false
+}
+
+function onScheduleDateChange(e) {
+  scheduleDate.value = e.detail.value
+}
+
+function onScheduleTimeChange(e) {
+  scheduleTime.value = e.detail.value
+}
+
+async function createSchedule() {
+  if (!validateSelection()) return
+  if (!scheduleDate.value || !scheduleTime.value) {
+    uni.showToast({ title: '请选择晚于当前时间的预约时间', icon: 'none' })
+    return
+  }
+  const scheduledAt = new Date(`${scheduleDate.value}T${scheduleTime.value}:00`)
+  if (isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+    uni.showToast({ title: '请选择晚于当前时间的预约时间', icon: 'none' })
+    return
+  }
+  scheduling.value = true
+  try {
+    // 后端 createSchedule 一次只收一篇文章，多选时逐篇各建一条预约
+    const baseName = scheduleName.value.trim()
+    for (const articleId of selectedArticleIds.value) {
+      await publishScheduleApi.create({
+        articleId,
+        accountIds: selectedAccountIds.value,
+        scheduledAt: scheduledAt.toISOString(),
+        name: baseName || undefined
+      })
+    }
+    uni.showToast({ title: '已创建 ' + selectedArticleIds.value.length + ' 个预约', icon: 'success' })
+    scheduleDate.value = ''
+    scheduleTime.value = ''
+    scheduleName.value = ''
+  } catch (e) {
+    uni.showToast({ title: e?.message || '创建预约失败', icon: 'none' })
+  } finally {
+    scheduling.value = false
   }
 }
 
@@ -513,6 +668,168 @@ page {
   font-size: 30rpx;
   border-radius: 8rpx;
   border: none;
+  text-align: center;
+}
+.btn-preview {
+  flex: 1;
+  background: #e6f3ff;
+  color: #1989fa;
+  padding: 20rpx;
+  font-size: 30rpx;
+  border-radius: 8rpx;
+  border: none;
+  text-align: center;
+}
+.btn-preview[disabled] {
+  background: #f5f5f5;
+  color: #999;
+}
+.btn-publish {
+  flex: 2;
+}
+
+.schedule-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+.picker-item {
+  flex: 1;
+}
+.picker-value {
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: 28rpx;
+  color: #333;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+}
+.picker-value.is-placeholder {
+  color: #999;
+}
+.schedule-name-input {
+  height: 72rpx;
+  font-size: 28rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  margin-bottom: 16rpx;
+}
+.btn-schedule {
+  width: 100%;
+  background: #07c160;
+  color: #fff;
+  padding: 20rpx;
+  font-size: 30rpx;
+  border-radius: 8rpx;
+  border: none;
+  text-align: center;
+}
+.btn-schedule[disabled] {
+  background: #ccc;
+  color: #fff;
+}
+
+.preview-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.preview-panel {
+  width: 640rpx;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.preview-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+.preview-close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 0 10rpx;
+}
+.preview-list {
+  max-height: 66vh;
+  padding: 12rpx 24rpx 24rpx;
+  box-sizing: border-box;
+}
+.preview-group {
+  margin-bottom: 16rpx;
+}
+.preview-group-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #666;
+  padding: 12rpx 0;
+}
+.preview-item {
+  border: 1rpx solid #f0f0f0;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+}
+.preview-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.preview-account {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+.preview-platform {
+  font-size: 22rpx;
+  color: #1989fa;
+  background: #e6f3ff;
+  padding: 2rpx 12rpx;
+  border-radius: 4rpx;
+}
+.preview-error {
+  font-size: 24rpx;
+  color: #ff4d4f;
+}
+.preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.preview-line {
+  font-size: 24rpx;
+  color: #333;
+}
+.preview-content {
+  color: #666;
+  line-height: 1.5;
+}
+.preview-length {
+  font-size: 22rpx;
+  color: #999;
+}
+.preview-empty {
+  padding: 60rpx 0;
   text-align: center;
 }
 

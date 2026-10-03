@@ -543,6 +543,7 @@
     { "path": "pages/studio/publish-account/edit", "style": { "navigationBarTitleText": "编辑账号" } },
     { "path": "pages/studio/publish-record/list", "style": { "navigationBarTitleText": "发布记录" } },
     { "path": "pages/studio/publish-record/detail", "style": { "navigationBarTitleText": "发布记录详情" } },
+    { "path": "pages/studio/publish-schedule/list", "style": { "navigationBarTitleText": "定时发布" } },
     { "path": "pages/studio/stat-summary/list", "style": { "navigationBarTitleText": "统计汇总" } },
     { "path": "pages/studio/stat-summary/detail", "style": { "navigationBarTitleText": "统计详情" } },
     { "path": "pages/studio/browser-log/list", "style": { "navigationBarTitleText": "浏览日志" } },

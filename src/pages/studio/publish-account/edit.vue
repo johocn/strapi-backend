@@ -41,6 +41,27 @@
           <textarea v-model="form.config" placeholder='{"token":"","cookies":""}' class="form-textarea json-textarea" />
         </view>
       </view>
+
+      <view v-if="isEdit && showOauth" class="form-section">
+        <view class="section-title">OAuth 授权信息</view>
+
+        <view class="info-row">
+          <text class="info-label">授权状态</text>
+          <view class="data-status" :style="{ background: oauthStateInfo.color }">{{ oauthStateInfo.text }}</view>
+        </view>
+        <view class="info-row">
+          <text class="info-label">授权到期时间</text>
+          <text class="info-value">{{ oauthInfo.oauthExpiresAt ? formatDate(oauthInfo.oauthExpiresAt) : '-' }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">openId</text>
+          <text class="info-value">{{ oauthInfo.oauthOpenId || '-' }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">最近续期时间</text>
+          <text class="info-value">{{ oauthInfo.lastRefreshAt ? formatDate(oauthInfo.lastRefreshAt) : '-' }}</text>
+        </view>
+      </view>
     </scroll-view>
   </view>
 </template>
@@ -48,7 +69,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { publishAccountApi, publishPlatformApi } from '../../../api/studio.js'
+import { publishAccountApi, publishPlatformApi, publishOauthApi } from '../../../api/studio.js'
+import { formatDate } from '../../../utils/format.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
 
@@ -68,6 +90,35 @@ const form = ref({
   config: '',
   isActive: true
 })
+
+const OAUTH_PLATFORMS = ['wechat', 'douyin', 'xiaohongshu']
+
+const OAUTH_STATE_MAP = {
+  authorized: { text: '已授权', color: '#07c160' },
+  expired: { text: '已过期', color: '#faad14' },
+  revoked: { text: '已吊销', color: '#ff4d4f' },
+  unauthorized: { text: '未授权', color: '#999' }
+}
+
+const oauthInfo = ref(null)
+
+const oauthStateInfo = computed(() => OAUTH_STATE_MAP[oauthInfo.value?.oauthState] || OAUTH_STATE_MAP.unauthorized)
+
+const showOauth = computed(() => {
+  const type = oauthInfo.value?.platformType
+  const platformType = typeof type === 'string' ? type : (type?.type || '')
+  return !!oauthInfo.value && OAUTH_PLATFORMS.includes(platformType)
+})
+
+async function loadOauthStatus() {
+  if (!documentId.value) return
+  try {
+    const res = await publishOauthApi.status(documentId.value)
+    oauthInfo.value = res || null
+  } catch (e) {
+    oauthInfo.value = null
+  }
+}
 
 function handlePlatformChange(e) {
   platformIndex.value = e.detail.value
@@ -148,6 +199,7 @@ onLoad(async (options) => {
   if (options?.documentId) {
     documentId.value = options.documentId
     loadDetail()
+    loadOauthStatus()
   }
 })
 </script>
@@ -264,5 +316,29 @@ page {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.data-status {
+  padding: 4rpx 16rpx;
+  border-radius: 4rpx;
+  font-size: 22rpx;
+  color: #fff;
 }
 </style>

@@ -28,15 +28,23 @@
           <view class="data-title">{{ item.name }}</view>
           <view class="data-meta">
             <text class="meta-item">📦 平台：{{ getPlatformName(item.platform) }}</text>
+            <text v-if="item.oauthExpiresAt" class="meta-item">授权到期：{{ formatDate(item.oauthExpiresAt) }}</text>
           </view>
           <view class="data-footer">
-            <view class="data-status" :class="item.isActive ? 'active' : 'inactive'">{{ item.isActive ? '启用' : '停用' }}</view>
+            <view class="data-footer-left">
+              <view class="data-status" :class="item.isActive ? 'active' : 'inactive'">{{ item.isActive ? '启用' : '停用' }}</view>
+              <view class="data-status" :style="{ background: getOauthStateInfo(item).color }">{{ getOauthStateInfo(item).text }}</view>
+            </view>
             <text class="data-date">{{ item.lastPublishedAt || '' }}</text>
           </view>
         </view>
         <view class="data-actions">
           <view v-if="hasPermission('studio.publish-account.update')" class="action-btn edit" @click.stop="goEdit(item.documentId)">编辑</view>
           <view v-if="hasPermission('studio.publish-account.update')" class="action-btn delete" @click.stop="handleDelete(item)">删除</view>
+          <template v-if="hasPermission('studio.publish-account.update') && isOauthPlatform(item)">
+            <view class="action-btn oauth" @click.stop="handleAuthorize(item)">{{ item.oauthState === 'authorized' ? '重新授权' : '去授权' }}</view>
+            <view v-if="item.oauthState === 'authorized'" class="action-btn revoke" @click.stop="handleRevoke(item)">吊销</view>
+          </template>
         </view>
       </view>
     </view>
@@ -61,7 +69,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { publishAccountApi } from '../../../api/studio.js'
+import { publishAccountApi, publishOauthApi } from '../../../api/studio.js'
+import { formatDate } from '../../../utils/format.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
 
@@ -79,6 +88,64 @@ function getPlatformName(platform) {
   if (!platform) return '未绑定'
   if (typeof platform === 'string') return platform
   return platform.name || platform.documentId || '未命名'
+}
+
+const OAUTH_PLATFORMS = ['wechat', 'douyin', 'xiaohongshu']
+
+const OAUTH_STATE_MAP = {
+  authorized: { text: '已授权', color: '#07c160' },
+  expired: { text: '已过期', color: '#faad14' },
+  revoked: { text: '已吊销', color: '#ff4d4f' },
+  unauthorized: { text: '未授权', color: '#999' }
+}
+
+function isOauthPlatform(item) {
+  const platform = item?.platform
+  const type = typeof platform === 'string' ? platform : (platform?.type || '')
+  return OAUTH_PLATFORMS.includes(type)
+}
+
+function getOauthStateInfo(item) {
+  return OAUTH_STATE_MAP[item?.oauthState] || OAUTH_STATE_MAP.unauthorized
+}
+
+async function handleAuthorize(item) {
+  uni.showLoading({ title: '跳转中...' })
+  try {
+    const res = await publishOauthApi.authorizeUrl(item.documentId)
+    const url = res?.url
+    if (!url) {
+      uni.showToast({ title: '获取授权链接失败', icon: 'none' })
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.location.href = url
+    } else {
+      uni.showToast({ title: '请在浏览器中打开授权链接', icon: 'none' })
+    }
+  } catch (e) {
+    uni.showToast({ title: '获取授权链接失败', icon: 'none' })
+  } finally {
+    uni.hideLoading()
+  }
+}
+
+function handleRevoke(item) {
+  uni.showModal({
+    title: '确认吊销',
+    content: `确定要吊销账号「${item.name}」的授权吗？`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await publishOauthApi.revoke(item.documentId)
+          uni.showToast({ title: '已吊销', icon: 'success' })
+          loadData(currentPage.value)
+        } catch (e) {
+          uni.showToast({ title: '吊销失败', icon: 'none' })
+        }
+      }
+    }
+  })
 }
 
 async function loadData(page = 1) {
@@ -233,6 +300,12 @@ page {
   margin-top: 12rpx;
 }
 
+.data-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .data-status {
   padding: 4rpx 16rpx;
   border-radius: 4rpx;
@@ -263,6 +336,8 @@ page {
 
 .action-btn.edit { background: #f5f5f5; color: #1989fa; }
 .action-btn.delete { background: #fff0f0; color: #ff4d4f; }
+.action-btn.oauth { background: #e6f7ff; color: #1890ff; }
+.action-btn.revoke { background: #fff7e6; color: #fa8c16; }
 
 .loading, .empty-state {
   display: flex;

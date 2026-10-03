@@ -36,15 +36,22 @@
             <text class="meta-item">📢 {{ item.account?.name || '未知账号' }}</text>
             <text class="meta-item">🆔 {{ item.externalId || '无外部 ID' }}</text>
           </view>
+          <view class="data-meta" v-if="item.jobId || item.queueStage">
+            <text class="meta-item">🎯 阶段：{{ item.queueStage || '-' }}</text>
+          </view>
+          <view class="data-error" v-if="item.errorCode">
+            <text class="error-tag">{{ errorText(item.errorCode) }}</text>
+            <text class="error-msg">{{ item.error || '' }}</text>
+          </view>
           <view class="data-footer">
-            <view class="data-status" :class="item.status">{{ getStatusText(item.status) }}</view>
+            <view class="data-status" :class="statusClass(item.status)">{{ statusText(item.status) }}</view>
             <view class="data-date">{{ formatTime(item.publishedAt || item.createdAt) }}</view>
           </view>
         </view>
         <view class="data-actions">
           <view class="action-btn detail" @click.stop="goDetail(item.documentId)">详情</view>
           <view
-            v-if="item.status === 'failed'"
+            v-if="item.status === 'failed' && hasPermission('studio.publish-record.manage')"
             class="action-btn retry"
             @click.stop="handleRetry(item)"
           >重试</view>
@@ -74,22 +81,55 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { publishRecordApi, publishActionApi } from '../../../api/studio.js'
 import { formatDate } from '../../../utils/format.js'
+import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
+
+const userStore = useUserStore()
+const hasPermission = userStore.hasPermission
 
 const searchKeyword = ref('')
 const statusIndex = ref(0)
 
-const statusEnumList = ['', 'pending', 'success', 'failed']
-const statusLabelOptions = ['全部状态', '进行中', '成功', '失败']
-
-const statusMap = {
-  pending: '进行中',
+const STATUS_TEXT_MAP = {
+  pending: '待发布',
+  queued: '已入队',
+  validating: '校验中',
+  uploading_media: '上传媒体',
+  publishing: '发布中',
+  checking_status: '状态回查',
   success: '成功',
-  failed: '失败'
+  partial_success: '部分成功',
+  failed: '失败',
+  rejected: '审核拒绝'
 }
 
-function getStatusText(status) {
-  return statusMap[status] || status
+const STATUS_ORDER = [
+  'pending', 'queued', 'validating', 'uploading_media', 'publishing',
+  'checking_status', 'success', 'partial_success', 'failed', 'rejected'
+]
+
+const statusEnumList = ['', ...STATUS_ORDER]
+const statusLabelOptions = ['全部状态', ...STATUS_ORDER.map((s) => STATUS_TEXT_MAP[s])]
+
+const ERROR_TEXT_MAP = {
+  PUB_009: '账号授权已失效，请重新授权',
+  PUB_010: 'OAuth token 续期失败',
+  PUB_011: '平台限流',
+  PUB_012: '平台审核拒绝'
+}
+
+function statusText(status) {
+  if (!status) return '-'
+  return STATUS_TEXT_MAP[status] || status
+}
+
+function statusClass(status) {
+  return STATUS_TEXT_MAP[status] ? status : ''
+}
+
+function errorText(code) {
+  if (!code) return ''
+  return ERROR_TEXT_MAP[code] || code
 }
 
 function formatTime(t) {
@@ -142,14 +182,13 @@ async function handleRetry(item) {
     title: '确认重试',
     content: `确定要重试发布该记录吗？`,
     success: async (res) => {
-      if (res.confirm) {
-        try {
-          await publishActionApi.retryPublish(item.documentId)
-          uni.showToast({ title: '重试已触发', icon: 'success' })
-          loadData(currentPage.value)
-        } catch (e) {
-          uni.showToast({ title: '重试失败', icon: 'none' })
-        }
+      if (!res.confirm) return
+      try {
+        await publishActionApi.retryPublish(item.documentId)
+        uni.showToast({ title: '已重新入队', icon: 'success' })
+        loadData(currentPage.value)
+      } catch (e) {
+        uni.showToast({ title: e?.message || '重试失败', icon: 'none' })
       }
     }
   })
@@ -274,11 +313,44 @@ page {
   border-radius: 4rpx;
   font-size: 22rpx;
   color: #fff;
+  background: #999;
 }
 
-.data-status.pending { background: #faad14; }
+.data-status.pending { background: #999; }
+.data-status.queued,
+.data-status.validating,
+.data-status.uploading_media,
+.data-status.publishing,
+.data-status.checking_status { background: #1989fa; }
 .data-status.success { background: #07c160; }
-.data-status.failed { background: #ff4d4f; }
+.data-status.partial_success { background: #faad14; }
+.data-status.failed,
+.data-status.rejected { background: #ff4d4f; }
+
+.data-error {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.error-tag {
+  flex-shrink: 0;
+  padding: 2rpx 12rpx;
+  border-radius: 4rpx;
+  font-size: 22rpx;
+  color: #ff4d4f;
+  background: #fff0f0;
+}
+
+.error-msg {
+  flex: 1;
+  font-size: 22rpx;
+  color: #999;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .data-date {
   font-size: 22rpx;

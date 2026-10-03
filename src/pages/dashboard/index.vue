@@ -301,6 +301,10 @@
           <view class="module-icon">📑</view>
           <view class="module-name">发布记录</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.studio-publish')" @click="navigateTo('/pages/studio/publish-schedule/list')">
+          <view class="module-icon">⏰</view>
+          <view class="module-name">定时发布</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/analytics/index')">
           <view class="module-icon">📊</view>
           <view class="module-name">数据分析</view>
