@@ -16,9 +16,15 @@
         <text class="search-icon">🔍</text>
       </view>
       <view class="filter-row">
-        <picker mode="selector" :range="typeOptions" @change="handleTypeChange">
+        <picker mode="selector" :range="typeLabelOptions" @change="handleTypeChange">
           <view class="filter-item">
-            <text>{{ typeOptions[typeIndex] }}</text>
+            <text>{{ typeLabelOptions[typeIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="selector" :range="categoryLabelOptions" @change="handleCategoryChange">
+          <view class="filter-item">
+            <text>{{ categoryLabelOptions[categoryIndex] }}</text>
             <text class="arrow">▼</text>
           </view>
         </picker>
@@ -36,6 +42,7 @@
           <view class="data-title">{{ item.name }}</view>
           <view class="data-meta">
             <text class="meta-item">📦 {{ getTypeText(item.type) }}</text>
+            <text class="meta-item">🏷 {{ getCategoryText(item.category) }}</text>
             <text class="meta-item">{{ item.description || '无描述' }}</text>
           </view>
           <view class="data-footer">
@@ -78,8 +85,26 @@ const hasPermission = userStore.hasPermission
 
 const searchKeyword = ref('')
 const typeIndex = ref(0)
-const typeOptions = ['全部类型', '头条', '小红书', '微信', '自定义', '内部']
-const typeReverseMap = { 1: 'toutiao', 2: 'xiaohongshu', 3: 'wechat', 4: 'custom', 5: 'internal' }
+// 全部类型 + 11 种平台（对齐 publish-platform schema 的 type enum）
+const typeLabelOptions = ['全部类型', '头条', '小红书', '微信', '抖音', 'B站', '淘宝', '拼多多', '抖音电商', '京东', '自定义', '内部']
+// picker 索引 → type 字符串：index 0=全部类型（跳过过滤），1=头条，2=小红书...
+const typeReverseMap = {
+  1: 'toutiao',
+  2: 'xiaohongshu',
+  3: 'wechat',
+  4: 'douyin',
+  5: 'bilibili',
+  6: 'taobao',
+  7: 'pdd',
+  8: 'douyin-ecom',
+  9: 'jd',
+  10: 'custom',
+  11: 'internal',
+}
+
+const categoryLabelOptions = ['全部内容类', '内容', '社交', '电商', '自定义']
+const categoryReverseMap = { 1: 'content', 2: 'social', 3: 'ecommerce', 4: 'custom' }
+const categoryIndex = ref(0)
 
 const dataList = ref([])
 const pagination = ref({ page: 1, pageSize: 10, total: 0 })
@@ -90,12 +115,28 @@ const typeMap = {
   toutiao: '头条',
   xiaohongshu: '小红书',
   wechat: '微信',
+  douyin: '抖音',
+  bilibili: 'B站',
+  taobao: '淘宝',
+  pdd: '拼多多',
+  'douyin-ecom': '抖音电商',
+  jd: '京东',
   custom: '自定义',
-  internal: '内部'
+  internal: '内部',
+}
+
+const categoryMap = {
+  content: '内容',
+  social: '社交',
+  ecommerce: '电商',
+  custom: '自定义',
 }
 
 function getTypeText(type) {
   return typeMap[type] || type
+}
+function getCategoryText(c) {
+  return categoryMap[c] || c
 }
 
 async function loadData(page = 1) {
@@ -111,6 +152,9 @@ async function loadData(page = 1) {
     if (typeIndex.value > 0) {
       params['filters[type]'] = typeReverseMap[typeIndex.value]
     }
+    if (categoryIndex.value > 0) {
+      params['filters[category]'] = categoryReverseMap[categoryIndex.value]
+    }
     const { list, pagination: pg } = await publishPlatformApi.list(params)
     dataList.value = list
     pagination.value = pg
@@ -124,6 +168,11 @@ async function loadData(page = 1) {
 
 function handleTypeChange(e) {
   typeIndex.value = e.detail.value
+  loadData(1)
+}
+
+function handleCategoryChange(e) {
+  categoryIndex.value = e.detail.value
   loadData(1)
 }
 

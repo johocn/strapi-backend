@@ -25,6 +25,16 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">内容类</text>
+          <picker mode="selector" :range="categoryLabelOptions" :value="categoryValueIndex" @change="handleCategoryChange">
+            <view class="form-picker">
+              <text>{{ categoryLabelOptions[categoryValueIndex] }}</text>
+              <text class="arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-item">
           <text class="form-label">描述</text>
           <textarea v-model="form.description" placeholder="请输入平台描述" class="form-textarea" />
         </view>
@@ -51,12 +61,17 @@ const hasPermission = userStore.hasPermission
 const documentId = ref('')
 const isEdit = computed(() => !!documentId.value)
 
-const typeEnumList = ['toutiao', 'xiaohongshu', 'wechat', 'custom', 'internal']
-const typeLabelOptions = ['头条', '小红书', '微信', '自定义', '内部']
+// 11 种平台类型（对齐 publish-platform schema 的 type enum）
+const typeEnumList = ['toutiao', 'xiaohongshu', 'wechat', 'douyin', 'bilibili', 'taobao', 'pdd', 'douyin-ecom', 'jd', 'custom', 'internal']
+const typeLabelOptions = ['头条', '小红书', '微信', '抖音', 'B站', '淘宝', '拼多多', '抖音电商', '京东', '自定义', '内部']
+
+const categoryEnumList = ['content', 'social', 'ecommerce', 'custom']
+const categoryLabelOptions = ['内容', '社交', '电商', '自定义']
 
 const form = ref({
   name: '',
   type: 'toutiao',
+  category: 'content',
   description: '',
   isActive: true
 })
@@ -66,8 +81,17 @@ const typeValueIndex = computed(() => {
   return idx >= 0 ? idx : 0
 })
 
+const categoryValueIndex = computed(() => {
+  const idx = categoryEnumList.indexOf(form.value.category)
+  return idx >= 0 ? idx : 0
+})
+
 function handleTypeChange(e) {
   form.value.type = typeEnumList[e.detail.value]
+}
+
+function handleCategoryChange(e) {
+  form.value.category = categoryEnumList[e.detail.value]
 }
 
 function goBack() {

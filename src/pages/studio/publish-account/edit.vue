@@ -34,12 +34,48 @@
       </view>
 
       <view class="form-section">
-        <view class="section-title">配置</view>
+        <view class="section-title">账号配置</view>
 
-        <view class="form-item">
-          <text class="form-label">配置 (JSON)</text>
-          <textarea v-model="form.config" placeholder='{"token":"","cookies":""}' class="form-textarea json-textarea" />
-        </view>
+        <!-- wechat 平台：结构化表单 -->
+        <template v-if="showWechatConfig">
+          <view
+            v-for="f in wechatConfigFields"
+            :key="f.key"
+            class="form-item"
+          >
+            <text class="form-label">{{ f.label }}</text>
+            <input
+              :type="f.secret ? 'password' : 'text'"
+              :value="getConfigField(f.key)"
+              :placeholder="'请输入' + f.label"
+              class="form-input"
+              @input="(e) => setConfigField(f.key, e.detail.value)"
+            />
+          </view>
+        </template>
+
+        <!-- 其它平台：JSON 文本兜底（config 是对象，stringify 显示、parse 保存） -->
+        <template v-else-if="showRawJsonFallback">
+          <view class="form-item">
+            <text class="form-label">配置 (JSON)</text>
+            <textarea
+              :value="typeof form.config === 'object' ? JSON.stringify(form.config, null, 2) : (form.config || '')"
+              @blur="(e) => {
+                try {
+                  const parsed = JSON.parse(e.detail.value);
+                  form.config = parsed;
+                  uni.showToast({ title: 'JSON 已解析', icon: 'none' });
+                } catch (err) {
+                  uni.showToast({ title: 'JSON 格式有误', icon: 'none' });
+                }
+              }"
+              placeholder='{"key":"value"}'
+              class="form-textarea json-textarea"
+            />
+          </view>
+        </template>
+
+        <!-- 未选平台时不显示 config 区 -->
       </view>
 
       <view v-if="isEdit && showOauth" class="form-section">
@@ -87,7 +123,7 @@ const platformOptions = computed(() => platformList.value.map(p => p.name || p.d
 const form = ref({
   name: '',
   platformId: '',
-  config: '',
+  config: {},
   isActive: true
 })
 
@@ -103,6 +139,38 @@ const OAUTH_STATE_MAP = {
 const oauthInfo = ref(null)
 
 const oauthStateInfo = computed(() => OAUTH_STATE_MAP[oauthInfo.value?.oauthState] || OAUTH_STATE_MAP.unauthorized)
+
+// 当前选中平台的 type（用于动态显示 config 字段）
+const currentPlatformType = computed(() => {
+  const p = platformList.value[platformIndex.value]
+  return p?.type || ''
+})
+
+// wechat 平台结构化 config 字段
+const wechatConfigFields = [
+  { key: 'appId', label: 'App ID' },
+  { key: 'appSecret', label: 'App Secret', secret: true },
+  { key: 'serverToken', label: 'Server Token', secret: true },
+  { key: 'encodingAESKey', label: 'EncodingAESKey', secret: true },
+  { key: 'mediaId', label: '永久素材 Media ID' },
+]
+
+const showWechatConfig = computed(() => currentPlatformType.value === 'wechat')
+// rpa 平台暂时保留 JSON fallback（无明确结构化字段）
+const showRawJsonFallback = computed(() => {
+  const t = currentPlatformType.value
+  return !showWechatConfig.value && t // 有选中平台但非 wechat
+})
+
+function getConfigField(key) {
+  return form.value.config?.[key] ?? ''
+}
+function setConfigField(key, val) {
+  const cfg = { ...(form.value.config || {}) }
+  if (val === '' || val == null) delete cfg[key]
+  else cfg[key] = val
+  form.value.config = cfg
+}
 
 const showOauth = computed(() => {
   const type = oauthInfo.value?.platformType
@@ -153,7 +221,7 @@ async function loadDetail() {
       form.value = {
         name: item.name || '',
         platformId,
-        config: typeof item.config === 'string' ? item.config : JSON.stringify(item.config || '', null, 2),
+        config: item.config && typeof item.config === 'object' ? { ...item.config } : {},
         isActive: item.isActive !== false
       }
       if (platformId && platformList.value.length) {

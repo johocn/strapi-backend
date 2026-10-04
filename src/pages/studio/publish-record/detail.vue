@@ -18,6 +18,10 @@
           <text class="detail-value">{{ detail.account?.name || '-' }}</text>
         </view>
         <view class="detail-row">
+          <text class="detail-label">所属平台</text>
+          <text class="detail-value">{{ detail.account?.platform?.name || '-' }}</text>
+        </view>
+        <view class="detail-row">
           <text class="detail-label">外部 ID</text>
           <text class="detail-value">{{ detail.externalId || '-' }}</text>
         </view>
@@ -73,6 +77,15 @@
           <text class="error-text">{{ detail.error }}</text>
         </view>
       </view>
+
+      <view
+        v-if="detail.status === 'failed' || detail.status === 'rejected'"
+        class="retry-wrap"
+      >
+        <button class="btn-primary" :disabled="retrying" @click="handleRetry">
+          {{ retrying ? '重试中...' : '重新发布' }}
+        </button>
+      </view>
     </scroll-view>
   </view>
 </template>
@@ -80,13 +93,14 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { publishRecordApi } from '../../../api/studio.js'
+import { publishRecordApi, publishActionApi } from '../../../api/studio.js'
 import { formatDate } from '../../../utils/format.js'
 import PageHeader from '../../../components/PageHeader.vue'
 
 const documentId = ref('')
 const detail = ref({})
 const loading = ref(false)
+const retrying = ref(false)
 
 const STATUS_TEXT_MAP = {
   pending: '待发布',
@@ -136,6 +150,22 @@ async function loadDetail() {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
+  }
+}
+
+async function handleRetry() {
+  if (retrying.value) return
+  retrying.value = true
+  uni.showLoading({ title: '重试中...' })
+  try {
+    await publishActionApi.retryPublish(documentId.value)
+    uni.showToast({ title: '已重新入队', icon: 'success' })
+    loadDetail()
+  } catch (e) {
+    uni.showToast({ title: e?.message || '重试失败', icon: 'none' })
+  } finally {
+    retrying.value = false
+    uni.hideLoading()
   }
 }
 
