@@ -14,6 +14,18 @@
         <text class="search-icon">🔍</text>
       </view>
       <view class="filter-row">
+        <picker mode="selector" :range="contentTypeOptions" @change="handleContentTypeChange">
+          <view class="filter-item">
+            <text>{{ contentTypeOptions[contentTypeIndex] }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="selector" :range="platformLabelOptions" @change="handlePlatformChange">
+          <view class="filter-item">
+            <text>{{ platformLabelOptions[platformIndex] || '全部平台' }}</text>
+            <text class="arrow">▼</text>
+          </view>
+        </picker>
         <picker mode="selector" :range="statusLabelOptions" @change="handleStatusChange">
           <view class="filter-item">
             <text>{{ statusLabelOptions[statusIndex] }}</text>
@@ -31,7 +43,7 @@
         @click="goDetail(item.documentId)"
       >
         <view class="data-info">
-          <view class="data-title">{{ item.article?.title || '未知文章' }}</view>
+          <view class="data-title">{{ getContentTitle(item) }}</view>
           <view class="data-meta">
             <text class="meta-item">📢 {{ item.account?.name || '未知账号' }}</text>
             <text class="meta-item">🆔 {{ item.externalId || '无外部 ID' }}</text>
@@ -51,7 +63,7 @@
         <view class="data-actions">
           <view class="action-btn detail" @click.stop="goDetail(item.documentId)">详情</view>
           <view
-            v-if="item.status === 'failed' && hasPermission('studio.publish-record.manage')"
+            v-if="['failed','rejected','partial_success'].includes(item.status) && hasPermission('studio.publish-record.manage')"
             class="action-btn retry"
             @click.stop="handleRetry(item)"
           >重试</view>
@@ -79,7 +91,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { publishRecordApi, publishActionApi } from '../../../api/studio.js'
+import { publishRecordApi, publishActionApi, publishPlatformApi } from '../../../api/studio.js'
 import { formatDate } from '../../../utils/format.js'
 import { useUserStore } from '../../../store/user.js'
 import PageHeader from '../../../components/PageHeader.vue'
@@ -89,6 +101,14 @@ const hasPermission = userStore.hasPermission
 
 const searchKeyword = ref('')
 const statusIndex = ref(0)
+
+const contentTypeOptions = ['全部内容', '短视频', '图集', '文章']
+const contentTypeValues = ['', 'video', 'gallery', 'article']
+const contentTypeIndex = ref(0)
+
+const platformList = ref([])
+const platformIndex = ref(0)
+const platformLabelOptions = ref(['全部平台'])
 
 const STATUS_TEXT_MAP = {
   pending: '待发布',
@@ -136,6 +156,13 @@ function formatTime(t) {
   return t ? formatDate(t) : '-'
 }
 
+function getContentTitle(item) {
+  if (item.video) return `🎬 ${item.video.title || item.video.documentId || '-'}`
+  if (item.gallery) return `🖼️ ${item.gallery.title || item.gallery.documentId || '-'}`
+  if (item.article) return `📝 ${item.article.title || item.article.documentId || '-'}`
+  return '未知内容'
+}
+
 const dataList = ref([])
 const pagination = ref({ page: 1, pageSize: 10, total: 0 })
 const currentPage = ref(1)
@@ -149,13 +176,23 @@ async function loadData(page = 1) {
     const params = {
       'pagination[page]': page,
       'pagination[pageSize]': 10,
-      'populate': 'article,account'
+      'populate': 'article,video,gallery,account'
     }
     if (searchKeyword.value) {
       params['filters[externalId][$contains]'] = searchKeyword.value
     }
     if (statusIndex.value > 0) {
       params['filters[status]'] = statusEnumList[statusIndex.value]
+    }
+    if (platformIndex.value > 0) {
+      const platform = platformList.value[platformIndex.value - 1]
+      if (platform) {
+        params['filters[account][platform][documentId]'] = platform.documentId
+      }
+    }
+    const ctVal = contentTypeValues[contentTypeIndex.value]
+    if (ctVal) {
+      params['contentType'] = ctVal
     }
     const { list, pagination: pg } = await publishRecordApi.list(params)
     dataList.value = list
@@ -171,6 +208,21 @@ async function loadData(page = 1) {
 function handleStatusChange(e) {
   statusIndex.value = e.detail.value
   loadData(1)
+}
+
+function handlePlatformChange(e) {
+  platformIndex.value = e.detail.value
+  loadData(1)
+}
+
+async function fetchPlatforms() {
+  try {
+    const { list } = await publishPlatformApi.list({ 'pagination[pageSize]': 100 })
+    platformList.value = list
+    platformLabelOptions.value = ['全部平台', ...list.map((p) => p.name || p.documentId)]
+  } catch (e) {
+    // 平台列表加载失败不影响主流程
+  }
 }
 
 function goDetail(id) {
@@ -202,7 +254,8 @@ function nextPage() {
   if (currentPage.value < totalPages.value) loadData(currentPage.value + 1)
 }
 
-onShow(() => {
+onShow(async () => {
+  await fetchPlatforms()
   loadData(1)
 })
 </script>
