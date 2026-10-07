@@ -321,6 +321,10 @@
           <view class="module-icon">📈</view>
           <view class="module-name">统计汇总</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/channel-report/index')">
+          <view class="module-icon">🏆</view>
+          <view class="module-name">渠道报表</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/browser-log/list')">
           <view class="module-icon">👁️</view>
           <view class="module-name">浏览日志</view>

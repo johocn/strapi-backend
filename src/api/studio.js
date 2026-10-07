@@ -19,6 +19,8 @@ export const collectTaskApi = createContentApi('tasks')
 export const publishPlatformApi = createContentApi('platforms')
 export const publishAccountApi = createContentApi('accounts')
 export const publishRecordApi = createContentApi('records')
+export const publishVideoApi = createContentApi('publish-videos')
+export const publishGalleryApi = createContentApi('publish-galleries')
 export const statSummaryApi = createContentApi('stat-summaries')
 export const browserLogApi = createContentApi('browser-logs')
 export const adSlotApi = createContentApi('ad-slots')
@@ -88,4 +90,10 @@ export const statsApi = {
   devices: (params) => get(`${ADMIN_BASE}/stats/devices`, params).then(extractItem),
   regions: (params) => get(`${ADMIN_BASE}/stats/regions`, params).then(extractItem),
   users: (params) => get(`${ADMIN_BASE}/stats/users`, params).then(extractItem),
+}
+
+// 渠道报表（A/B 文案效果对比）
+export const channelReportApi = {
+  channels: (params = {}) => get(`${ADMIN_BASE}/channels`, { pageSize: 100, ...params }).then(extractList),
+  report: (params) => get(`${ADMIN_BASE}/channel-report`, params).then(extractItem),
 }
