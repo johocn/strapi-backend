@@ -52,6 +52,18 @@ def main():
         print("[2] after login:", page.url[:80])
         page.screenshot(path=f"{OUT}/01-login-dashboard.png")
 
+        # 2.5 dashboard 滚到底部截「消消乐运营」专区
+        try:
+            page.mouse.wheel(0, 20000)
+            page.wait_for_timeout(1500)
+            section = page.locator("text=消消乐运营").first
+            section.scroll_into_view_if_needed(timeout=3000)
+            page.wait_for_timeout(800)
+            page.screenshot(path=f"{OUT}/03-xxl-ops-section.png")
+            print("[2.5] xxl-ops section captured")
+        except Exception as e:
+            print("[2.5] section scroll skipped:", e)
+
         # 2. 进入邀请漏斗
         page.goto(f"{BASE}/#/pages/sso/invite-funnel/list", wait_until="domcontentloaded")
         page.wait_for_timeout(4000)

@@ -711,6 +711,29 @@
           <view class="module-name">手动SOP待办</view>
         </view>
       </view>
+
+      <!-- 消消乐运营专区：分享 A/B 测试观察期一站式查询 -->
+      <view class="module-section" v-if="hasPermission('menu.sso-invite') || hasPermission('menu.studio-stats')">
+        <view class="section-title">🎮 消消乐运营</view>
+        <view class="module-grid">
+          <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/channel-report/index')">
+            <view class="module-icon">📊</view>
+            <view class="module-name">A/B 渠道报表</view>
+          </view>
+          <view class="module-item" v-if="hasPermission('menu.sso-invite')" @click="navigateTo('/pages/sso/invite-funnel/list')">
+            <view class="module-icon">📈</view>
+            <view class="module-name">邀请漏斗</view>
+          </view>
+          <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/browser-log/list')">
+            <view class="module-icon">🔍</view>
+            <view class="module-name">浏览日志</view>
+          </view>
+          <view class="module-item" v-if="hasPermission('menu.studio-stats')" @click="navigateTo('/pages/studio/stat-summary/list')">
+            <view class="module-icon">🧮</view>
+            <view class="module-name">统计汇总</view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 公众号运营 -->

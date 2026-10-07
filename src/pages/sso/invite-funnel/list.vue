@@ -6,6 +6,15 @@
       <picker :range="appOptions" @change="onAppChange">
         <view class="filter-select">应用：{{ appLabel }} ▾</view>
       </picker>
+      <view class="range-group">
+        <view
+          v-for="opt in rangeOptions"
+          :key="opt.value"
+          class="range-btn"
+          :class="{ active: rangeValue === opt.value }"
+          @click="onRangeChange(opt.value)"
+        >{{ opt.label }}</view>
+      </view>
     </view>
 
     <view class="summary-bar">
@@ -21,6 +30,19 @@
         <view class="sum-num">{{ fmtRate(summary.conversionRate) }}</view>
         <view class="sum-label">打开→注册</view>
       </view>
+    </view>
+
+    <view v-if="daily.length > 0" class="daily-block">
+      <view class="daily-title">按日趋势</view>
+      <view v-for="d in daily" :key="d.date" class="daily-row">
+        <text class="daily-date">{{ d.date.slice(5) }}</text>
+        <view class="daily-bars">
+          <view class="daily-bar opens"><view class="daily-fill opens" :style="{ width: dayWidth(d, 'opens') + '%' }"></view></view>
+          <view class="daily-bar regs"><view class="daily-fill regs" :style="{ width: dayWidth(d, 'registers') + '%' }"></view></view>
+        </view>
+        <text class="daily-nums">{{ d.opens }} / {{ d.registers }}</text>
+      </view>
+      <view class="daily-legend"><text class="lg opens">■ 打开</text><text class="lg regs">■ 注册</text></view>
     </view>
 
     <view class="funnel-table">
@@ -64,8 +86,15 @@ import PageHeader from '../../../components/PageHeader.vue'
 const loading = ref(false)
 const summary = ref({ totalOpens: 0, totalRegisters: 0, conversionRate: null, lastOpenAt: null })
 const rows = ref([])
+const daily = ref([])
 const appCode = ref('')
 const apps = ref([])
+const rangeValue = ref('all')
+const rangeOptions = [
+  { label: '近7天', value: '7' },
+  { label: '近30天', value: '30' },
+  { label: '全部', value: 'all' },
+]
 
 const appOptions = computed(() => ['全部', ...apps.value.map((a) => a.app_code)])
 const appLabel = computed(() => appCode.value || '全部')
@@ -92,12 +121,34 @@ async function loadApps() {
   } catch (e) { /* 筛选不可用时保持仅「全部」 */ }
 }
 
+function onRangeChange(v) {
+  rangeValue.value = v
+  loadData()
+}
+
+function dateParams() {
+  if (rangeValue.value === 'all') return {}
+  const days = Number(rangeValue.value)
+  const end = new Date()
+  const start = new Date(Date.now() - (days - 1) * 86400000)
+  const fmt = (d) => d.toISOString().slice(0, 10)
+  return { startDate: fmt(start), endDate: fmt(end) }
+}
+
+function dayWidth(d, key) {
+  const max = Math.max(...daily.value.map((x) => Math.max(x.opens, x.registers)), 1)
+  return (d[key] / max) * 100
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const data = await ssoInviteCodeApi.funnel(appCode.value ? { appCode: appCode.value } : {})
+    const params = { ...dateParams() }
+    if (appCode.value) params.appCode = appCode.value
+    const data = await ssoInviteCodeApi.funnel(params)
     summary.value = data?.summary || { totalOpens: 0, totalRegisters: 0, conversionRate: null }
     rows.value = data?.rows || []
+    daily.value = data?.daily || []
   } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -122,6 +173,9 @@ page {
 }
 
 .filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
   margin-bottom: 20rpx;
 }
 .filter-select {
@@ -131,6 +185,84 @@ page {
   padding: 14rpx 24rpx;
   font-size: 26rpx;
   color: #666;
+}
+.range-group {
+  margin-left: auto;
+  display: flex;
+  gap: 8rpx;
+}
+.range-btn {
+  font-size: 22rpx;
+  color: #666;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 10rpx 16rpx;
+}
+.range-btn.active {
+  color: #fff;
+  background: #07c160;
+}
+
+.daily-block {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+.daily-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+.daily-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.daily-date {
+  width: 84rpx;
+  font-size: 22rpx;
+  color: #999;
+}
+.daily-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.daily-bar {
+  height: 12rpx;
+  background: #f5f5f5;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+.daily-fill.opens {
+  height: 100%;
+  background: #3b82f6;
+}
+.daily-fill.regs {
+  height: 100%;
+  background: #07c160;
+}
+.daily-nums {
+  width: 90rpx;
+  text-align: right;
+  font-size: 22rpx;
+  color: #333;
+}
+.daily-legend {
+  display: flex;
+  gap: 24rpx;
+  font-size: 20rpx;
+  color: #999;
+}
+.daily-legend .lg.opens {
+  color: #3b82f6;
+}
+.daily-legend .lg.regs {
+  color: #07c160;
 }
 
 .summary-bar {
