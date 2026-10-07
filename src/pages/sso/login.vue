@@ -114,6 +114,41 @@ onLoad((options) => {
   if (!returnUrl.value) {
     uni.showToast({ title: '缺少 return_url 参数', icon: 'none' })
   }
+
+  // 邀请链接打开埋点：带 invite_code 打开 SSO 登录页时上报
+  // （zhao-studio browser_logs，eventType='invite-view'，每会话每码去重），
+  // 用于统计每码「打开 → 注册」漏斗；失败静默不影响登录流程
+  if (inviteCode.value) {
+    try {
+      // #ifdef H5
+      const dedupeKey = `invite_view_${appCode.value || ''}_${inviteCode.value}`
+      if (!sessionStorage.getItem(dedupeKey)) {
+        sessionStorage.setItem(dedupeKey, '1')
+        let sid = sessionStorage.getItem('sso_session_id') || ''
+        if (!sid) {
+          sid = `sso_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+          sessionStorage.setItem('sso_session_id', sid)
+        }
+        fetch('/api/zhao-studio/v1/analytics/invite-view', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: {
+              inviteCode: inviteCode.value,
+              appCode: appCode.value || '',
+              sessionId: sid,
+              userAgent: navigator.userAgent || '',
+              referrer: document.referrer || '',
+              screen: { width: (window.screen || {}).width || 0, height: (window.screen || {}).height || 0 },
+              language: navigator.language || '',
+            },
+          }),
+        }).catch(() => {})
+      }
+      // #endif
+    } catch (e) { /* 埋点失败不影响登录 */ }
+  }
 })
 
 // 判断微信浏览器环境（与 strapi-course/utils/env.ts 的 isWechatBrowser 逻辑一致）
