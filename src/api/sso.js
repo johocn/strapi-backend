@@ -127,6 +127,8 @@ export const ssoUserRoleApi = {
 
 export const ssoInviteCodeApi = {
   list: (params = {}) => get(`${ADMIN}/invite-codes`, params).then(extractList),
+  // 邀请漏斗聚合：每码「打开数 → 注册数」+ 转化率，支持 { appCode } 过滤
+  funnel: (params = {}) => get(`${ADMIN}/invite-funnel`, params).then(extractItem),
   create: (data) => post(`${ADMIN}/invite-codes`, { data }).then(extractItem),
   delete: (id) => del(`${ADMIN}/invite-codes/${id}`).then(extractItem),
   validate: (id) => post(`${ADMIN}/invite-codes/${id}/validate`).then(extractItem),

@@ -678,6 +678,10 @@
           <view class="module-icon">📝</view>
           <view class="module-name">邀请记录</view>
         </view>
+        <view class="module-item" v-if="hasPermission('menu.sso-invite')" @click="navigateTo('/pages/sso/invite-funnel/list')">
+          <view class="module-icon">📈</view>
+          <view class="module-name">邀请漏斗</view>
+        </view>
         <view class="module-item" v-if="hasPermission('menu.sso-invite')" @click="navigateTo('/pages/sso/referral/list')">
           <view class="module-icon">🤝</view>
           <view class="module-name">推荐关系</view>
